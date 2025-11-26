@@ -1,0 +1,302 @@
+# Pool Heating Package
+# Copy this file to /config/packages/pool_heating.yaml
+
+# ============================================
+# INPUT HELPERS
+# ============================================
+
+input_boolean:
+  pool_heating_enabled:
+    name: "Pool Heating Enabled"
+    icon: mdi:pool-thermometer
+
+input_datetime:
+  pool_heat_slot_1:
+    name: "Pool Heating Slot 1"
+    has_date: true
+    has_time: true
+    icon: mdi:clock-start
+  pool_heat_slot_2:
+    name: "Pool Heating Slot 2"
+    has_date: true
+    has_time: true
+    icon: mdi:clock-start
+
+input_number:
+  pool_heat_slot_1_price:
+    name: "Slot 1 Price"
+    min: -50
+    max: 500
+    step: 0.01
+    unit_of_measurement: "c/kWh"
+    icon: mdi:currency-eur
+  pool_heat_slot_2_price:
+    name: "Slot 2 Price"
+    min: -50
+    max: 500
+    step: 0.01
+    unit_of_measurement: "c/kWh"
+    icon: mdi:currency-eur
+  pool_target_temperature:
+    name: "Pool Target Temperature"
+    min: 20
+    max: 35
+    step: 0.5
+    unit_of_measurement: "°C"
+    icon: mdi:thermometer
+
+input_text:
+  pool_heating_schedule_info:
+    name: "Schedule Info"
+    max: 255
+    icon: mdi:information
+
+# ============================================
+# MODBUS CONFIGURATION - THERMIA
+# ============================================
+
+modbus:
+  - name: thermia
+    type: tcp
+    host: !secret thermia_host
+    port: !secret thermia_port
+    delay: 0.15
+    timeout: 5
+    sensors:
+      # Supply line (water going to heating system)
+      - name: "Thermia Supply Temperature"
+        address: 4  # Verify from Thermia documentation
+        input_type: input
+        unit_of_measurement: "°C"
+        device_class: temperature
+        scale: 0.01
+        precision: 1
+        scan_interval: 60
+
+      # Return line (water coming back)
+      - name: "Thermia Return Temperature"
+        address: 5  # Verify from Thermia documentation
+        input_type: input
+        unit_of_measurement: "°C"
+        device_class: temperature
+        scale: 0.01
+        precision: 1
+        scan_interval: 60
+
+      # Outdoor temperature
+      - name: "Thermia Outdoor Temperature"
+        address: 0  # Verify from Thermia documentation
+        input_type: input
+        unit_of_measurement: "°C"
+        device_class: temperature
+        scale: 0.01
+        precision: 1
+        scan_interval: 300
+
+      # Compressor status
+      - name: "Thermia Compressor Speed"
+        address: 15  # Verify from Thermia documentation
+        input_type: input
+        unit_of_measurement: "%"
+        scale: 1
+        precision: 0
+        scan_interval: 60
+
+# ============================================
+# TEMPLATE SENSORS
+# ============================================
+
+template:
+  - sensor:
+      # Temperature difference (delta-T) for energy calculation
+      - name: "Pool Heat Exchanger Delta T"
+        unique_id: pool_heat_exchanger_delta_t
+        unit_of_measurement: "°C"
+        device_class: temperature
+        state: >
+          {% set supply = states('sensor.thermia_supply_temperature') | float(0) %}
+          {% set return = states('sensor.thermia_return_temperature') | float(0) %}
+          {{ (supply - return) | round(1) }}
+        availability: >
+          {{ states('sensor.thermia_supply_temperature') not in ['unknown', 'unavailable'] and
+             states('sensor.thermia_return_temperature') not in ['unknown', 'unavailable'] }}
+
+      # Next scheduled heating time
+      - name: "Pool Next Heating"
+        unique_id: pool_next_heating
+        device_class: timestamp
+        state: >
+          {% set slot1 = states('input_datetime.pool_heat_slot_1') %}
+          {% set slot2 = states('input_datetime.pool_heat_slot_2') %}
+          {% set now = now() %}
+          {% if as_datetime(slot1) > now %}
+            {{ slot1 }}
+          {% elif as_datetime(slot2) > now %}
+            {{ slot2 }}
+          {% else %}
+            unknown
+          {% endif %}
+
+      # Current electricity price
+      - name: "Current Nordpool Price"
+        unique_id: current_nordpool_price
+        unit_of_measurement: "c/kWh"
+        state: >
+          {{ states('sensor.nordpool_kwh_fi_eur_3_10_024') | float(0) * 100 }}
+
+      # Average price for heating slots
+      - name: "Pool Heating Average Price"
+        unique_id: pool_heating_avg_price
+        unit_of_measurement: "c/kWh"
+        state: >
+          {% set p1 = states('input_number.pool_heat_slot_1_price') | float(0) %}
+          {% set p2 = states('input_number.pool_heat_slot_2_price') | float(0) %}
+          {{ ((p1 + p2) / 2) | round(2) }}
+
+  - binary_sensor:
+      # Is pool currently heating
+      - name: "Pool Heating Active"
+        unique_id: pool_heating_active
+        device_class: running
+        state: >
+          {{ is_state('switch.shelly_pool_heating', 'on') }}
+
+      # Are tomorrow's prices available
+      - name: "Nordpool Tomorrow Available"
+        unique_id: nordpool_tomorrow_available
+        state: >
+          {{ state_attr('sensor.nordpool_kwh_fi_eur_3_10_024', 'tomorrow_valid') | default(false) }}
+
+# ============================================
+# AUTOMATIONS
+# ============================================
+
+automation:
+  # Calculate schedule when tomorrow's prices become available
+  - id: pool_calculate_heating_schedule
+    alias: "Pool: Calculate Heating Schedule"
+    description: "Calculate best heating slots when Nordpool tomorrow prices available"
+    trigger:
+      - platform: state
+        entity_id: binary_sensor.nordpool_tomorrow_available
+        to: "on"
+    condition:
+      - condition: state
+        entity_id: input_boolean.pool_heating_enabled
+        state: "on"
+    action:
+      - service: pyscript.calculate_pool_heating_slots
+      - service: notify.persistent_notification
+        data:
+          title: "Pool Heating Schedule"
+          message: >
+            Scheduled for {{ states('input_datetime.pool_heat_slot_1') }}
+            ({{ states('input_number.pool_heat_slot_1_price') }} c/kWh) and
+            {{ states('input_datetime.pool_heat_slot_2') }}
+            ({{ states('input_number.pool_heat_slot_2_price') }} c/kWh)
+
+  # Start heating at scheduled time (Slot 1)
+  - id: pool_start_heating_slot_1
+    alias: "Pool: Start Heating Slot 1"
+    trigger:
+      - platform: time
+        at: input_datetime.pool_heat_slot_1
+    condition:
+      - condition: state
+        entity_id: input_boolean.pool_heating_enabled
+        state: "on"
+      - condition: template
+        value_template: >
+          {{ as_datetime(states('input_datetime.pool_heat_slot_1')).date() == now().date() or
+             (as_datetime(states('input_datetime.pool_heat_slot_1')).date() == (now() - timedelta(days=1)).date() and now().hour < 7) }}
+    action:
+      - service: script.pool_heating_start
+
+  # Start heating at scheduled time (Slot 2)
+  - id: pool_start_heating_slot_2
+    alias: "Pool: Start Heating Slot 2"
+    trigger:
+      - platform: time
+        at: input_datetime.pool_heat_slot_2
+    condition:
+      - condition: state
+        entity_id: input_boolean.pool_heating_enabled
+        state: "on"
+      - condition: template
+        value_template: >
+          {{ as_datetime(states('input_datetime.pool_heat_slot_2')).date() == now().date() or
+             (as_datetime(states('input_datetime.pool_heat_slot_2')).date() == (now() - timedelta(days=1)).date() and now().hour < 7) }}
+    action:
+      - service: script.pool_heating_start
+
+  # Log temperature data during heating
+  - id: pool_log_temperatures
+    alias: "Pool: Log Temperatures During Heating"
+    trigger:
+      - platform: time_pattern
+        minutes: "/5"  # Every 5 minutes
+    condition:
+      - condition: state
+        entity_id: binary_sensor.pool_heating_active
+        state: "on"
+    action:
+      - service: pyscript.log_pool_temperatures
+
+# ============================================
+# SCRIPTS
+# ============================================
+
+script:
+  pool_heating_start:
+    alias: "Pool Heating Start"
+    sequence:
+      - service: pyscript.log_heating_start
+      # Turn on pool heating
+      - service: switch.turn_on
+        target:
+          entity_id: switch.shelly_pool_heating
+      # Wait 55 minutes (leaving 5 min buffer)
+      - delay:
+          minutes: 55
+      # Turn off heating
+      - service: switch.turn_off
+        target:
+          entity_id: switch.shelly_pool_heating
+      # Log session end
+      - service: pyscript.log_heating_end
+
+  pool_heating_stop:
+    alias: "Pool Heating Stop"
+    sequence:
+      - service: switch.turn_off
+        target:
+          entity_id: switch.shelly_pool_heating
+      - service: pyscript.log_heating_end
+
+  pool_heating_manual_start:
+    alias: "Pool Heating Manual Start (1 hour)"
+    sequence:
+      - service: switch.turn_on
+        target:
+          entity_id: switch.shelly_pool_heating
+      - delay:
+          minutes: 55
+      - service: switch.turn_off
+        target:
+          entity_id: switch.shelly_pool_heating
+
+# ============================================
+# RECORDER - Ensure important data is logged
+# ============================================
+
+recorder:
+  include:
+    entities:
+      - sensor.thermia_supply_temperature
+      - sensor.thermia_return_temperature
+      - sensor.pool_heat_exchanger_delta_t
+      - sensor.nordpool_kwh_fi_eur_3_10_024
+      - switch.shelly_pool_heating
+      - binary_sensor.pool_heating_active
+      - input_number.pool_heat_slot_1_price
+      - input_number.pool_heat_slot_2_price
