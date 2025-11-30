@@ -32,6 +32,48 @@ Common issues and solutions for the Pool Heating Optimizer.
    python scripts/standalone/test_thermia.py 192.168.50.10
    ```
 
+### Thermia Sensors Stop Updating (Flat Line in History)
+
+**Symptoms:**
+- Sensor values show flat line in history graph
+- `last_updated` timestamp is hours old
+- Other HA sensors still updating normally
+- Log shows: `Updating thermiagenesis number took longer than scheduled update interval`
+
+**Cause:**
+This is a known bug in the `thermiagenesis` integration where Modbus polling stops after some idle time. The recorder is fine - the integration stops fetching new values.
+
+**Solutions:**
+
+1. **Check if integration is disabled:**
+   - Go to Settings > Devices & Services
+   - Look for Thermia/Pannuhuone integration
+   - If there's an OFF toggle, turn it ON
+   - **Prevention:** Take control of dashboard to remove the toggle (see Setup Guide 6.3)
+
+2. **Manual reload:**
+   - Settings > Devices & Services > Thermia
+   - Click three dots > Reload
+
+3. **Automatic reload (recommended):**
+   The pool_heating.yaml package includes automations to:
+   - Reload the integration every hour
+   - Detect stale sensors and reload automatically
+
+   Configure by setting your Thermia `entry_id` in the automations.
+
+4. **Find your Thermia config entry ID:**
+   - Go to Settings > Devices & Services
+   - Click on Thermia integration
+   - Look at browser URL: `.../config_entries/entry/<ENTRY_ID>`
+   - Copy the entry ID and update `pool_heating.yaml`
+
+5. **Downgrade thermiagenesis (alternative):**
+   If the bug persists, consider rolling back to version 0.0.10:
+   - Download older version from GitHub
+   - Replace `/config/custom_components/thermiagenesis/`
+   - Restart Home Assistant
+
 ### Shelly Switch Not Controllable
 
 **Symptoms:**
@@ -45,6 +87,38 @@ Common issues and solutions for the Pool Heating Optimizer.
 4. Check cloud vs local mode settings
 
 ## Nordpool Issues
+
+### Nordpool Sensor Entity ID Mismatch
+
+**Symptoms:**
+- "Current Nordpool Price" shows 0
+- "Nordpool Tomorrow Available" shows Unknown
+- Schedule calculation doesn't work
+- Nordpool integration works but pool heating doesn't see prices
+
+**Cause:**
+The Nordpool integration creates a sensor with a unique ID that may differ from what's configured in the pool heating scripts. The entity ID depends on your Nordpool configuration (region, currency, precision, VAT settings).
+
+**Solution:**
+1. Find your actual Nordpool sensor ID:
+   - Developer Tools > States > search "nordpool"
+   - Note the full entity ID (e.g., `sensor.nordpool_kwh_fi_eur_3_10_0255`)
+
+2. Update the sensor ID in two files:
+
+   **In `/config/pyscript/pool_heating.py`:**
+   ```python
+   # Find this line near the top and update:
+   NORDPOOL_SENSOR = "sensor.nordpool_kwh_fi_eur_3_10_0255"  # Your actual ID
+   ```
+
+   **In `/config/packages/pool_heating.yaml`:**
+   - Search for the old sensor ID and replace all occurrences
+   - There are typically 3 places: current price template, tomorrow_valid template, and automation trigger
+
+3. Restart Home Assistant
+
+**Note:** The Nordpool entity ID may change if you reconfigure the integration. Keep this in mind when troubleshooting price-related issues.
 
 ### Tomorrow's Prices Not Available
 

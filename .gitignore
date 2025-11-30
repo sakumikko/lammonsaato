@@ -30,6 +30,9 @@ secrets.yaml
 .DS_Store
 Thumbs.db
 
+# Debug/findings (screenshots, temporary files)
+findings/
+
 # Logs
 *.log
 

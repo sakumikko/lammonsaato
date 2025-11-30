@@ -3,11 +3,11 @@
 # Core dependencies
 pythermiagenesis>=0.1.0    # Thermia heat pump Modbus communication
 aiohttp>=3.8.0             # Async HTTP client for Nordpool API
+requests>=2.28.0           # Sync HTTP client for HA REST API
+websockets>=11.0           # WebSocket client for HA real-time events
 
 # Firebase (optional - for external data storage)
 firebase-admin>=6.0.0      # Firebase Admin SDK
-# Alternative: use requests for REST API
-requests>=2.28.0
 
 # Testing
 pytest>=7.0.0
@@ -15,6 +15,7 @@ pytest-asyncio>=0.21.0
 
 # Development
 python-dotenv>=1.0.0       # Environment variable management
+pyyaml>=6.0                # YAML parsing for config validation
 
 # Home Assistant (for reference - installed in HAOS)
 # homeassistant

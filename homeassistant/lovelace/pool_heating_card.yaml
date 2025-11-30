@@ -1,0 +1,97 @@
+# Pool Heating Dashboard Card
+# Add this to your Lovelace dashboard (Overview > Edit Dashboard > Add Card > Manual)
+#
+# To enforce 24-hour time format globally in Home Assistant:
+# 1. Go to your Profile (click your username bottom left)
+# 2. Under "Language & Region" set "Time format" to "24 hours"
+#
+# This card groups entities in logical order: Start, End, Price for each block
+
+type: entities
+title: Pool Heating Schedule
+show_header_toggle: false
+entities:
+  # Master switch
+  - entity: input_boolean.pool_heating_enabled
+    name: Pool Heating Enabled
+
+  # Divider
+  - type: divider
+
+  # Block 1
+  - type: section
+    label: Block 1
+  - entity: input_datetime.pool_heat_block_1_start
+    name: Start
+  - entity: input_datetime.pool_heat_block_1_end
+    name: End
+  - entity: input_number.pool_heat_block_1_price
+    name: Price
+
+  # Block 2
+  - type: section
+    label: Block 2
+  - entity: input_datetime.pool_heat_block_2_start
+    name: Start
+  - entity: input_datetime.pool_heat_block_2_end
+    name: End
+  - entity: input_number.pool_heat_block_2_price
+    name: Price
+
+  # Block 3
+  - type: section
+    label: Block 3
+  - entity: input_datetime.pool_heat_block_3_start
+    name: Start
+  - entity: input_datetime.pool_heat_block_3_end
+    name: End
+  - entity: input_number.pool_heat_block_3_price
+    name: Price
+
+  # Block 4
+  - type: section
+    label: Block 4
+  - entity: input_datetime.pool_heat_block_4_start
+    name: Start
+  - entity: input_datetime.pool_heat_block_4_end
+    name: End
+  - entity: input_number.pool_heat_block_4_price
+    name: Price
+
+  # Divider
+  - type: divider
+
+  # Status info
+  - type: section
+    label: Status
+  - entity: binary_sensor.pool_heating_active
+    name: Currently Heating
+  - entity: sensor.pool_next_heating
+    name: Next Heating
+  - entity: sensor.pool_heating_average_price
+    name: Average Price
+  - entity: input_text.pool_heating_schedule_info
+    name: Schedule Info
+
+  # Divider
+  - type: divider
+
+  # Energy monitoring
+  - type: section
+    label: Energy & Cost
+  - entity: sensor.pool_heat_exchanger_delta_t
+    name: Delta T
+  - entity: sensor.pool_thermal_power
+    name: Thermal Power
+  - entity: sensor.pool_heating_electrical_power
+    name: Electrical Power
+  - entity: sensor.pool_heating_cost_rate
+    name: Current Cost Rate
+  - entity: sensor.pool_heating_energy_daily
+    name: Energy Today
+  - entity: sensor.pool_heating_cost_daily
+    name: Cost Today
+  - entity: sensor.pool_heating_energy_monthly
+    name: Energy This Month
+  - entity: sensor.pool_heating_cost_monthly
+    name: Cost This Month

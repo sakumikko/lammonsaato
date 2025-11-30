@@ -1,5 +1,19 @@
 # Pool Heating Package
 # Copy this file to /config/packages/pool_heating.yaml
+#
+# Updated for 15-minute Nordpool intervals with flexible heating blocks:
+# - 30-45 minute heating blocks
+# - Equal duration breaks between blocks
+# - Total 2 hours (120 minutes) of heating per night
+#
+# Pool Heating Control:
+# - switch.altaan_lammityksen_esto: Heating prevention switch (OFF = allow heating)
+# - switch.altaan_kiertovesipumppu: Circulation pump (ON when heating)
+#
+# CONFIGURATION:
+# If your Nordpool sensor has a different entity ID, search and replace:
+#   sensor.nordpool_kwh_fi_eur_3_10_0255
+# with your actual sensor ID (find it in Developer Tools > States)
 
 # ============================================
 # INPUT HELPERS
@@ -11,27 +25,78 @@ input_boolean:
     icon: mdi:pool-thermometer
 
 input_datetime:
-  pool_heat_slot_1:
-    name: "Pool Heating Slot 1"
+  # Block 1 - Start and End times
+  pool_heat_block_1_start:
+    name: "Block 1 Start"
     has_date: true
     has_time: true
     icon: mdi:clock-start
-  pool_heat_slot_2:
-    name: "Pool Heating Slot 2"
+  pool_heat_block_1_end:
+    name: "Block 1 End"
+    has_date: true
+    has_time: true
+    icon: mdi:clock-end
+
+  # Block 2 - Start and End times
+  pool_heat_block_2_start:
+    name: "Block 2 Start"
     has_date: true
     has_time: true
     icon: mdi:clock-start
+  pool_heat_block_2_end:
+    name: "Block 2 End"
+    has_date: true
+    has_time: true
+    icon: mdi:clock-end
+
+  # Block 3 - Start and End times
+  pool_heat_block_3_start:
+    name: "Block 3 Start"
+    has_date: true
+    has_time: true
+    icon: mdi:clock-start
+  pool_heat_block_3_end:
+    name: "Block 3 End"
+    has_date: true
+    has_time: true
+    icon: mdi:clock-end
+
+  # Block 4 - Start and End times
+  pool_heat_block_4_start:
+    name: "Block 4 Start"
+    has_date: true
+    has_time: true
+    icon: mdi:clock-start
+  pool_heat_block_4_end:
+    name: "Block 4 End"
+    has_date: true
+    has_time: true
+    icon: mdi:clock-end
 
 input_number:
-  pool_heat_slot_1_price:
-    name: "Slot 1 Price"
+  pool_heat_block_1_price:
+    name: "Block 1 Price"
     min: -50
     max: 500
     step: 0.01
     unit_of_measurement: "c/kWh"
     icon: mdi:currency-eur
-  pool_heat_slot_2_price:
-    name: "Slot 2 Price"
+  pool_heat_block_2_price:
+    name: "Block 2 Price"
+    min: -50
+    max: 500
+    step: 0.01
+    unit_of_measurement: "c/kWh"
+    icon: mdi:currency-eur
+  pool_heat_block_3_price:
+    name: "Block 3 Price"
+    min: -50
+    max: 500
+    step: 0.01
+    unit_of_measurement: "c/kWh"
+    icon: mdi:currency-eur
+  pool_heat_block_4_price:
+    name: "Block 4 Price"
     min: -50
     max: 500
     step: 0.01
@@ -50,57 +115,23 @@ input_text:
     name: "Schedule Info"
     max: 255
     icon: mdi:information
+  pool_heating_schedule_json:
+    name: "Schedule JSON"
+    max: 255
+    icon: mdi:code-json
 
 # ============================================
-# MODBUS CONFIGURATION - THERMIA
+# THERMIA SENSOR MAPPING
 # ============================================
-
-modbus:
-  - name: thermia
-    type: tcp
-    host: !secret thermia_host
-    port: !secret thermia_port
-    delay: 0.15
-    timeout: 5
-    sensors:
-      # Supply line (water going to heating system)
-      - name: "Thermia Supply Temperature"
-        address: 4  # Verify from Thermia documentation
-        input_type: input
-        unit_of_measurement: "°C"
-        device_class: temperature
-        scale: 0.01
-        precision: 1
-        scan_interval: 60
-
-      # Return line (water coming back)
-      - name: "Thermia Return Temperature"
-        address: 5  # Verify from Thermia documentation
-        input_type: input
-        unit_of_measurement: "°C"
-        device_class: temperature
-        scale: 0.01
-        precision: 1
-        scan_interval: 60
-
-      # Outdoor temperature
-      - name: "Thermia Outdoor Temperature"
-        address: 0  # Verify from Thermia documentation
-        input_type: input
-        unit_of_measurement: "°C"
-        device_class: temperature
-        scale: 0.01
-        precision: 1
-        scan_interval: 300
-
-      # Compressor status
-      - name: "Thermia Compressor Speed"
-        address: 15  # Verify from Thermia documentation
-        input_type: input
-        unit_of_measurement: "%"
-        scale: 1
-        precision: 0
-        scan_interval: 60
+#
+# This package uses sensors from the thermiagenesis integration.
+# NO separate Modbus configuration needed - thermiagenesis handles it.
+#
+# Actual sensor entity IDs (from your HA installation):
+#   - sensor.condenser_out_temperature (hot, going TO pool)
+#   - sensor.condenser_in_temperature (cool, coming FROM pool)
+#
+# Find your sensors in Developer Tools > States > search "condenser" or "thermia"
 
 # ============================================
 # TEMPLATE SENSORS
@@ -109,30 +140,82 @@ modbus:
 template:
   - sensor:
       # Temperature difference (delta-T) for energy calculation
+      # condenser_out = hot water leaving condenser (going TO pool)
+      # condenser_in = cooler water returning to condenser (coming FROM pool)
+      # Delta-T = out - in = heat transferred to pool
       - name: "Pool Heat Exchanger Delta T"
         unique_id: pool_heat_exchanger_delta_t
         unit_of_measurement: "°C"
         device_class: temperature
         state: >
-          {% set supply = states('sensor.thermia_supply_temperature') | float(0) %}
-          {% set return = states('sensor.thermia_return_temperature') | float(0) %}
-          {{ (supply - return) | round(1) }}
+          {% set t_out = states('sensor.condenser_out_temperature') | float(0) %}
+          {% set t_in = states('sensor.condenser_in_temperature') | float(0) %}
+          {{ (t_out - t_in) | round(1) }}
         availability: >
-          {{ states('sensor.thermia_supply_temperature') not in ['unknown', 'unavailable'] and
-             states('sensor.thermia_return_temperature') not in ['unknown', 'unavailable'] }}
+          {{ states('sensor.condenser_out_temperature') not in ['unknown', 'unavailable'] and
+             states('sensor.condenser_in_temperature') not in ['unknown', 'unavailable'] }}
 
-      # Next scheduled heating time
+      # Thermal power delivered to pool (kW)
+      # Formula: Q = flow_rate × ΔT × specific_heat
+      # Flow: 45 L/min = 0.75 L/s = 0.00075 m³/s
+      # Specific heat of water: 4.186 kJ/(kg·°C)
+      # Q (kW) = 0.75 L/s × ΔT × 4.186 / 1000 × 1000 = 0.75 × ΔT × 4.186 / 1000
+      # Simplified: Q (kW) = ΔT × 0.75 × 4.186 = ΔT × 3.14
+      - name: "Pool Thermal Power"
+        unique_id: pool_thermal_power
+        unit_of_measurement: "kW"
+        device_class: power
+        state: >
+          {% set delta_t = states('sensor.pool_heat_exchanger_delta_t') | float(0) %}
+          {% set flow_rate_l_per_s = 45 / 60 %}
+          {% set specific_heat = 4.186 %}
+          {{ (delta_t * flow_rate_l_per_s * specific_heat) | round(2) }}
+        availability: >
+          {{ states('sensor.pool_heat_exchanger_delta_t') not in ['unknown', 'unavailable'] }}
+
+      # Electrical power consumption estimate (kW)
+      # Based on thermal power and assumed COP of 3
+      # Electrical = Thermal / COP
+      - name: "Pool Heating Electrical Power"
+        unique_id: pool_heating_electrical_power
+        unit_of_measurement: "kW"
+        device_class: power
+        state: >
+          {% set thermal = states('sensor.pool_thermal_power') | float(0) %}
+          {% set cop = 3.0 %}
+          {{ (thermal / cop) | round(2) }}
+        availability: >
+          {{ states('sensor.pool_thermal_power') not in ['unknown', 'unavailable'] }}
+
+      # Current electricity cost rate (EUR/kWh)
+      # Nordpool price is in c/kWh, convert to EUR/kWh
+      - name: "Pool Heating Cost Rate"
+        unique_id: pool_heating_cost_rate
+        unit_of_measurement: "€/h"
+        state: >
+          {% set electrical_kw = states('sensor.pool_heating_electrical_power') | float(0) %}
+          {% set price_cents = states('sensor.nordpool_kwh_fi_eur_3_10_0255') | float(0) %}
+          {% set price_eur = price_cents / 100 %}
+          {{ (electrical_kw * price_eur) | round(3) }}
+        availability: >
+          {{ states('sensor.pool_heating_electrical_power') not in ['unknown', 'unavailable'] and
+             states('sensor.nordpool_kwh_fi_eur_3_10_0255') not in ['unknown', 'unavailable'] }}
+
+      # Next scheduled heating block
       - name: "Pool Next Heating"
         unique_id: pool_next_heating
         device_class: timestamp
         state: >
-          {% set slot1 = states('input_datetime.pool_heat_slot_1') %}
-          {% set slot2 = states('input_datetime.pool_heat_slot_2') %}
-          {% set now = now() %}
-          {% if as_datetime(slot1) > now %}
-            {{ slot1 }}
-          {% elif as_datetime(slot2) > now %}
-            {{ slot2 }}
+          {% set now_ts = now() %}
+          {% set blocks = [
+            states('input_datetime.pool_heat_block_1_start'),
+            states('input_datetime.pool_heat_block_2_start'),
+            states('input_datetime.pool_heat_block_3_start'),
+            states('input_datetime.pool_heat_block_4_start')
+          ] %}
+          {% set future_blocks = blocks | select('ne', 'unknown') | map('as_datetime') | select('gt', now_ts) | list | sort %}
+          {% if future_blocks | length > 0 %}
+            {{ future_blocks[0].isoformat() }}
           {% else %}
             unknown
           {% endif %}
@@ -142,40 +225,137 @@ template:
         unique_id: current_nordpool_price
         unit_of_measurement: "c/kWh"
         state: >
-          {{ states('sensor.nordpool_kwh_fi_eur_3_10_024') | float(0) * 100 }}
+          {{ states('sensor.nordpool_kwh_fi_eur_3_10_0255') | float(0) * 100 }}
 
-      # Average price for heating slots
+      # Average price for scheduled heating blocks
       - name: "Pool Heating Average Price"
         unique_id: pool_heating_avg_price
         unit_of_measurement: "c/kWh"
         state: >
-          {% set p1 = states('input_number.pool_heat_slot_1_price') | float(0) %}
-          {% set p2 = states('input_number.pool_heat_slot_2_price') | float(0) %}
-          {{ ((p1 + p2) / 2) | round(2) }}
+          {% set prices = [
+            states('input_number.pool_heat_block_1_price') | float(0),
+            states('input_number.pool_heat_block_2_price') | float(0),
+            states('input_number.pool_heat_block_3_price') | float(0),
+            states('input_number.pool_heat_block_4_price') | float(0)
+          ] %}
+          {% set valid_prices = prices | select('gt', 0) | list %}
+          {% if valid_prices | length > 0 %}
+            {{ (valid_prices | sum / valid_prices | length) | round(2) }}
+          {% else %}
+            0
+          {% endif %}
+
+      # Number of scheduled heating blocks
+      - name: "Pool Heating Block Count"
+        unique_id: pool_heating_block_count
+        state: >
+          {% set now_ts = now() %}
+          {% set blocks = [
+            states('input_datetime.pool_heat_block_1_start'),
+            states('input_datetime.pool_heat_block_2_start'),
+            states('input_datetime.pool_heat_block_3_start'),
+            states('input_datetime.pool_heat_block_4_start')
+          ] %}
+          {{ blocks | select('ne', 'unknown') | select('ne', '') | map('as_datetime') | select('gt', now_ts - timedelta(hours=12)) | list | length }}
 
   - binary_sensor:
       # Is pool currently heating
+      # Heating is active when: prevention is OFF AND circulation pump is ON
       - name: "Pool Heating Active"
         unique_id: pool_heating_active
         device_class: running
         state: >
-          {{ is_state('switch.shelly_pool_heating', 'on') }}
+          {{ is_state('switch.altaan_lammityksen_esto', 'off') and
+             is_state('switch.altaan_kiertovesipumppu', 'on') }}
 
       # Are tomorrow's prices available
       - name: "Nordpool Tomorrow Available"
         unique_id: nordpool_tomorrow_available
         state: >
-          {{ state_attr('sensor.nordpool_kwh_fi_eur_3_10_024', 'tomorrow_valid') | default(false) }}
+          {{ state_attr('sensor.nordpool_kwh_fi_eur_3_10_0255', 'tomorrow_valid') | default(false) }}
+
+      # Is currently within a scheduled heating block
+      - name: "Pool In Heating Window"
+        unique_id: pool_in_heating_window
+        state: >
+          {% set now_ts = now() %}
+          {% set in_block = false %}
+          {% for i in range(1, 5) %}
+            {% set start = states('input_datetime.pool_heat_block_' ~ i ~ '_start') %}
+            {% set end = states('input_datetime.pool_heat_block_' ~ i ~ '_end') %}
+            {% if start not in ['unknown', 'unavailable', ''] and end not in ['unknown', 'unavailable', ''] %}
+              {% if as_datetime(start) <= now_ts <= as_datetime(end) %}
+                {% set in_block = true %}
+              {% endif %}
+            {% endif %}
+          {% endfor %}
+          {{ in_block }}
 
 # ============================================
 # AUTOMATIONS
 # ============================================
 
 automation:
+  # ----------------------------------------
+  # THERMIA INTEGRATION STABILITY
+  # ----------------------------------------
+  # The thermiagenesis integration has a known bug where polling stops
+  # after some idle time. These automations keep it running.
+
+  # Reload Thermia integration hourly to prevent freezing
+  - id: thermia_hourly_reload
+    alias: "Thermia: Hourly Reload"
+    description: "Reload Thermia integration hourly to prevent Modbus freezing"
+    trigger:
+      - platform: time_pattern
+        hours: "/1"  # Every hour
+    action:
+      - service: homeassistant.reload_config_entry
+        data:
+          # IMPORTANT: Replace with your Thermia config entry ID
+          # Find it in Settings > Devices & Services > Thermia > URL
+          entry_id: ac1e4962ee893b58e6d2c1f95e4caeef
+
+  # Reload if Thermia sensors haven't updated in 10 minutes
+  # Uses 'for' duration to avoid triggering on momentary connectivity loss
+  - id: thermia_stale_recovery
+    alias: "Thermia: Stale Sensor Recovery"
+    description: "Reload Thermia if sensors stop updating for extended period"
+    trigger:
+      - platform: template
+        value_template: >
+          {% set sensor = states.sensor.condenser_out_temperature %}
+          {% if sensor is not none and sensor.last_updated is defined %}
+            {{ (now() - sensor.last_updated).total_seconds() > 600 }}
+          {% else %}
+            false
+          {% endif %}
+        for:
+          minutes: 5  # Wait 5 minutes to confirm it's not momentary
+    condition:
+      # Only reload if the sensor exists but is stale (not if integration is disabled)
+      - condition: template
+        value_template: >
+          {% set sensor = states.sensor.condenser_out_temperature %}
+          {{ sensor is not none and sensor.state not in ['unavailable', 'unknown'] }}
+    action:
+      - service: homeassistant.reload_config_entry
+        data:
+          entry_id: ac1e4962ee893b58e6d2c1f95e4caeef
+        continue_on_error: true
+      - service: notify.persistent_notification
+        data:
+          title: "Thermia Recovered"
+          message: "Thermia sensors were stale for >10 min and integration was reloaded at {{ now().strftime('%H:%M') }}"
+
+  # ----------------------------------------
+  # POOL HEATING SCHEDULE
+  # ----------------------------------------
+
   # Calculate schedule when tomorrow's prices become available
   - id: pool_calculate_heating_schedule
     alias: "Pool: Calculate Heating Schedule"
-    description: "Calculate best heating slots when Nordpool tomorrow prices available"
+    description: "Calculate optimal heating blocks when Nordpool prices available"
     trigger:
       - platform: state
         entity_id: binary_sensor.nordpool_tomorrow_available
@@ -185,51 +365,149 @@ automation:
         entity_id: input_boolean.pool_heating_enabled
         state: "on"
     action:
-      - service: pyscript.calculate_pool_heating_slots
+      - service: pyscript.calculate_pool_heating_schedule
       - service: notify.persistent_notification
         data:
           title: "Pool Heating Schedule"
-          message: >
-            Scheduled for {{ states('input_datetime.pool_heat_slot_1') }}
-            ({{ states('input_number.pool_heat_slot_1_price') }} c/kWh) and
-            {{ states('input_datetime.pool_heat_slot_2') }}
-            ({{ states('input_number.pool_heat_slot_2_price') }} c/kWh)
+          message: "{{ states('input_text.pool_heating_schedule_info') }}"
 
-  # Start heating at scheduled time (Slot 1)
-  - id: pool_start_heating_slot_1
-    alias: "Pool: Start Heating Slot 1"
+  # Start heating at scheduled block times
+  - id: pool_start_heating_block_1
+    alias: "Pool: Start Heating Block 1"
     trigger:
       - platform: time
-        at: input_datetime.pool_heat_slot_1
+        at: input_datetime.pool_heat_block_1_start
     condition:
       - condition: state
         entity_id: input_boolean.pool_heating_enabled
         state: "on"
       - condition: template
         value_template: >
-          {{ as_datetime(states('input_datetime.pool_heat_slot_1')).date() == now().date() or
-             (as_datetime(states('input_datetime.pool_heat_slot_1')).date() == (now() - timedelta(days=1)).date() and now().hour < 7) }}
+          {% set block_start = as_datetime(states('input_datetime.pool_heat_block_1_start')) %}
+          {% set block_end = as_datetime(states('input_datetime.pool_heat_block_1_end')) %}
+          {{ block_start.date() >= (now() - timedelta(days=1)).date() and block_end > block_start }}
     action:
-      - service: script.pool_heating_start
+      - service: script.pool_heating_block_start
+        data:
+          block_number: 1
 
-  # Start heating at scheduled time (Slot 2)
-  - id: pool_start_heating_slot_2
-    alias: "Pool: Start Heating Slot 2"
+  - id: pool_start_heating_block_2
+    alias: "Pool: Start Heating Block 2"
     trigger:
       - platform: time
-        at: input_datetime.pool_heat_slot_2
+        at: input_datetime.pool_heat_block_2_start
     condition:
       - condition: state
         entity_id: input_boolean.pool_heating_enabled
         state: "on"
       - condition: template
         value_template: >
-          {{ as_datetime(states('input_datetime.pool_heat_slot_2')).date() == now().date() or
-             (as_datetime(states('input_datetime.pool_heat_slot_2')).date() == (now() - timedelta(days=1)).date() and now().hour < 7) }}
+          {% set block_start = as_datetime(states('input_datetime.pool_heat_block_2_start')) %}
+          {% set block_end = as_datetime(states('input_datetime.pool_heat_block_2_end')) %}
+          {{ block_start.date() >= (now() - timedelta(days=1)).date() and block_end > block_start }}
     action:
-      - service: script.pool_heating_start
+      - service: script.pool_heating_block_start
+        data:
+          block_number: 2
+
+  - id: pool_start_heating_block_3
+    alias: "Pool: Start Heating Block 3"
+    trigger:
+      - platform: time
+        at: input_datetime.pool_heat_block_3_start
+    condition:
+      - condition: state
+        entity_id: input_boolean.pool_heating_enabled
+        state: "on"
+      - condition: template
+        value_template: >
+          {% set block_start = as_datetime(states('input_datetime.pool_heat_block_3_start')) %}
+          {% set block_end = as_datetime(states('input_datetime.pool_heat_block_3_end')) %}
+          {{ block_start.date() >= (now() - timedelta(days=1)).date() and block_end > block_start }}
+    action:
+      - service: script.pool_heating_block_start
+        data:
+          block_number: 3
+
+  - id: pool_start_heating_block_4
+    alias: "Pool: Start Heating Block 4"
+    trigger:
+      - platform: time
+        at: input_datetime.pool_heat_block_4_start
+    condition:
+      - condition: state
+        entity_id: input_boolean.pool_heating_enabled
+        state: "on"
+      - condition: template
+        value_template: >
+          {% set block_start = as_datetime(states('input_datetime.pool_heat_block_4_start')) %}
+          {% set block_end = as_datetime(states('input_datetime.pool_heat_block_4_end')) %}
+          {{ block_start.date() >= (now() - timedelta(days=1)).date() and block_end > block_start }}
+    action:
+      - service: script.pool_heating_block_start
+        data:
+          block_number: 4
+
+  # Stop heating at scheduled block end times
+  # Each stop automation checks that the block is valid (end > start) and recent
+  - id: pool_stop_heating_block_1
+    alias: "Pool: Stop Heating Block 1"
+    trigger:
+      - platform: time
+        at: input_datetime.pool_heat_block_1_end
+    condition:
+      - condition: template
+        value_template: >
+          {% set start = as_datetime(states('input_datetime.pool_heat_block_1_start')) %}
+          {% set end = as_datetime(states('input_datetime.pool_heat_block_1_end')) %}
+          {{ end > start and end.date() >= (now() - timedelta(days=1)).date() }}
+    action:
+      - service: script.pool_heating_block_stop
+
+  - id: pool_stop_heating_block_2
+    alias: "Pool: Stop Heating Block 2"
+    trigger:
+      - platform: time
+        at: input_datetime.pool_heat_block_2_end
+    condition:
+      - condition: template
+        value_template: >
+          {% set start = as_datetime(states('input_datetime.pool_heat_block_2_start')) %}
+          {% set end = as_datetime(states('input_datetime.pool_heat_block_2_end')) %}
+          {{ end > start and end.date() >= (now() - timedelta(days=1)).date() }}
+    action:
+      - service: script.pool_heating_block_stop
+
+  - id: pool_stop_heating_block_3
+    alias: "Pool: Stop Heating Block 3"
+    trigger:
+      - platform: time
+        at: input_datetime.pool_heat_block_3_end
+    condition:
+      - condition: template
+        value_template: >
+          {% set start = as_datetime(states('input_datetime.pool_heat_block_3_start')) %}
+          {% set end = as_datetime(states('input_datetime.pool_heat_block_3_end')) %}
+          {{ end > start and end.date() >= (now() - timedelta(days=1)).date() }}
+    action:
+      - service: script.pool_heating_block_stop
+
+  - id: pool_stop_heating_block_4
+    alias: "Pool: Stop Heating Block 4"
+    trigger:
+      - platform: time
+        at: input_datetime.pool_heat_block_4_end
+    condition:
+      - condition: template
+        value_template: >
+          {% set start = as_datetime(states('input_datetime.pool_heat_block_4_start')) %}
+          {% set end = as_datetime(states('input_datetime.pool_heat_block_4_end')) %}
+          {{ end > start and end.date() >= (now() - timedelta(days=1)).date() }}
+    action:
+      - service: script.pool_heating_block_stop
 
   # Log temperature data during heating
+  # Continues even if Thermia sensors are temporarily unavailable
   - id: pool_log_temperatures
     alias: "Pool: Log Temperatures During Heating"
     trigger:
@@ -241,49 +519,161 @@ automation:
         state: "on"
     action:
       - service: pyscript.log_pool_temperatures
+        continue_on_error: true  # Don't fail if Thermia sensors unavailable
 
 # ============================================
 # SCRIPTS
 # ============================================
 
 script:
-  pool_heating_start:
-    alias: "Pool Heating Start"
+  pool_heating_block_start:
+    alias: "Pool Heating Block Start"
+    description: "Start a heating block - disables prevention, enables circulation"
+    fields:
+      block_number:
+        description: "Block number (1-4)"
+        example: 1
     sequence:
+      # Log start - continue even if Thermia unavailable
       - service: pyscript.log_heating_start
-      # Turn on pool heating
-      - service: switch.turn_on
-        target:
-          entity_id: switch.shelly_pool_heating
-      # Wait 55 minutes (leaving 5 min buffer)
-      - delay:
-          minutes: 55
-      # Turn off heating
+        continue_on_error: true
+      # Turn OFF the heating prevention switch (allows heat pump to heat pool)
       - service: switch.turn_off
         target:
-          entity_id: switch.shelly_pool_heating
-      # Log session end
+          entity_id: switch.altaan_lammityksen_esto
+      # Turn ON the circulation pump
+      - service: switch.turn_on
+        target:
+          entity_id: switch.altaan_kiertovesipumppu
+      - service: logbook.log
+        data:
+          name: "Pool Heating"
+          message: "Block {{ block_number }} started"
+          entity_id: binary_sensor.pool_heating_active
+
+  pool_heating_block_stop:
+    alias: "Pool Heating Block Stop"
+    description: "Stop a heating block - enables prevention, disables circulation"
+    sequence:
+      # Turn ON the heating prevention switch (stops heat pump from heating pool)
+      - service: switch.turn_on
+        target:
+          entity_id: switch.altaan_lammityksen_esto
+      # Turn OFF the circulation pump
+      - service: switch.turn_off
+        target:
+          entity_id: switch.altaan_kiertovesipumppu
+      # Log end - continue even if Thermia unavailable
       - service: pyscript.log_heating_end
+        continue_on_error: true
+      - service: logbook.log
+        data:
+          name: "Pool Heating"
+          message: "Block stopped"
+          entity_id: binary_sensor.pool_heating_active
 
   pool_heating_stop:
-    alias: "Pool Heating Stop"
+    alias: "Pool Heating Emergency Stop"
+    description: "Emergency stop - immediately prevents heating"
     sequence:
-      - service: switch.turn_off
-        target:
-          entity_id: switch.shelly_pool_heating
-      - service: pyscript.log_heating_end
-
-  pool_heating_manual_start:
-    alias: "Pool Heating Manual Start (1 hour)"
-    sequence:
+      # Turn ON the heating prevention switch (stops heating)
       - service: switch.turn_on
         target:
-          entity_id: switch.shelly_pool_heating
-      - delay:
-          minutes: 55
+          entity_id: switch.altaan_lammityksen_esto
+      # Turn OFF the circulation pump
       - service: switch.turn_off
         target:
-          entity_id: switch.shelly_pool_heating
+          entity_id: switch.altaan_kiertovesipumppu
+      # Log end - continue even if Thermia unavailable
+      - service: pyscript.log_heating_end
+        continue_on_error: true
+
+  pool_heating_manual_start:
+    alias: "Pool Heating Manual Start (30 min)"
+    description: "Manual 30-minute heating session with logging"
+    sequence:
+      # Log start
+      - service: pyscript.log_heating_start
+        continue_on_error: true
+      # Start heating
+      - service: switch.turn_off
+        target:
+          entity_id: switch.altaan_lammityksen_esto
+      - service: switch.turn_on
+        target:
+          entity_id: switch.altaan_kiertovesipumppu
+      - service: logbook.log
+        data:
+          name: "Pool Heating"
+          message: "Manual 30-min session started"
+          entity_id: binary_sensor.pool_heating_active
+      - delay:
+          minutes: 30
+      # Stop heating
+      - service: switch.turn_on
+        target:
+          entity_id: switch.altaan_lammityksen_esto
+      - service: switch.turn_off
+        target:
+          entity_id: switch.altaan_kiertovesipumppu
+      # Log end
+      - service: pyscript.log_heating_end
+        continue_on_error: true
+      - service: logbook.log
+        data:
+          name: "Pool Heating"
+          message: "Manual 30-min session ended"
+          entity_id: binary_sensor.pool_heating_active
+
+# ============================================
+# INTEGRATION SENSORS - Cumulative energy and cost
+# ============================================
+
+# Riemann sum integration to convert power (kW) to energy (kWh)
+sensor:
+  - platform: integration
+    source: sensor.pool_heating_electrical_power
+    name: "Pool Heating Electrical Energy"
+    unique_id: pool_heating_electrical_energy
+    unit_prefix: k
+    unit_time: h
+    method: left
+
+  - platform: integration
+    source: sensor.pool_heating_cost_rate
+    name: "Pool Heating Cumulative Cost"
+    unique_id: pool_heating_cumulative_cost
+    unit_time: h
+    method: left
+
+# ============================================
+# UTILITY METERS - Track daily/monthly energy and costs
+# ============================================
+
+utility_meter:
+  # Daily electricity usage for pool heating
+  pool_heating_energy_daily:
+    source: sensor.pool_heating_electrical_energy
+    name: "Pool Heating Energy Daily"
+    cycle: daily
+
+  # Daily cost for pool heating
+  pool_heating_cost_daily:
+    source: sensor.pool_heating_cumulative_cost
+    name: "Pool Heating Cost Daily"
+    cycle: daily
+
+  # Monthly electricity usage
+  pool_heating_energy_monthly:
+    source: sensor.pool_heating_electrical_energy
+    name: "Pool Heating Energy Monthly"
+    cycle: monthly
+
+  # Monthly cost
+  pool_heating_cost_monthly:
+    source: sensor.pool_heating_cumulative_cost
+    name: "Pool Heating Cost Monthly"
+    cycle: monthly
 
 # ============================================
 # RECORDER - Ensure important data is logged
@@ -292,11 +682,38 @@ script:
 recorder:
   include:
     entities:
-      - sensor.thermia_supply_temperature
-      - sensor.thermia_return_temperature
+      # Thermia condenser sensors (from thermiagenesis integration)
+      - sensor.condenser_out_temperature
+      - sensor.condenser_in_temperature
       - sensor.pool_heat_exchanger_delta_t
-      - sensor.nordpool_kwh_fi_eur_3_10_024
-      - switch.shelly_pool_heating
+      # Energy calculations
+      - sensor.pool_thermal_power
+      - sensor.pool_heating_electrical_power
+      - sensor.pool_heating_cost_rate
+      - sensor.pool_heating_electrical_energy
+      - sensor.pool_heating_cumulative_cost
+      # Utility meters
+      - sensor.pool_heating_energy_daily
+      - sensor.pool_heating_cost_daily
+      - sensor.pool_heating_energy_monthly
+      - sensor.pool_heating_cost_monthly
+      # Nordpool
+      - sensor.nordpool_kwh_fi_eur_3_10_0255
+      # Pool heating switches
+      - switch.altaan_lammityksen_esto
+      - switch.altaan_kiertovesipumppu
       - binary_sensor.pool_heating_active
-      - input_number.pool_heat_slot_1_price
-      - input_number.pool_heat_slot_2_price
+      # Block prices
+      - input_number.pool_heat_block_1_price
+      - input_number.pool_heat_block_2_price
+      - input_number.pool_heat_block_3_price
+      - input_number.pool_heat_block_4_price
+      # Block schedules
+      - input_datetime.pool_heat_block_1_start
+      - input_datetime.pool_heat_block_1_end
+      - input_datetime.pool_heat_block_2_start
+      - input_datetime.pool_heat_block_2_end
+      - input_datetime.pool_heat_block_3_start
+      - input_datetime.pool_heat_block_3_end
+      - input_datetime.pool_heat_block_4_start
+      - input_datetime.pool_heat_block_4_end

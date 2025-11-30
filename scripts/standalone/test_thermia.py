@@ -3,7 +3,7 @@ from pythermiagenesis.const import REGISTERS, KEY_ADDRESS
 from pythermiagenesis import ThermiaConnectionError
 import asyncio
 import logging
-from pythermiagenesis.const import REG_INPUT, ATTR_COIL_ENABLE_BRINE_IN_MONITORING, ATTR_COIL_ENABLE_HEAT
+from pythermiagenesis.const import REG_INPUT, ATTR_COIL_ENABLE_BRINE_IN_MONITORING, ATTR_COIL_ENABLE_HEAT, ATTR_INPUT_POOL_SUPPLY_LINE_TEMPERATURE, ATTR_INPUT_POOL_RETURN_LINE_TEMPERATURE,ATTR_INPUT_CONDENSER_IN_TEMPERATURE, ATTR_INPUT_CONDENSER_OUT_TEMPERATURE, ATTR_INPUT_SYSTEM_SUPPLY_LINE_TEMPERATURE
 from sys import argv
 # heatpum IP address/hostname
 HOST = "192.168.50.10"
@@ -12,7 +12,23 @@ PORT = 502
 KIND = "mega"
 logging.basicConfig(level=logging.DEBUG)
 #logging.basicConfig(level=logging.INFO)
-
+THERMIA_KEY_REGISTERS = [
+    'input_outdoor_temperature',
+    'input_system_supply_line_temperature',
+    'input_brine_in_temperature',
+    'input_brine_out_temperature',
+    'input_compressor_speed_percent',
+    'input_compressor_current_gear',
+    'input_mix_valve_1_supply_line_temperature',
+    # Pool registers (may show raw values if sensors not connected)
+    'input_pool_supply_line_temperature',
+    'input_pool_return_line_temperature',
+    ATTR_INPUT_POOL_SUPPLY_LINE_TEMPERATURE,
+    ATTR_INPUT_POOL_RETURN_LINE_TEMPERATURE
+    ATTR_INPUT_CONDENSER_IN_TEMPERATURE,
+    ATTR_INPUT_CONDENSER_OUT_TEMPERATURE,
+    ATTR_INPUT_SYSTEM_SUPPLY_LINE_TEMPERATURE
+]
 
 async def main():
     host = argv[1] if len(argv) > 1 else HOST
@@ -28,7 +44,7 @@ async def main():
         #Get only input registers
         # await thermia.async_update([REG_INPUT])
         #Get one specific register
-        await thermia.async_update(only_registers=[ATTR_COIL_ENABLE_BRINE_IN_MONITORING, ATTR_COIL_ENABLE_HEAT])
+        await thermia.async_update(only_registers=THERMIA_KEY_REGISTERS)
         # await thermia.async_update(None)
 
     except (ThermiaConnectionError) as error:
