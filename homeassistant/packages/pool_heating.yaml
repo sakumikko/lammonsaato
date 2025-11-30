@@ -223,15 +223,22 @@ template:
         device_class: timestamp
         state: >
           {% set now_ts = now() %}
-          {% set blocks = [
+          {% set ns = namespace(future_blocks=[]) %}
+          {% for block in [
             states('input_datetime.pool_heat_block_1_start'),
             states('input_datetime.pool_heat_block_2_start'),
             states('input_datetime.pool_heat_block_3_start'),
             states('input_datetime.pool_heat_block_4_start')
           ] %}
-          {% set future_blocks = blocks | select('ne', 'unknown') | map('as_datetime') | select('gt', now_ts) | list | sort %}
-          {% if future_blocks | length > 0 %}
-            {{ future_blocks[0].isoformat() }}
+            {% if block not in ['unknown', 'unavailable', ''] %}
+              {% set block_dt = strptime(block, '%Y-%m-%d %H:%M:%S') | as_local %}
+              {% if block_dt > now_ts %}
+                {% set ns.future_blocks = ns.future_blocks + [block_dt] %}
+              {% endif %}
+            {% endif %}
+          {% endfor %}
+          {% if ns.future_blocks | length > 0 %}
+            {{ (ns.future_blocks | sort | first).isoformat() }}
           {% else %}
             unknown
           {% endif %}
@@ -266,13 +273,22 @@ template:
         unique_id: pool_heating_block_count
         state: >
           {% set now_ts = now() %}
-          {% set blocks = [
+          {% set cutoff = now_ts - timedelta(hours=12) %}
+          {% set ns = namespace(count=0) %}
+          {% for block in [
             states('input_datetime.pool_heat_block_1_start'),
             states('input_datetime.pool_heat_block_2_start'),
             states('input_datetime.pool_heat_block_3_start'),
             states('input_datetime.pool_heat_block_4_start')
           ] %}
-          {{ blocks | select('ne', 'unknown') | select('ne', '') | map('as_datetime') | select('gt', now_ts - timedelta(hours=12)) | list | length }}
+            {% if block not in ['unknown', 'unavailable', ''] %}
+              {% set block_dt = strptime(block, '%Y-%m-%d %H:%M:%S') | as_local %}
+              {% if block_dt > cutoff %}
+                {% set ns.count = ns.count + 1 %}
+              {% endif %}
+            {% endif %}
+          {% endfor %}
+          {{ ns.count }}
 
   - binary_sensor:
       # Is pool currently heating
@@ -295,17 +311,19 @@ template:
         unique_id: pool_in_heating_window
         state: >
           {% set now_ts = now() %}
-          {% set in_block = false %}
+          {% set ns = namespace(in_block=false) %}
           {% for i in range(1, 5) %}
             {% set start = states('input_datetime.pool_heat_block_' ~ i ~ '_start') %}
             {% set end = states('input_datetime.pool_heat_block_' ~ i ~ '_end') %}
             {% if start not in ['unknown', 'unavailable', ''] and end not in ['unknown', 'unavailable', ''] %}
-              {% if as_datetime(start) <= now_ts <= as_datetime(end) %}
-                {% set in_block = true %}
+              {% set start_dt = strptime(start, '%Y-%m-%d %H:%M:%S') | as_local %}
+              {% set end_dt = strptime(end, '%Y-%m-%d %H:%M:%S') | as_local %}
+              {% if start_dt <= now_ts <= end_dt %}
+                {% set ns.in_block = true %}
               {% endif %}
             {% endif %}
           {% endfor %}
-          {{ in_block }}
+          {{ ns.in_block }}
 
 # ============================================
 # AUTOMATIONS

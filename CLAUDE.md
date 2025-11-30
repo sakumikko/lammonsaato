@@ -134,12 +134,37 @@ make test              # Unit tests
 make test-thermia      # Test Modbus connection
 make test-nordpool     # Test price API
 
+# Test templates (requires HA_URL and HA_TOKEN)
+export HA_URL=http://homeassistant.local:8123
+export HA_TOKEN=your_token
+python scripts/standalone/test_templates.py
+
 # Build distribution package
 make build             # Creates dist/ folder
 
 # Deploy to Home Assistant (via Samba)
 # Copy dist/ contents to HA /config/ folder
 ```
+
+## Template Testing Guidelines
+
+**IMPORTANT:** When modifying Jinja2 templates in `pool_heating.yaml`, always update the corresponding test in `scripts/standalone/test_templates.py`.
+
+The test script validates templates by rendering them via the Home Assistant API. This catches:
+- Syntax errors
+- Timezone issues (offset-naive vs offset-aware datetimes)
+- Missing entities or attributes
+- Logic errors
+
+Templates in `test_templates.py` to keep in sync:
+- `pool_next_heating` - Next scheduled heating block
+- `pool_heating_block_count` - Number of active blocks
+- `pool_in_heating_window` - Binary sensor for current heating window
+- `pool_thermal_power` - Thermal power calculation
+- `pool_heating_electrical_power` - Electrical power estimate
+- `pool_heating_cost_rate` - Current cost rate
+
+You can also test templates manually in Home Assistant at **Developer Tools → Template**.
 
 ## Files to Edit (Source Locations)
 
