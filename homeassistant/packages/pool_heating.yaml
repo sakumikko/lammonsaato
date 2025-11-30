@@ -161,42 +161,58 @@ template:
       # Specific heat of water: 4.186 kJ/(kg·°C)
       # Q (kW) = 0.75 L/s × ΔT × 4.186 / 1000 × 1000 = 0.75 × ΔT × 4.186 / 1000
       # Simplified: Q (kW) = ΔT × 0.75 × 4.186 = ΔT × 3.14
+      # NOTE: Only calculates when pool heating is active (not when heating radiators)
       - name: "Pool Thermal Power"
         unique_id: pool_thermal_power
         unit_of_measurement: "kW"
         device_class: power
         state: >
-          {% set delta_t = states('sensor.pool_heat_exchanger_delta_t') | float(0) %}
-          {% set flow_rate_l_per_s = 45 / 60 %}
-          {% set specific_heat = 4.186 %}
-          {{ (delta_t * flow_rate_l_per_s * specific_heat) | round(2) }}
+          {% if is_state('binary_sensor.pool_heating_active', 'on') %}
+            {% set delta_t = states('sensor.pool_heat_exchanger_delta_t') | float(0) %}
+            {% set flow_rate_l_per_s = 45 / 60 %}
+            {% set specific_heat = 4.186 %}
+            {{ (delta_t * flow_rate_l_per_s * specific_heat) | round(2) }}
+          {% else %}
+            0
+          {% endif %}
         availability: >
-          {{ states('sensor.pool_heat_exchanger_delta_t') not in ['unknown', 'unavailable'] }}
+          {{ states('sensor.pool_heat_exchanger_delta_t') not in ['unknown', 'unavailable'] and
+             states('binary_sensor.pool_heating_active') not in ['unknown', 'unavailable'] }}
 
       # Electrical power consumption estimate (kW)
       # Based on thermal power and assumed COP of 3
       # Electrical = Thermal / COP
+      # NOTE: Only calculates when pool heating is active
       - name: "Pool Heating Electrical Power"
         unique_id: pool_heating_electrical_power
         unit_of_measurement: "kW"
         device_class: power
         state: >
-          {% set thermal = states('sensor.pool_thermal_power') | float(0) %}
-          {% set cop = 3.0 %}
-          {{ (thermal / cop) | round(2) }}
+          {% if is_state('binary_sensor.pool_heating_active', 'on') %}
+            {% set thermal = states('sensor.pool_thermal_power') | float(0) %}
+            {% set cop = 3.0 %}
+            {{ (thermal / cop) | round(2) }}
+          {% else %}
+            0
+          {% endif %}
         availability: >
           {{ states('sensor.pool_thermal_power') not in ['unknown', 'unavailable'] }}
 
-      # Current electricity cost rate (EUR/kWh)
+      # Current electricity cost rate (EUR/h)
       # Nordpool price is in c/kWh, convert to EUR/kWh
+      # NOTE: Only calculates when pool heating is active
       - name: "Pool Heating Cost Rate"
         unique_id: pool_heating_cost_rate
         unit_of_measurement: "€/h"
         state: >
-          {% set electrical_kw = states('sensor.pool_heating_electrical_power') | float(0) %}
-          {% set price_cents = states('sensor.nordpool_kwh_fi_eur_3_10_0255') | float(0) %}
-          {% set price_eur = price_cents / 100 %}
-          {{ (electrical_kw * price_eur) | round(3) }}
+          {% if is_state('binary_sensor.pool_heating_active', 'on') %}
+            {% set electrical_kw = states('sensor.pool_heating_electrical_power') | float(0) %}
+            {% set price_cents = states('sensor.nordpool_kwh_fi_eur_3_10_0255') | float(0) %}
+            {% set price_eur = price_cents / 100 %}
+            {{ (electrical_kw * price_eur) | round(3) }}
+          {% else %}
+            0
+          {% endif %}
         availability: >
           {{ states('sensor.pool_heating_electrical_power') not in ['unknown', 'unavailable'] and
              states('sensor.nordpool_kwh_fi_eur_3_10_0255') not in ['unknown', 'unavailable'] }}
