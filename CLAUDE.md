@@ -85,13 +85,11 @@ lammonsaato/
 - `switch.altaan_lammityksen_esto` - Heating prevention (OFF = allow heating)
 - `switch.altaan_kiertovesipumppu` - Circulation pump (ON = heating)
 
-### Sensors (Thermia Modbus)
-- `sensor.thermia_condenser_in_temperature` - Water to pool
-- `sensor.thermia_condenser_out_temperature` - Water from pool
-- `sensor.thermia_supply_temperature`
-- `sensor.thermia_return_temperature`
-- `sensor.thermia_outdoor_temperature`
-- `sensor.thermia_compressor_speed`
+### Sensors (Thermia Genesis Integration)
+- `sensor.condenser_out_temperature` - Hot water TO pool
+- `sensor.condenser_in_temperature` - Cool water FROM pool (returned)
+
+Note: Other Thermia sensors (supply_temperature, outdoor_temperature, etc.) may exist but are not used by this project.
 
 ### Calculated Sensors
 - `sensor.pool_heat_exchanger_delta_t` - Temperature difference
@@ -177,6 +175,14 @@ You can also test templates manually in Home Assistant at **Developer Tools → 
 | Setup guide | docs/SETUP_GUIDE.md | dist/docs/... |
 | Troubleshooting | docs/TROUBLESHOOTING.md | dist/docs/... |
 
+## Documentation
+
+- [Product Requirements](docs/PRODUCT_REQUIREMENTS.md) - What the system does and why
+- [Technical Design](docs/TECHNICAL_DESIGN.md) - Architecture, components, entity reference
+- [Setup Guide](docs/SETUP_GUIDE.md) - Step-by-step installation
+- [Troubleshooting](docs/TROUBLESHOOTING.md) - Common issues and solutions
+- [Thermia Registers](docs/THERMIA_REGISTERS.md) - Modbus register reference
+
 ## Recent Changes (2025-11-30)
 
 1. Fixed pyscript NameError for missing pool temperature sensor
@@ -185,3 +191,7 @@ You can also test templates manually in Home Assistant at **Developer Tools → 
 4. Made all logging calls `continue_on_error: true`
 5. Added 24-hour time format instructions to setup guide
 6. Updated Nordpool sensor ID to `sensor.nordpool_kwh_fi_eur_3_10_0255`
+7. Power/energy sensors only calculate when pool heating is active
+8. Fixed timezone issues in datetime templates
+9. Restructured docs: PROJECT_PLAN.md → PRODUCT_REQUIREMENTS.md + TECHNICAL_DESIGN.md
+10. Removed stale test files (test_thermia.py, test_nordpool.py)

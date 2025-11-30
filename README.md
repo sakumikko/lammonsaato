@@ -87,10 +87,11 @@ lammonsaato/
 
 ## Documentation
 
+- [Product Requirements](docs/PRODUCT_REQUIREMENTS.md) - What the system does and why
+- [Technical Design](docs/TECHNICAL_DESIGN.md) - Architecture, components, entity reference
 - [Setup Guide](docs/SETUP_GUIDE.md) - Step-by-step installation
 - [Troubleshooting](docs/TROUBLESHOOTING.md) - Common issues and solutions
 - [Thermia Registers](docs/THERMIA_REGISTERS.md) - Modbus register reference
-- [Project Plan](docs/PROJECT_PLAN.md) - Architecture details
 
 ## Development
 

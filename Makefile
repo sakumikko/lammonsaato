@@ -40,6 +40,7 @@ help:
 	@echo "  test-ha-schedule Test schedule calculation (calls pyscript)"
 	@echo "  test-ha-workflow Test full workflow (DRY RUN)"
 	@echo "  test-ha-monitor  Monitor heating session via WebSocket"
+	@echo "  test-ha-templates Test Jinja2 template compilation"
 	@echo ""
 	@echo "All Tests:"
 	@echo "  test-all         Run all tests (unit + integration + HA)"
@@ -153,6 +154,10 @@ test-ha-monitor:
 test-ha-sensors:
 	$(PYTHON) scripts/standalone/test_condenser_sensors.py
 
+# Test Jinja2 templates (requires HA_URL and HA_TOKEN)
+test-ha-templates:
+	$(PYTHON) scripts/standalone/test_templates.py
+
 # ============================================
 # ALL TESTS
 # ============================================
@@ -253,4 +258,4 @@ shell:
 
 # Show documentation
 docs:
-	@cat docs/PROJECT_PLAN.md
+	@cat docs/TECHNICAL_DESIGN.md

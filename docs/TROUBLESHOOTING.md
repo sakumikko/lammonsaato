@@ -27,9 +27,9 @@ Common issues and solutions for the Pool Heating Optimizer.
 
 4. Check for firewall blocking port 502
 
-5. Test with standalone script:
+5. Test with integration test:
    ```bash
-   python scripts/standalone/test_thermia.py 192.168.50.10
+   make test-thermia
    ```
 
 ### Thermia Sensors Stop Updating (Flat Line in History)
@@ -189,41 +189,30 @@ action:
 
 4. Test manually:
    - Developer Tools > Services
-   - Call `pyscript.calculate_pool_heating_slots`
+   - Call `pyscript.calculate_pool_heating_schedule`
 
-## Firebase Issues
+## Local Logging Issues
 
-### Connection Failed
+### Session Logs Not Created
 
 **Symptoms:**
-- sync_to_firebase errors
-- No data in Firebase console
+- No files in `/config/pool_heating_logs/`
+- Session data not recorded
 
 **Solutions:**
-1. Verify Firebase URL is correct
-2. Check service account key is valid
-3. Verify database rules allow writes:
-   ```json
-   {
-     "rules": {
-       ".read": true,
-       ".write": true
-     }
-   }
-   ```
-   (Note: Restrict rules for production)
-
-4. Test with standalone script:
+1. Check the logs directory exists:
    ```bash
-   python scripts/standalone/test_firebase.py --test-connection
+   ls -la /config/pool_heating_logs/
    ```
 
-### REST API Authentication Fails
+2. Verify pyscript has write permissions
 
-**Solutions:**
-1. Generate new database secret in Firebase console
-2. Check secret is correctly set in configuration
-3. Use service account key instead of secret
+3. Check pyscript logs for errors:
+   - Settings > System > Logs > filter "pyscript"
+
+4. Test logging manually:
+   - Developer Tools > Services
+   - Call `pyscript.test_logging`
 
 ## Temperature Logging Issues
 
@@ -241,8 +230,8 @@ action:
 2. Check template sensor calculation:
    ```yaml
    # In Developer Tools > Template
-   {{ states('sensor.thermia_supply_temperature') }}
-   {{ states('sensor.thermia_return_temperature') }}
+   {{ states('sensor.condenser_out_temperature') }}
+   {{ states('sensor.condenser_in_temperature') }}
    ```
 
 3. Ensure recorder includes relevant entities
@@ -300,31 +289,38 @@ Developer Tools > Services > select service > fill data > Call Service
 ### Factory Reset Heating Schedule
 
 ```yaml
-# Call these services to reset
+# Call these services to reset all blocks
 service: input_datetime.set_datetime
 data:
-  entity_id: input_datetime.pool_heat_slot_1
+  entity_id: input_datetime.pool_heat_block_1_start
   datetime: "2000-01-01 00:00:00"
 
-service: input_datetime.set_datetime
-data:
-  entity_id: input_datetime.pool_heat_slot_2
-  datetime: "2000-01-01 00:00:00"
+# Repeat for blocks 2-4
 ```
 
 ### Manually Trigger Heating
 
 ```yaml
-# Direct Shelly control (bypass automation)
+# Use the manual start script (runs for 30 minutes)
+service: script.pool_heating_manual_start
+```
+
+Or direct Shelly control (bypass automation):
+```yaml
+# Turn OFF prevention + ON circulation pump
+service: switch.turn_off
+target:
+  entity_id: switch.altaan_lammityksen_esto
+
 service: switch.turn_on
 target:
-  entity_id: switch.shelly_pool_heating
+  entity_id: switch.altaan_kiertovesipumppu
 ```
 
 ### Force Schedule Recalculation
 
 ```yaml
-service: pyscript.calculate_pool_heating_slots
+service: pyscript.calculate_pool_heating_schedule
 ```
 
 ## Getting Help

@@ -17,7 +17,7 @@ This system optimizes pool heating by:
 - Two Shelly switches configured:
   - **Heating Prevention** (`switch.altaan_lammityksen_esto`) - OFF to allow heating
   - **Circulation Pump** (`switch.altaan_kiertovesipumppu`) - ON when heating
-- Optional: Firebase account for external data logging
+- Local storage for session logs (uses `/config/pool_heating_logs/`)
 
 ---
 
@@ -46,7 +46,7 @@ HACS is required for Nordpool and Pyscript integrations.
      - **Include VAT**: Yes (if applicable)
      - **Precision**: 3
 
-5. Verify sensor: `sensor.nordpool_kwh_fi_eur_3_10_024`
+5. Verify sensor exists (your entity ID may vary, e.g., `sensor.nordpool_kwh_fi_eur_3_10_0255`)
 
 ### 1.3 Pyscript Integration (HACS)
 
@@ -125,14 +125,12 @@ homeassistant:
 Add to `/config/secrets.yaml`:
 
 ```yaml
-# Thermia Heat Pump Modbus
+# Thermia Heat Pump (configured via Thermia Genesis integration)
 thermia_host: "192.168.X.X"    # Your Thermia IP
 thermia_port: 502
-
-# Optional: Firebase for data logging
-firebase_url: "https://your-project.firebaseio.com"
-firebase_api_key: "your-api-key"
 ```
+
+Note: Session logs are stored locally in `/config/pool_heating_logs/` - no external database required.
 
 ---
 
@@ -164,9 +162,9 @@ Go to Developer Tools > States and search for:
 - `input_text.pool_heating_schedule_info`
 
 **Sensors (should show values):**
-- `sensor.nordpool_kwh_fi_eur_3_10_024`
-- `sensor.thermia_supply_temperature`
-- `sensor.thermia_return_temperature`
+- `sensor.nordpool_kwh_fi_eur_3_10_0255` (your ID may vary)
+- `sensor.condenser_out_temperature` (from Thermia Genesis)
+- `sensor.condenser_in_temperature` (from Thermia Genesis)
 - `sensor.pool_heat_exchanger_delta_t`
 
 **Switches (should be controllable):**
@@ -379,7 +377,7 @@ After prices are available, verify:
 
 During the night, monitor:
 - `binary_sensor.pool_heating_active` - should turn on/off with blocks
-- `sensor.thermia_supply_temperature` - should rise when heating
+- `sensor.condenser_out_temperature` - should rise when heating
 - `sensor.pool_heat_exchanger_delta_t` - temperature difference
 
 ### 8.3 Check Logs
@@ -421,7 +419,7 @@ After first night, check:
 | Main config | `/config/configuration.yaml` |
 | Pool heating package | `/config/packages/pool_heating.yaml` |
 | Pyscript optimizer | `/config/pyscript/pool_heating.py` |
-| Pyscript Firebase | `/config/pyscript/firebase_sync.py` |
+| Pyscript logging | `/config/pyscript/firebase_sync.py` |
 | Secrets | `/config/secrets.yaml` |
 
 ---
