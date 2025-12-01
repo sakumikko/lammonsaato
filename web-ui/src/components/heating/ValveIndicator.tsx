@@ -56,27 +56,6 @@ export function ValveIndicator({ state, onToggle, className }: ValveIndicatorPro
         />
       </div>
 
-      {/* Labels */}
-      <div className="absolute -bottom-6 left-1/2 -translate-x-1/2 whitespace-nowrap">
-        <span
-          className={cn(
-            'text-xs font-medium transition-colors',
-            !isPool ? 'text-primary text-glow-primary' : 'text-muted-foreground'
-          )}
-        >
-          Radiators
-        </span>
-      </div>
-      <div className="absolute top-1/2 -right-20 -translate-y-1/2 whitespace-nowrap">
-        <span
-          className={cn(
-            'text-xs font-medium transition-colors',
-            isPool ? 'text-hot text-glow-accent' : 'text-muted-foreground'
-          )}
-        >
-          Pool
-        </span>
-      </div>
     </div>
   );
 }

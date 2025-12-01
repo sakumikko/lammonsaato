@@ -2,9 +2,12 @@ import { useHomeAssistant } from '@/hooks/useHomeAssistant';
 import { SystemDiagram } from '@/components/heating/SystemDiagram';
 import { ControlPanel } from '@/components/heating/ControlPanel';
 import { SchedulePanel } from '@/components/heating/SchedulePanel';
+import { LanguageSwitcher } from '@/components/LanguageSwitcher';
 import { Activity, Zap, Wifi, WifiOff } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 const Index = () => {
+  const { t } = useTranslation();
   const {
     state,
     connected,
@@ -28,19 +31,21 @@ const Index = () => {
                 <Zap className="w-6 h-6 text-primary" />
               </div>
               <div>
-                <h1 className="text-xl font-bold text-foreground">Lämmönsäätö</h1>
-                <p className="text-xs text-muted-foreground">Pool Heating Optimizer</p>
+                <h1 className="text-xl font-bold text-foreground">{t('app.title')}</h1>
+                <p className="text-xs text-muted-foreground">{t('app.subtitle')}</p>
               </div>
             </div>
 
             {/* Status indicator */}
             <div className="flex items-center gap-4">
+              {/* Language switcher */}
+              <LanguageSwitcher />
               {/* Connection status */}
               <div
                 className={`flex items-center gap-2 px-3 py-2 rounded-lg ${
                   connected ? 'bg-success/20' : 'bg-destructive/20'
                 }`}
-                title={error || (connected ? 'Connected to Home Assistant' : 'Disconnected')}
+                title={error || (connected ? t('status.connected') : t('status.disconnected'))}
               >
                 {connected ? (
                   <Wifi className="w-4 h-4 text-success" />
@@ -48,7 +53,7 @@ const Index = () => {
                   <WifiOff className="w-4 h-4 text-destructive" />
                 )}
                 <span className={`text-sm font-medium ${connected ? 'text-success' : 'text-destructive'}`}>
-                  {connected ? 'HA' : 'Offline'}
+                  {connected ? 'HA' : t('status.offline')}
                 </span>
               </div>
               <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-muted/50">
@@ -58,7 +63,7 @@ const Index = () => {
                   }`}
                 />
                 <span className="text-sm font-medium text-foreground">
-                  {state.heatPump.heatEnabled ? 'System Active' : 'System Idle'}
+                  {state.heatPump.heatEnabled ? t('status.systemActive') : t('status.systemIdle')}
                 </span>
               </div>
               <div
@@ -68,7 +73,7 @@ const Index = () => {
                     : 'bg-primary/20 text-primary border border-primary/30'
                 }`}
               >
-                {isPoolActive ? '→ Pool' : '↓ Radiators'}
+                {isPoolActive ? `→ ${t('valve.pool')}` : `↓ ${t('valve.radiators')}`}
               </div>
             </div>
           </div>
@@ -82,9 +87,9 @@ const Index = () => {
           <div className="lg:col-span-2">
             <div className="rounded-2xl border border-border bg-card/50 backdrop-blur-sm overflow-hidden">
               <div className="px-6 py-4 border-b border-border bg-card/80">
-                <h2 className="font-semibold text-foreground">System Overview</h2>
+                <h2 className="font-semibold text-foreground">{t('systemOverview.title')}</h2>
                 <p className="text-xs text-muted-foreground mt-1">
-                  Click the valve to switch between pool and radiator circuits
+                  {t('systemOverview.description')}
                 </p>
               </div>
               <SystemDiagram
@@ -115,22 +120,22 @@ const Index = () => {
         <div className="mt-8 grid grid-cols-2 md:grid-cols-4 gap-4">
           {[
             {
-              label: 'Daily Energy',
+              label: t('stats.dailyEnergy'),
               value: `${state.poolHeating.dailyEnergy.toFixed(3)} kWh`,
               color: 'text-primary',
             },
             {
-              label: 'Daily Cost',
+              label: t('stats.dailyCost'),
               value: `€${state.poolHeating.dailyCost.toFixed(3)}`,
               color: 'text-success',
             },
             {
-              label: 'Monthly Cost',
+              label: t('stats.monthlyCost'),
               value: `€${state.poolHeating.monthlyCost.toFixed(3)}`,
               color: 'text-success',
             },
             {
-              label: 'Pool Temp',
+              label: t('stats.poolTemp'),
               value: `${state.poolHeating.returnLineTemp.toFixed(1)}°C`,
               color: 'text-hot',
             },

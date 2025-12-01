@@ -1,6 +1,7 @@
 import { cn } from '@/lib/utils';
 import { PoolHeatingState } from '@/types/heating';
 import { Waves, Euro } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 interface PoolUnitProps {
   state: PoolHeatingState;
@@ -9,6 +10,15 @@ interface PoolUnitProps {
 }
 
 export function PoolUnit({ state, isActive, className }: PoolUnitProps) {
+  const { t } = useTranslation();
+
+  // Get pool status text
+  const getStatusText = () => {
+    if (isActive) return t('pool.heating');
+    if (state.enabled) return t('pool.ready');
+    return t('pool.off');
+  };
+
   return (
     <div
       className={cn(
@@ -28,7 +38,7 @@ export function PoolUnit({ state, isActive, className }: PoolUnitProps) {
               isActive ? 'text-hot animate-pulse' : 'text-muted-foreground'
             )}
           />
-          <span className="font-semibold text-foreground">Pool</span>
+          <span className="font-semibold text-foreground">{t('pool.title')}</span>
         </div>
         <span
           className={cn(
@@ -40,7 +50,7 @@ export function PoolUnit({ state, isActive, className }: PoolUnitProps) {
                 : 'bg-muted text-muted-foreground'
           )}
         >
-          {isActive ? 'Heating' : state.enabled ? 'Ready' : 'Off'}
+          {getStatusText()}
         </span>
       </div>
 
@@ -59,15 +69,15 @@ export function PoolUnit({ state, isActive, className }: PoolUnitProps) {
           {state.returnLineTemp.toFixed(1)}°C
         </div>
         <div className="absolute top-2 right-2 text-xs text-muted-foreground">
-          Target: {state.targetTemp}°C
+          {t('pool.target')}: {state.targetTemp}°C
         </div>
       </div>
 
       {/* Stats */}
       <div className="flex items-center gap-1 text-xs">
         <Euro className="w-3 h-3 text-success" />
-        <span className="text-muted-foreground">Avg Price:</span>
-        <span className="font-mono text-foreground">{state.averagePrice.toFixed(2)} c/kWh</span>
+        <span className="text-muted-foreground">{t('pool.avgPrice')}:</span>
+        <span className="font-mono text-foreground">{state.averagePrice.toFixed(2)} {t('units.centsPerKwh')}</span>
       </div>
     </div>
   );

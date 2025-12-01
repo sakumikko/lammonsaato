@@ -1,0 +1,91 @@
+{
+  "app": {
+    "title": "Lämmönsäätö",
+    "subtitle": "Pool Heating Optimizer"
+  },
+  "status": {
+    "connected": "Connected to Home Assistant",
+    "disconnected": "Disconnected",
+    "offline": "Offline",
+    "systemActive": "System Active",
+    "systemIdle": "System Idle"
+  },
+  "valve": {
+    "pool": "Pool",
+    "radiators": "Radiators"
+  },
+  "systemOverview": {
+    "title": "System Overview",
+    "description": "Click the valve to switch between pool and radiator circuits"
+  },
+  "heatPump": {
+    "title": "Heat Pump",
+    "compressor": "Compressor",
+    "brinePump": "Brine Pump",
+    "condenserIn": "Condenser In",
+    "condenserOut": "Condenser Out",
+    "mode": {
+      "heat": "Heat",
+      "cool": "Cool",
+      "off": "Off"
+    }
+  },
+  "pool": {
+    "title": "Pool",
+    "heating": "Heating",
+    "ready": "Ready",
+    "off": "Off",
+    "target": "Target",
+    "avgPrice": "Avg Price"
+  },
+  "groundLoop": {
+    "title": "Ground Loop",
+    "borehole": "Borehole",
+    "in": "In",
+    "out": "Out"
+  },
+  "radiators": {
+    "title": "Radiators",
+    "active": "Active",
+    "standby": "Standby",
+    "supply": "Supply",
+    "return": "Return"
+  },
+  "controls": {
+    "title": "System Controls",
+    "poolHeating": "Pool Heating",
+    "scheduledHeating": "Scheduled Heating",
+    "targetTemperature": "Target Temperature",
+    "outdoor": "Outdoor"
+  },
+  "schedule": {
+    "title": "Tonight's Schedule",
+    "pricesAvailable": "Prices available",
+    "awaitingPrices": "Awaiting prices",
+    "currentPrice": "Current Price",
+    "completed": "Completed",
+    "total": "Total",
+    "avg": "Avg",
+    "min": "min",
+    "nightComplete": "Target reached - remaining blocks skipped",
+    "blockPast": "This block has already completed"
+  },
+  "stats": {
+    "dailyEnergy": "Daily Energy",
+    "dailyCost": "Daily Cost",
+    "monthlyCost": "Monthly Cost",
+    "poolTemp": "Pool Temp"
+  },
+  "units": {
+    "rpm": "rpm",
+    "percent": "%",
+    "celsius": "°C",
+    "centsPerKwh": "c/kWh",
+    "kwh": "kWh"
+  },
+  "language": {
+    "select": "Language",
+    "en": "English",
+    "fi": "Suomi"
+  }
+}

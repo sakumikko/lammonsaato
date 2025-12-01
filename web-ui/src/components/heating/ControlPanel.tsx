@@ -3,6 +3,7 @@ import { Switch } from '@/components/ui/switch';
 import { Slider } from '@/components/ui/slider';
 import { HeatPumpState, PoolHeatingState } from '@/types/heating';
 import { Power, Waves, Target, Thermometer } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 interface ControlPanelProps {
   heatPump: HeatPumpState;
@@ -19,13 +20,21 @@ export function ControlPanel({
   onPoolTempChange,
   className,
 }: ControlPanelProps) {
+  const { t } = useTranslation();
+
+  // Map heat pump mode to translation key
+  const getModeText = (mode: string) => {
+    const modeKey = mode.toLowerCase() as 'heat' | 'cool' | 'off';
+    return t(`heatPump.mode.${modeKey}`, mode);
+  };
+
   return (
     <div className={cn('space-y-4', className)}>
       {/* Heat Pump Controls */}
       <div className="p-4 rounded-xl bg-card border border-border">
         <h3 className="text-sm font-semibold text-foreground mb-4 flex items-center gap-2">
           <Power className="w-4 h-4 text-primary" />
-          System Controls
+          {t('controls.title')}
         </h3>
 
         <div className="space-y-3">
@@ -38,26 +47,26 @@ export function ControlPanel({
                   heatPump.heatEnabled ? 'bg-success animate-pulse' : 'bg-muted-foreground'
                 )}
               />
-              <span className="text-sm text-foreground">Heat Pump</span>
+              <span className="text-sm text-foreground">{t('heatPump.title')}</span>
             </div>
             <span className={cn(
               'text-xs font-mono px-2 py-1 rounded',
               heatPump.heatEnabled ? 'bg-success/20 text-success' : 'bg-muted text-muted-foreground'
             )}>
-              {heatPump.heatpumpMode}
+              {getModeText(heatPump.heatpumpMode)}
             </span>
           </div>
 
           {/* Compressor RPM */}
           <div className="flex items-center justify-between text-sm">
-            <span className="text-muted-foreground">Compressor</span>
-            <span className="font-mono text-foreground">{heatPump.compressorRpm} rpm</span>
+            <span className="text-muted-foreground">{t('heatPump.compressor')}</span>
+            <span className="font-mono text-foreground">{heatPump.compressorRpm} {t('units.rpm')}</span>
           </div>
 
           {/* Brine Pump */}
           <div className="flex items-center justify-between text-sm">
-            <span className="text-muted-foreground">Brine Pump</span>
-            <span className="font-mono text-foreground">{heatPump.brineCirculationSpeed.toFixed(0)}%</span>
+            <span className="text-muted-foreground">{t('heatPump.brinePump')}</span>
+            <span className="font-mono text-foreground">{heatPump.brineCirculationSpeed.toFixed(0)}{t('units.percent')}</span>
           </div>
         </div>
       </div>
@@ -66,7 +75,7 @@ export function ControlPanel({
       <div className="p-4 rounded-xl bg-card border border-border">
         <h3 className="text-sm font-semibold text-foreground mb-4 flex items-center gap-2">
           <Waves className="w-4 h-4 text-hot" />
-          Pool Heating
+          {t('controls.poolHeating')}
         </h3>
 
         <div className="space-y-4">
@@ -79,7 +88,7 @@ export function ControlPanel({
                   poolHeating.enabled ? 'bg-success' : 'bg-muted-foreground'
                 )}
               />
-              <span className="text-sm text-foreground">Scheduled Heating</span>
+              <span className="text-sm text-foreground">{t('controls.scheduledHeating')}</span>
             </div>
             <Switch
               checked={poolHeating.enabled}
@@ -92,7 +101,7 @@ export function ControlPanel({
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Target className="w-4 h-4 text-hot" />
-                <span className="text-sm text-foreground">Target Temperature</span>
+                <span className="text-sm text-foreground">{t('controls.targetTemperature')}</span>
               </div>
               <span className="font-mono text-sm text-hot">{poolHeating.targetTemp}°C</span>
             </div>
@@ -117,7 +126,7 @@ export function ControlPanel({
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Thermometer className="w-4 h-4 text-cold" />
-            <span className="text-sm text-foreground">Outdoor</span>
+            <span className="text-sm text-foreground">{t('controls.outdoor')}</span>
           </div>
           <span className="font-mono text-lg text-foreground">
             {heatPump.outdoorTemp.toFixed(1)}°C

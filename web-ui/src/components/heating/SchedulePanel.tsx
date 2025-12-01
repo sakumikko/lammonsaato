@@ -2,6 +2,7 @@ import { cn } from '@/lib/utils';
 import { ScheduleState } from '@/types/heating';
 import { Clock, Euro, Calendar, CheckCircle, Ban, History, AlertCircle } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
+import { useTranslation } from 'react-i18next';
 
 interface SchedulePanelProps {
   schedule: ScheduleState;
@@ -32,6 +33,7 @@ function isBlockInPast(endTime: string): boolean {
 }
 
 export function SchedulePanel({ schedule, nightComplete, onBlockEnabledChange, className }: SchedulePanelProps) {
+  const { t } = useTranslation();
   const avgPrice =
     schedule.blocks.length > 0
       ? schedule.blocks.reduce((sum, b) => sum + b.price, 0) / schedule.blocks.length
@@ -42,18 +44,18 @@ export function SchedulePanel({ schedule, nightComplete, onBlockEnabledChange, c
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
           <Calendar className="w-4 h-4 text-primary" />
-          Tonight's Schedule
+          {t('schedule.title')}
         </h3>
         <div className="flex items-center gap-1">
           {schedule.nordpoolAvailable ? (
             <>
               <CheckCircle className="w-3 h-3 text-success" />
-              <span className="text-xs text-success">Prices available</span>
+              <span className="text-xs text-success">{t('schedule.pricesAvailable')}</span>
             </>
           ) : (
             <div className="flex items-center gap-1 px-2 py-1 rounded bg-warning/20 border border-warning/30">
               <AlertCircle className="w-3 h-3 text-warning" />
-              <span className="text-xs text-warning font-medium">Awaiting prices</span>
+              <span className="text-xs text-warning font-medium">{t('schedule.awaitingPrices')}</span>
             </div>
           )}
         </div>
@@ -63,7 +65,7 @@ export function SchedulePanel({ schedule, nightComplete, onBlockEnabledChange, c
       {nightComplete && (
         <div className="flex items-center gap-2 mb-4 p-2 rounded-lg bg-success/20 text-success">
           <CheckCircle className="w-4 h-4" />
-          <span className="text-sm">Target reached - remaining blocks skipped</span>
+          <span className="text-sm">{t('schedule.nightComplete')}</span>
         </div>
       )}
 
@@ -71,9 +73,9 @@ export function SchedulePanel({ schedule, nightComplete, onBlockEnabledChange, c
       <div className="flex items-center justify-between mb-4 p-3 rounded-lg bg-muted/50">
         <div className="flex items-center gap-2">
           <Euro className="w-4 h-4 text-warning" />
-          <span className="text-sm text-muted-foreground">Current Price</span>
+          <span className="text-sm text-muted-foreground">{t('schedule.currentPrice')}</span>
         </div>
-        <span className="font-mono text-lg text-warning">{schedule.currentPrice.toFixed(1)} c/kWh</span>
+        <span className="font-mono text-lg text-warning">{schedule.currentPrice.toFixed(1)} {t('units.centsPerKwh')}</span>
       </div>
 
       {/* Schedule blocks */}
@@ -101,7 +103,7 @@ export function SchedulePanel({ schedule, nightComplete, onBlockEnabledChange, c
                     onCheckedChange={(checked) => onBlockEnabledChange(index + 1, checked)}
                     disabled={isPast}
                     className={cn('scale-75', isPast && 'opacity-30 cursor-not-allowed')}
-                    title={isPast ? 'This block has already completed' : undefined}
+                    title={isPast ? t('schedule.blockPast') : undefined}
                   />
                 )}
                 {isPast ? (
@@ -125,7 +127,7 @@ export function SchedulePanel({ schedule, nightComplete, onBlockEnabledChange, c
                 </span>
                 {isPast && (
                   <span className="text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground font-medium">
-                    Completed
+                    {t('schedule.completed')}
                   </span>
                 )}
               </div>
@@ -156,10 +158,10 @@ export function SchedulePanel({ schedule, nightComplete, onBlockEnabledChange, c
       {/* Summary */}
       <div className="mt-4 pt-4 border-t border-border flex items-center justify-between text-sm">
         <div className="text-muted-foreground">
-          Total: <span className="font-mono text-foreground">{schedule.scheduledMinutes} min</span>
+          {t('schedule.total')}: <span className="font-mono text-foreground">{schedule.scheduledMinutes} {t('schedule.min')}</span>
         </div>
         <div className="text-muted-foreground">
-          Avg: <span className="font-mono text-success">{avgPrice.toFixed(2)} c/kWh</span>
+          {t('schedule.avg')}: <span className="font-mono text-success">{avgPrice.toFixed(2)} {t('units.centsPerKwh')}</span>
         </div>
       </div>
     </div>

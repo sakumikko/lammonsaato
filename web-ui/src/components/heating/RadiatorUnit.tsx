@@ -1,5 +1,6 @@
 import { cn } from '@/lib/utils';
 import { Home, Thermometer } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 interface RadiatorUnitProps {
   isActive: boolean;
@@ -9,6 +10,8 @@ interface RadiatorUnitProps {
 }
 
 export function RadiatorUnit({ isActive, supplyTemp, returnTemp, className }: RadiatorUnitProps) {
+  const { t } = useTranslation();
+
   return (
     <div
       className={cn(
@@ -28,7 +31,7 @@ export function RadiatorUnit({ isActive, supplyTemp, returnTemp, className }: Ra
               isActive ? 'text-primary' : 'text-muted-foreground'
             )}
           />
-          <span className="font-semibold text-foreground">Radiators</span>
+          <span className="font-semibold text-foreground">{t('radiators.title')}</span>
         </div>
         <span
           className={cn(
@@ -36,7 +39,7 @@ export function RadiatorUnit({ isActive, supplyTemp, returnTemp, className }: Ra
             isActive ? 'bg-primary/20 text-primary' : 'bg-muted text-muted-foreground'
           )}
         >
-          {isActive ? 'Active' : 'Standby'}
+          {isActive ? t('radiators.active') : t('radiators.standby')}
         </span>
       </div>
 
@@ -62,12 +65,12 @@ export function RadiatorUnit({ isActive, supplyTemp, returnTemp, className }: Ra
       <div className="grid grid-cols-2 gap-2 text-xs">
         <div className="flex items-center gap-1">
           <Thermometer className="w-3 h-3 text-hot" />
-          <span className="text-muted-foreground">Supply:</span>
+          <span className="text-muted-foreground">{t('radiators.supply')}:</span>
           <span className="font-mono text-foreground">{supplyTemp.toFixed(1)}°C</span>
         </div>
         <div className="flex items-center gap-1">
           <Thermometer className="w-3 h-3 text-cold" />
-          <span className="text-muted-foreground">Return:</span>
+          <span className="text-muted-foreground">{t('radiators.return')}:</span>
           <span className="font-mono text-foreground">{returnTemp.toFixed(1)}°C</span>
         </div>
       </div>

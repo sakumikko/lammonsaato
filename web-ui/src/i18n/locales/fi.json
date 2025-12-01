@@ -1,0 +1,91 @@
+{
+  "app": {
+    "title": "Lämmönsäätö",
+    "subtitle": "Altaan lämmityksen optimointi"
+  },
+  "status": {
+    "connected": "Yhdistetty Home Assistantiin",
+    "disconnected": "Yhteys katkaistu",
+    "offline": "Ei yhteyttä",
+    "systemActive": "Järjestelmä käynnissä",
+    "systemIdle": "Järjestelmä lepotilassa"
+  },
+  "valve": {
+    "pool": "Allas",
+    "radiators": "Patterit"
+  },
+  "systemOverview": {
+    "title": "Järjestelmän yleiskuva",
+    "description": "Klikkaa venttiiliä vaihtaaksesi altaan ja patteripiirin välillä"
+  },
+  "heatPump": {
+    "title": "Lämpöpumppu",
+    "compressor": "Kompressori",
+    "brinePump": "Liuospumppu",
+    "condenserIn": "Lauhdutin sisään",
+    "condenserOut": "Lauhdutin ulos",
+    "mode": {
+      "heat": "Lämmitys",
+      "cool": "Jäähdytys",
+      "off": "Pois"
+    }
+  },
+  "pool": {
+    "title": "Allas",
+    "heating": "Lämmitys käynnissä",
+    "ready": "Valmiina",
+    "off": "Pois päältä",
+    "target": "Tavoite",
+    "avgPrice": "Keskihinta"
+  },
+  "groundLoop": {
+    "title": "Maapiiri",
+    "borehole": "Porakaivo",
+    "in": "Sisään",
+    "out": "Ulos"
+  },
+  "radiators": {
+    "title": "Patterit",
+    "active": "Aktiivinen",
+    "standby": "Valmiustilassa",
+    "supply": "Meno",
+    "return": "Paluu"
+  },
+  "controls": {
+    "title": "Järjestelmän ohjaus",
+    "poolHeating": "Altaan lämmitys",
+    "scheduledHeating": "Ajastettu lämmitys",
+    "targetTemperature": "Tavoitelämpötila",
+    "outdoor": "Ulkolämpötila"
+  },
+  "schedule": {
+    "title": "Yön aikataulu",
+    "pricesAvailable": "Hinnat saatavilla",
+    "awaitingPrices": "Odotetaan hintoja",
+    "currentPrice": "Nykyinen hinta",
+    "completed": "Valmis",
+    "total": "Yhteensä",
+    "avg": "Ka.",
+    "min": "min",
+    "nightComplete": "Tavoite saavutettu – loput lohkot ohitetaan",
+    "blockPast": "Tämä lohko on jo suoritettu"
+  },
+  "stats": {
+    "dailyEnergy": "Päivän kulutus",
+    "dailyCost": "Päivän kustannus",
+    "monthlyCost": "Kuukauden kustannus",
+    "poolTemp": "Altaan lämpötila"
+  },
+  "units": {
+    "rpm": "rpm",
+    "percent": "%",
+    "celsius": "°C",
+    "centsPerKwh": "c/kWh",
+    "kwh": "kWh"
+  },
+  "language": {
+    "select": "Kieli",
+    "en": "English",
+    "fi": "Suomi"
+  }
+}

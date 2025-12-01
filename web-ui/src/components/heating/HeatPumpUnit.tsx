@@ -1,6 +1,7 @@
 import { cn } from '@/lib/utils';
 import { HeatPumpState } from '@/types/heating';
 import { Zap, Thermometer, Wind } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 interface HeatPumpUnitProps {
   state: HeatPumpState;
@@ -8,7 +9,14 @@ interface HeatPumpUnitProps {
 }
 
 export function HeatPumpUnit({ state, className }: HeatPumpUnitProps) {
+  const { t } = useTranslation();
   const isRunning = state.heatEnabled && state.compressorRpm > 0;
+
+  // Map heat pump mode to translation key
+  const getModeText = (mode: string) => {
+    const modeKey = mode.toLowerCase() as 'heat' | 'cool' | 'off';
+    return t(`heatPump.mode.${modeKey}`, mode);
+  };
 
   return (
     <div
@@ -29,7 +37,7 @@ export function HeatPumpUnit({ state, className }: HeatPumpUnitProps) {
               isRunning ? 'bg-success animate-pulse' : 'bg-muted-foreground'
             )}
           />
-          <span className="font-semibold text-foreground">Heat Pump</span>
+          <span className="font-semibold text-foreground">{t('heatPump.title')}</span>
         </div>
         <span
           className={cn(
@@ -37,7 +45,7 @@ export function HeatPumpUnit({ state, className }: HeatPumpUnitProps) {
             isRunning ? 'bg-success/20 text-success' : 'bg-muted text-muted-foreground'
           )}
         >
-          {state.heatpumpMode}
+          {getModeText(state.heatpumpMode)}
         </span>
       </div>
 
@@ -68,15 +76,15 @@ export function HeatPumpUnit({ state, className }: HeatPumpUnitProps) {
         <div className="flex items-center gap-2">
           <Zap className="w-4 h-4 text-primary" />
           <div>
-            <div className="text-muted-foreground text-xs">Compressor</div>
-            <div className="font-mono text-foreground">{state.compressorRpm} rpm</div>
+            <div className="text-muted-foreground text-xs">{t('heatPump.compressor')}</div>
+            <div className="font-mono text-foreground">{state.compressorRpm} {t('units.rpm')}</div>
           </div>
         </div>
         <div className="flex items-center gap-2">
           <Wind className="w-4 h-4 text-cold" />
           <div>
-            <div className="text-muted-foreground text-xs">Brine Pump</div>
-            <div className="font-mono text-foreground">{state.brineCirculationSpeed.toFixed(1)}%</div>
+            <div className="text-muted-foreground text-xs">{t('heatPump.brinePump')}</div>
+            <div className="font-mono text-foreground">{state.brineCirculationSpeed.toFixed(1)}{t('units.percent')}</div>
           </div>
         </div>
       </div>
@@ -85,13 +93,13 @@ export function HeatPumpUnit({ state, className }: HeatPumpUnitProps) {
       <div className="mt-4 space-y-2">
         <div className="flex items-center justify-between text-xs">
           <span className="text-cold flex items-center gap-1">
-            <Thermometer className="w-3 h-3" /> Condenser In
+            <Thermometer className="w-3 h-3" /> {t('heatPump.condenserIn')}
           </span>
           <span className="font-mono text-cold">{state.condenserInTemp.toFixed(1)}°C</span>
         </div>
         <div className="flex items-center justify-between text-xs">
           <span className="text-hot flex items-center gap-1">
-            <Thermometer className="w-3 h-3" /> Condenser Out
+            <Thermometer className="w-3 h-3" /> {t('heatPump.condenserOut')}
           </span>
           <span className="font-mono text-hot">{state.condenserOutTemp.toFixed(1)}°C</span>
         </div>

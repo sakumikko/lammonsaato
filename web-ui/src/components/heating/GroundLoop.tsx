@@ -1,5 +1,6 @@
 import { cn } from '@/lib/utils';
 import { Mountain, Thermometer } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 interface GroundLoopProps {
   brineInTemp: number;
@@ -9,6 +10,8 @@ interface GroundLoopProps {
 }
 
 export function GroundLoop({ brineInTemp, brineOutTemp, isActive, className }: GroundLoopProps) {
+  const { t } = useTranslation();
+
   return (
     <div
       className={cn(
@@ -27,7 +30,7 @@ export function GroundLoop({ brineInTemp, brineOutTemp, isActive, className }: G
             isActive ? 'text-cold' : 'text-muted-foreground'
           )}
         />
-        <span className="font-semibold text-foreground text-sm">Ground Loop</span>
+        <span className="font-semibold text-foreground text-sm">{t('groundLoop.title')}</span>
       </div>
 
       {/* Ground visualization */}
@@ -42,7 +45,7 @@ export function GroundLoop({ brineInTemp, brineOutTemp, isActive, className }: G
           )}
         </div>
         <div className="absolute bottom-1 left-2 right-2 flex justify-between text-[10px] text-muted-foreground">
-          <span>Borehole</span>
+          <span>{t('groundLoop.borehole')}</span>
         </div>
       </div>
 
@@ -50,12 +53,12 @@ export function GroundLoop({ brineInTemp, brineOutTemp, isActive, className }: G
       <div className="flex justify-between text-xs">
         <div className="flex items-center gap-1">
           <Thermometer className="w-3 h-3 text-cold" />
-          <span className="text-muted-foreground">In:</span>
+          <span className="text-muted-foreground">{t('groundLoop.in')}</span>
           <span className="font-mono text-cold">{brineInTemp.toFixed(1)}°C</span>
         </div>
         <div className="flex items-center gap-1">
           <Thermometer className="w-3 h-3 text-cold/60" />
-          <span className="text-muted-foreground">Out:</span>
+          <span className="text-muted-foreground">{t('groundLoop.out')}</span>
           <span className="font-mono text-cold/60">{brineOutTemp.toFixed(1)}°C</span>
         </div>
       </div>
