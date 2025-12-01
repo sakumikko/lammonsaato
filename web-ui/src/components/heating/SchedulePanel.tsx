@@ -11,24 +11,11 @@ interface SchedulePanelProps {
   className?: string;
 }
 
-// Check if a block end time is in the past
-function isBlockInPast(endTime: string): boolean {
+// Check if a block end time is in the past using full ISO datetime
+function isBlockInPast(endDateTime: string): boolean {
+  if (!endDateTime) return false;
   const now = new Date();
-  const [hours, minutes] = endTime.split(':').map(Number);
-
-  // Create a date for today with the block end time
-  const blockEnd = new Date();
-  blockEnd.setHours(hours, minutes, 0, 0);
-
-  // If block end is between 00:00-07:00, it's "tomorrow morning" in the schedule
-  // but if current time is after 07:00, those blocks are in the past
-  if (hours < 7) {
-    // Morning block - check if we're past 07:00 today
-    if (now.getHours() >= 7) {
-      return true; // Morning blocks are done for today
-    }
-  }
-
+  const blockEnd = new Date(endDateTime);
   return now > blockEnd;
 }
 
@@ -81,7 +68,7 @@ export function SchedulePanel({ schedule, nightComplete, onBlockEnabledChange, c
       {/* Schedule blocks */}
       <div className="space-y-2">
         {schedule.blocks.map((block, index) => {
-          const isPast = isBlockInPast(block.end);
+          const isPast = isBlockInPast(block.endDateTime);
           const isDisabled = !block.enabled;
 
           return (

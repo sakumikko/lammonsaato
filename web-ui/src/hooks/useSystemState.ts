@@ -35,10 +35,10 @@ const initialState: SystemState = {
   },
   schedule: {
     blocks: [
-      { start: '01:30', end: '02:00', price: 2.05, duration: 30 },
-      { start: '02:30', end: '03:00', price: 1.8, duration: 30 },
-      { start: '03:30', end: '04:00', price: 1.8, duration: 30 },
-      { start: '05:00', end: '05:30', price: 1.8, duration: 30 },
+      { start: '01:30', end: '02:00', endDateTime: '2025-12-02T02:00:00+02:00', price: 2.05, duration: 30, enabled: true },
+      { start: '02:30', end: '03:00', endDateTime: '2025-12-02T03:00:00+02:00', price: 1.8, duration: 30, enabled: true },
+      { start: '03:30', end: '04:00', endDateTime: '2025-12-02T04:00:00+02:00', price: 1.8, duration: 30, enabled: true },
+      { start: '05:00', end: '05:30', endDateTime: '2025-12-02T05:30:00+02:00', price: 1.8, duration: 30, enabled: true },
     ],
     nordpoolAvailable: true,
     currentPrice: 7.0,

@@ -452,6 +452,12 @@ def calculate_pool_heating_schedule():
                 entity_id=block_entity["price"],
                 value=round(block['avg_price'] * 100, 2)  # Convert to cents
             )
+            # Enable the block
+            service.call(
+                "input_boolean",
+                "turn_on",
+                entity_id=block_entity["enabled"]
+            )
         else:
             # Clear unused block slots
             # Set to a date in the past so automations won't trigger
@@ -474,6 +480,12 @@ def calculate_pool_heating_schedule():
                 "set_value",
                 entity_id=block_entity["price"],
                 value=0
+            )
+            # Disable unused blocks
+            service.call(
+                "input_boolean",
+                "turn_off",
+                entity_id=block_entity["enabled"]
             )
 
     # Calculate average price

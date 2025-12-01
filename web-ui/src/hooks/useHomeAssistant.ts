@@ -151,7 +151,7 @@ function parseHeatPumpMode(state: HAEntityState | undefined): 'Heat' | 'Cool' | 
   return 'Off';
 }
 
-// Helper to parse time from input_datetime
+// Helper to parse time from input_datetime (returns HH:MM for display)
 function parseTime(state: HAEntityState | undefined): string {
   if (!state || state.state === 'unknown' || state.state === 'unavailable') return '';
   const timeStr = state.state;
@@ -175,6 +175,12 @@ function parseTime(state: HAEntityState | undefined): string {
   }
 
   return '';
+}
+
+// Helper to get full ISO datetime string for comparison
+function parseDateTime(state: HAEntityState | undefined): string {
+  if (!state || state.state === 'unknown' || state.state === 'unavailable') return '';
+  return state.state;
 }
 
 // Helper to calculate block duration in minutes
@@ -272,6 +278,7 @@ export function useHomeAssistant(): UseHomeAssistantReturn {
       const blockEntities = getBlockEntities(n);
       const start = parseTime(get(blockEntities.start));
       const end = parseTime(get(blockEntities.end));
+      const endDateTime = parseDateTime(get(blockEntities.end));
       const price = parseNumber(get(blockEntities.price));
       const enabled = parseBoolean(get(blockEntities.enabled));
       const duration = calculateBlockDuration(start, end);
@@ -281,6 +288,7 @@ export function useHomeAssistant(): UseHomeAssistantReturn {
         blocks.push({
           start,
           end,
+          endDateTime,
           price,
           duration,
           enabled,

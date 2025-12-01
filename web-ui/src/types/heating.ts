@@ -34,8 +34,9 @@ export interface ValveState {
 }
 
 export interface PriceBlock {
-  start: string;
-  end: string;
+  start: string;      // Display time HH:MM
+  end: string;        // Display time HH:MM
+  endDateTime: string; // Full ISO datetime for comparison
   price: number;
   duration: number;
   enabled: boolean;
