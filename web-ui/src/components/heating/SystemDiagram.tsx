@@ -18,14 +18,14 @@ export function SystemDiagram({ state, onToggleValve, className }: SystemDiagram
   const isHeatPumpRunning = state.heatPump.heatEnabled || state.heatPump.compressorRpm > 0;
 
   return (
-    <div className={cn('relative p-6', className)}>
+    <div className={cn('relative p-2 md:p-6', className)}>
       {/* Vertical flow layout: Ground → Heat Pump → Valve → Pool/Radiators */}
-      <div className="flex flex-col items-center gap-2">
+      <div className="flex flex-col items-center gap-1 md:gap-2">
 
         {/* Row 1: Distribution - Pool ← Valve → Radiators */}
-        <div className="grid grid-cols-[1fr_auto_1fr] gap-4 items-center w-full max-w-3xl">
+        <div className="grid grid-cols-[1fr_auto_1fr] gap-1 md:gap-4 items-center w-full max-w-3xl">
           {/* Pool (left) */}
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1 md:gap-2">
             <PoolUnit
               state={state.poolHeating}
               isActive={isPoolActive && isHeatPumpRunning}
@@ -34,7 +34,7 @@ export function SystemDiagram({ state, onToggleValve, className }: SystemDiagram
             <FlowPipe
               variant={isPoolActive && isHeatPumpRunning ? 'hot' : 'inactive'}
               flowing={isPoolActive && isHeatPumpRunning}
-              className="w-8"
+              className="w-3 md:w-8"
             />
           </div>
 
@@ -47,11 +47,11 @@ export function SystemDiagram({ state, onToggleValve, className }: SystemDiagram
           </div>
 
           {/* Radiators (right) */}
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1 md:gap-2">
             <FlowPipe
               variant={!isPoolActive && isHeatPumpRunning ? 'hot' : 'inactive'}
               flowing={!isPoolActive && isHeatPumpRunning}
-              className="w-8"
+              className="w-3 md:w-8"
             />
             <RadiatorUnit
               isActive={!isPoolActive && isHeatPumpRunning}
@@ -67,11 +67,11 @@ export function SystemDiagram({ state, onToggleValve, className }: SystemDiagram
           variant={isHeatPumpRunning ? 'hot' : 'inactive'}
           direction="vertical"
           flowing={isHeatPumpRunning}
-          className="h-6"
+          className="h-3 md:h-6"
         />
 
         {/* Row 2: Heat Pump */}
-        <div className="w-full max-w-md">
+        <div className="w-full max-w-xs md:max-w-md">
           <HeatPumpUnit state={state.heatPump} />
         </div>
 
@@ -80,11 +80,11 @@ export function SystemDiagram({ state, onToggleValve, className }: SystemDiagram
           variant={isHeatPumpRunning ? 'cold' : 'inactive'}
           direction="vertical"
           flowing={isHeatPumpRunning}
-          className="h-6"
+          className="h-3 md:h-6"
         />
 
         {/* Row 3: Ground Loop */}
-        <div className="w-full max-w-sm">
+        <div className="w-full max-w-[200px] md:max-w-sm">
           <GroundLoop
             brineInTemp={state.heatPump.brineInTemp}
             brineOutTemp={state.heatPump.brineOutTemp}
@@ -93,8 +93,8 @@ export function SystemDiagram({ state, onToggleValve, className }: SystemDiagram
         </div>
       </div>
 
-      {/* Flow direction legend */}
-      <div className="mt-8 flex justify-center gap-8 text-xs">
+      {/* Flow direction legend - hidden on mobile */}
+      <div className="mt-4 md:mt-8 hidden md:flex justify-center gap-8 text-xs">
         <div className="flex items-center gap-2">
           <div className="w-6 h-2 rounded-full bg-hot/60" />
           <span className="text-muted-foreground">Hot supply</span>

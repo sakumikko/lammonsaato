@@ -24,25 +24,25 @@ const Index = () => {
     <div className="min-h-screen bg-background bg-grid">
       {/* Header */}
       <header className="border-b border-border bg-card/80 backdrop-blur-sm sticky top-0 z-10">
-        <div className="container mx-auto px-4 py-4">
+        <div className="container mx-auto px-2 md:px-4 py-2 md:py-4">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-primary/20">
-                <Zap className="w-6 h-6 text-primary" />
+            <div className="flex items-center gap-2 md:gap-3">
+              <div className="p-1.5 md:p-2 rounded-lg bg-primary/20">
+                <Zap className="w-5 h-5 md:w-6 md:h-6 text-primary" />
               </div>
               <div>
-                <h1 className="text-xl font-bold text-foreground">{t('app.title')}</h1>
-                <p className="text-xs text-muted-foreground">{t('app.subtitle')}</p>
+                <h1 className="text-base md:text-xl font-bold text-foreground">{t('app.title')}</h1>
+                <p className="text-xs text-muted-foreground hidden md:block">{t('app.subtitle')}</p>
               </div>
             </div>
 
             {/* Status indicator */}
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-1.5 md:gap-4">
               {/* Language switcher */}
               <LanguageSwitcher />
               {/* Connection status */}
               <div
-                className={`flex items-center gap-2 px-3 py-2 rounded-lg ${
+                className={`flex items-center gap-1 md:gap-2 px-2 md:px-3 py-1.5 md:py-2 rounded-lg ${
                   connected ? 'bg-success/20' : 'bg-destructive/20'
                 }`}
                 title={error || (connected ? t('status.connected') : t('status.disconnected'))}
@@ -52,22 +52,22 @@ const Index = () => {
                 ) : (
                   <WifiOff className="w-4 h-4 text-destructive" />
                 )}
-                <span className={`text-sm font-medium ${connected ? 'text-success' : 'text-destructive'}`}>
+                <span className={`text-sm font-medium hidden md:inline ${connected ? 'text-success' : 'text-destructive'}`}>
                   {connected ? 'HA' : t('status.offline')}
                 </span>
               </div>
-              <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-muted/50">
+              <div className="flex items-center gap-1 md:gap-2 px-2 md:px-3 py-1.5 md:py-2 rounded-lg bg-muted/50">
                 <Activity
                   className={`w-4 h-4 ${
                     state.heatPump.heatEnabled ? 'text-success animate-pulse' : 'text-muted-foreground'
                   }`}
                 />
-                <span className="text-sm font-medium text-foreground">
+                <span className="text-sm font-medium text-foreground hidden md:inline">
                   {state.heatPump.heatEnabled ? t('status.systemActive') : t('status.systemIdle')}
                 </span>
               </div>
               <div
-                className={`px-3 py-2 rounded-lg font-mono text-sm transition-colors ${
+                className={`px-2 md:px-3 py-1.5 md:py-2 rounded-lg font-mono text-xs md:text-sm transition-colors ${
                   isPoolActive
                     ? 'bg-hot/20 text-hot border border-hot/30'
                     : 'bg-primary/20 text-primary border border-primary/30'
@@ -81,14 +81,14 @@ const Index = () => {
       </header>
 
       {/* Main content */}
-      <main className="container mx-auto px-4 py-8">
-        <div className="grid lg:grid-cols-3 gap-8">
+      <main className="container mx-auto px-2 md:px-4 py-4 md:py-8">
+        <div className="grid lg:grid-cols-3 gap-4 md:gap-8">
           {/* System Diagram - takes 2 columns */}
           <div className="lg:col-span-2">
-            <div className="rounded-2xl border border-border bg-card/50 backdrop-blur-sm overflow-hidden">
-              <div className="px-6 py-4 border-b border-border bg-card/80">
-                <h2 className="font-semibold text-foreground">{t('systemOverview.title')}</h2>
-                <p className="text-xs text-muted-foreground mt-1">
+            <div className="rounded-xl md:rounded-2xl border border-border bg-card/50 backdrop-blur-sm overflow-hidden">
+              <div className="px-3 md:px-6 py-2 md:py-4 border-b border-border bg-card/80">
+                <h2 className="font-semibold text-sm md:text-base text-foreground">{t('systemOverview.title')}</h2>
+                <p className="text-xs text-muted-foreground mt-0.5 md:mt-1 hidden md:block">
                   {t('systemOverview.description')}
                 </p>
               </div>

@@ -18,7 +18,7 @@ export function ValveIndicator({ state, onToggle, className }: ValveIndicatorPro
         onClick={onToggle}
         disabled={state.transitioning}
         className={cn(
-          'relative w-16 h-16 rounded-full border-4 flex items-center justify-center transition-all duration-500 cursor-pointer hover:scale-105 active:scale-95',
+          'relative w-10 h-10 md:w-16 md:h-16 rounded-full border-2 md:border-4 flex items-center justify-center transition-all duration-500 cursor-pointer hover:scale-105 active:scale-95',
           state.transitioning
             ? 'border-warning bg-warning/20 animate-pulse'
             : isPool
@@ -27,11 +27,11 @@ export function ValveIndicator({ state, onToggle, className }: ValveIndicatorPro
         )}
       >
         {state.transitioning ? (
-          <RefreshCw className="w-6 h-6 text-warning animate-spin" />
+          <RefreshCw className="w-4 h-4 md:w-6 md:h-6 text-warning animate-spin" />
         ) : (
           <div
             className={cn(
-              'w-8 h-2 rounded-full transition-all duration-500',
+              'w-5 h-1.5 md:w-8 md:h-2 rounded-full transition-all duration-500',
               isPool ? 'bg-hot rotate-90' : 'bg-primary rotate-0'
             )}
           />
@@ -39,18 +39,18 @@ export function ValveIndicator({ state, onToggle, className }: ValveIndicatorPro
       </button>
 
       {/* Direction arrows */}
-      <div className="absolute -top-6 left-1/2 -translate-x-1/2">
+      <div className="absolute -top-4 md:-top-6 left-1/2 -translate-x-1/2">
         <ArrowDown
           className={cn(
-            'w-4 h-4 transition-colors',
+            'w-3 h-3 md:w-4 md:h-4 transition-colors',
             !isPool && !state.transitioning ? 'text-primary' : 'text-muted-foreground/30'
           )}
         />
       </div>
-      <div className="absolute top-1/2 -right-6 -translate-y-1/2">
+      <div className="absolute top-1/2 -right-4 md:-right-6 -translate-y-1/2">
         <ArrowRight
           className={cn(
-            'w-4 h-4 transition-colors',
+            'w-3 h-3 md:w-4 md:h-4 transition-colors',
             isPool && !state.transitioning ? 'text-hot' : 'text-muted-foreground/30'
           )}
         />
