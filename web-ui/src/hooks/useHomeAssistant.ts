@@ -291,7 +291,8 @@ export function useHomeAssistant(): UseHomeAssistantReturn {
     const schedule: ScheduleState = {
       blocks,
       nordpoolAvailable: parseBoolean(get(ENTITIES.nordpoolAvailable)),
-      currentPrice: parseNumber(get(ENTITIES.nordpoolPrice)),
+      // Nordpool returns EUR/kWh, convert to cents/kWh for display
+      currentPrice: parseNumber(get(ENTITIES.nordpoolPrice)) * 100,
       scheduledMinutes: blocks.reduce((sum, b) => sum + b.duration, 0),
     };
 
