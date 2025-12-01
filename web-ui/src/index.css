@@ -5,9 +5,82 @@
 @tailwind utilities;
 
 /* Industrial HVAC Dashboard Design System */
+/* Inspired by 70s Lauttasaari modernist architecture */
 @layer base {
   :root {
-    /* Base colors - Dark industrial theme */
+    /* Light theme - 70s Lauttasaari warmth */
+    --background: 40 38% 93%;
+    --foreground: 25 40% 20%;
+
+    --card: 45 50% 98%;
+    --card-foreground: 25 40% 20%;
+
+    --popover: 45 50% 98%;
+    --popover-foreground: 25 40% 20%;
+
+    /* Primary - Warmer teal for active systems */
+    --primary: 185 55% 38%;
+    --primary-foreground: 45 50% 98%;
+    --primary-glow: 185 55% 45%;
+
+    /* Secondary - Light ochre for panels */
+    --secondary: 40 25% 88%;
+    --secondary-foreground: 25 35% 30%;
+
+    /* Muted for inactive elements */
+    --muted: 40 20% 90%;
+    --muted-foreground: 25 20% 45%;
+
+    /* Accent - Brown panel color */
+    --accent: 25 52% 35%;
+    --accent-foreground: 45 50% 98%;
+    --accent-glow: 25 52% 45%;
+
+    /* Cold - Pine green for cold circuits */
+    --cold: 135 30% 35%;
+    --cold-glow: 135 35% 45%;
+
+    /* Hot - Warm brick for hot circuits */
+    --hot: 25 65% 45%;
+    --hot-glow: 25 70% 55%;
+
+    /* Success - Forest green */
+    --success: 135 40% 35%;
+    --success-glow: 135 45% 45%;
+
+    /* Warning - Ochre */
+    --warning: 40 80% 45%;
+
+    /* Destructive */
+    --destructive: 0 55% 45%;
+    --destructive-foreground: 45 50% 98%;
+
+    --border: 40 25% 80%;
+    --input: 40 25% 85%;
+    --ring: 185 55% 38%;
+
+    --radius: 0.5rem;
+
+    /* Custom shadows - softer for light mode */
+    --shadow-glow-primary: 0 0 15px hsl(185 55% 38% / 0.2);
+    --shadow-glow-accent: 0 0 15px hsl(25 52% 35% / 0.2);
+    --shadow-glow-success: 0 0 15px hsl(135 40% 35% / 0.2);
+    --shadow-glow-cold: 0 0 12px hsl(135 30% 35% / 0.25);
+    --shadow-glow-hot: 0 0 12px hsl(25 65% 45% / 0.25);
+
+    /* Sidebar */
+    --sidebar-background: 40 30% 95%;
+    --sidebar-foreground: 25 35% 30%;
+    --sidebar-primary: 185 55% 38%;
+    --sidebar-primary-foreground: 45 50% 98%;
+    --sidebar-accent: 40 25% 90%;
+    --sidebar-accent-foreground: 25 35% 30%;
+    --sidebar-border: 40 25% 82%;
+    --sidebar-ring: 185 55% 38%;
+  }
+
+  .dark {
+    /* Dark industrial theme */
     --background: 220 20% 8%;
     --foreground: 210 20% 90%;
 
@@ -58,8 +131,6 @@
     --input: 220 15% 20%;
     --ring: 185 70% 50%;
 
-    --radius: 0.5rem;
-
     /* Custom shadows */
     --shadow-glow-primary: 0 0 20px hsl(185 70% 50% / 0.3);
     --shadow-glow-accent: 0 0 20px hsl(25 90% 55% / 0.3);
@@ -76,10 +147,6 @@
     --sidebar-accent-foreground: 210 20% 80%;
     --sidebar-border: 220 15% 18%;
     --sidebar-ring: 185 70% 50%;
-  }
-
-  .dark {
-    /* Same as root - dark by default */
   }
 }
 

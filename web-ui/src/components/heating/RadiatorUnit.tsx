@@ -17,7 +17,7 @@ export function RadiatorUnit({ isActive, supplyTemp, returnTemp, className }: Ra
       className={cn(
         'relative p-2 md:p-5 rounded-xl md:rounded-2xl border-2 transition-all duration-500',
         isActive
-          ? 'bg-primary/10 border-primary/50 box-glow-primary'
+          ? 'bg-hot/10 border-hot/50 shadow-glow-hot'
           : 'bg-card/50 border-border',
         className
       )}
@@ -28,7 +28,7 @@ export function RadiatorUnit({ isActive, supplyTemp, returnTemp, className }: Ra
           <Home
             className={cn(
               'w-4 h-4 md:w-5 md:h-5 transition-colors',
-              isActive ? 'text-primary' : 'text-muted-foreground'
+              isActive ? 'text-hot' : 'text-muted-foreground'
             )}
           />
           <span className="font-semibold text-xs md:text-base text-foreground">{t('radiators.title')}</span>
@@ -36,7 +36,7 @@ export function RadiatorUnit({ isActive, supplyTemp, returnTemp, className }: Ra
         <span
           className={cn(
             'text-[10px] md:text-xs font-mono px-1.5 md:px-2 py-0.5 md:py-1 rounded transition-colors',
-            isActive ? 'bg-primary/20 text-primary' : 'bg-muted text-muted-foreground'
+            isActive ? 'bg-hot/20 text-hot' : 'bg-muted text-muted-foreground'
           )}
         >
           {isActive ? t('radiators.active') : t('radiators.standby')}

@@ -23,7 +23,7 @@ export function HeatPumpUnit({ state, className }: HeatPumpUnitProps) {
       className={cn(
         'relative p-3 md:p-6 rounded-xl md:rounded-2xl border-2 transition-all duration-500',
         isRunning
-          ? 'bg-card border-primary/50 box-glow-primary'
+          ? 'bg-card border-hot/50 shadow-glow-hot'
           : 'bg-card/50 border-border',
         className
       )}
@@ -55,18 +55,25 @@ export function HeatPumpUnit({ state, className }: HeatPumpUnitProps) {
           className={cn(
             'relative w-14 h-14 md:w-20 md:h-20 rounded-full border-2 md:border-4 flex items-center justify-center transition-all duration-300',
             isRunning
-              ? 'border-primary bg-primary/10'
+              ? 'border-hot bg-hot/10'
               : 'border-muted bg-muted/50'
           )}
         >
           <Zap
             className={cn(
               'w-6 h-6 md:w-8 md:h-8 transition-all',
-              isRunning ? 'text-primary animate-pulse' : 'text-muted-foreground'
+              isRunning ? 'text-hot animate-pulse' : 'text-muted-foreground'
             )}
+            style={isRunning ? { animationDuration: `${6000 / state.compressorRpm}s` } : undefined}
           />
           {isRunning && (
-            <div className="absolute inset-0 rounded-full border-2 md:border-4 border-primary/30 animate-ping" />
+            <div
+              className="absolute inset-0 rounded-full border-2 md:border-4 border-hot/30 animate-ping"
+              style={{
+                // Scale: 1000 RPM = 10 beats/min = 6 sec/beat
+                animationDuration: `${6000 / state.compressorRpm}s`,
+              }}
+            />
           )}
         </div>
       </div>
@@ -74,7 +81,7 @@ export function HeatPumpUnit({ state, className }: HeatPumpUnitProps) {
       {/* Stats */}
       <div className="grid grid-cols-2 gap-2 md:gap-3 text-xs md:text-sm">
         <div className="flex items-center gap-1 md:gap-2">
-          <Zap className="w-3 h-3 md:w-4 md:h-4 text-primary" />
+          <Zap className="w-3 h-3 md:w-4 md:h-4 text-hot" />
           <div>
             <div className="text-muted-foreground text-[10px] md:text-xs">{t('heatPump.compressor')}</div>
             <div className="font-mono text-foreground text-xs md:text-sm">{state.compressorRpm} {t('units.rpm')}</div>

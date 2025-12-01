@@ -3,6 +3,7 @@ import { SystemDiagram } from '@/components/heating/SystemDiagram';
 import { ControlPanel } from '@/components/heating/ControlPanel';
 import { SchedulePanel } from '@/components/heating/SchedulePanel';
 import { LanguageSwitcher } from '@/components/LanguageSwitcher';
+import { ThemeToggle } from '@/components/ThemeToggle';
 import { Activity, Zap, Wifi, WifiOff } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
@@ -38,7 +39,8 @@ const Index = () => {
 
             {/* Status indicator */}
             <div className="flex items-center gap-1.5 md:gap-4">
-              {/* Language switcher */}
+              {/* Theme and Language switchers */}
+              <ThemeToggle />
               <LanguageSwitcher />
               {/* Connection status */}
               <div
@@ -67,11 +69,7 @@ const Index = () => {
                 </span>
               </div>
               <div
-                className={`px-2 md:px-3 py-1.5 md:py-2 rounded-lg font-mono text-xs md:text-sm transition-colors ${
-                  isPoolActive
-                    ? 'bg-hot/20 text-hot border border-hot/30'
-                    : 'bg-primary/20 text-primary border border-primary/30'
-                }`}
+                className="px-2 md:px-3 py-1.5 md:py-2 rounded-lg font-mono text-xs md:text-sm transition-colors bg-hot/20 text-hot border border-hot/30"
               >
                 {isPoolActive ? `→ ${t('valve.pool')}` : `↓ ${t('valve.radiators')}`}
               </div>

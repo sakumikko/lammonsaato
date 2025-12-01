@@ -87,5 +87,10 @@
     "select": "Kieli",
     "en": "English",
     "fi": "Suomi"
+  },
+  "theme": {
+    "light": "Vaalea",
+    "dark": "Tumma",
+    "toggle": "Vaihda teemaa"
   }
 }

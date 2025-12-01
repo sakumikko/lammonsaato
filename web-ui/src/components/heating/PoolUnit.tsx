@@ -24,7 +24,7 @@ export function PoolUnit({ state, isActive, className }: PoolUnitProps) {
       className={cn(
         'relative p-2 md:p-5 rounded-xl md:rounded-2xl border-2 transition-all duration-500',
         isActive
-          ? 'bg-hot/10 border-hot/50 box-glow-accent'
+          ? 'bg-hot/10 border-hot/50 shadow-glow-hot'
           : 'bg-card/50 border-border',
         className
       )}

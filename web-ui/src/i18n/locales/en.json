@@ -87,5 +87,10 @@
     "select": "Language",
     "en": "English",
     "fi": "Suomi"
+  },
+  "theme": {
+    "light": "Light",
+    "dark": "Dark",
+    "toggle": "Toggle theme"
   }
 }
