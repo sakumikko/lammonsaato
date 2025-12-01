@@ -22,7 +22,7 @@ import { getHAWebSocket, HAEntityState } from '@/lib/ha-websocket';
  * - input_number.pool_target_temperature -> poolHeating.targetTemp
  * - sensor.pool_heat_exchanger_delta_t -> poolHeating.heatExchangerDeltaT
  * - sensor.pool_heating_electrical_power -> poolHeating.electricalPower
- * - sensor.pool_heating_energy_daily -> poolHeating.dailyEnergy
+ * - sensor.pool_heating_electricity_daily -> poolHeating.dailyEnergy
  * - sensor.pool_heating_cost_daily -> poolHeating.dailyCost
  * - sensor.pool_heating_cost_monthly -> poolHeating.monthlyCost
  * - sensor.pool_heating_average_price -> poolHeating.averagePrice
@@ -58,7 +58,7 @@ const ENTITIES = {
   poolTargetTemp: 'input_number.pool_target_temperature',
   deltaT: 'sensor.pool_heat_exchanger_delta_t',
   electricalPower: 'sensor.pool_heating_electrical_power',
-  dailyEnergy: 'sensor.pool_heating_energy_daily',
+  dailyEnergy: 'sensor.pool_heating_electricity_daily',
   dailyCost: 'sensor.pool_heating_cost_daily',
   monthlyCost: 'sensor.pool_heating_cost_monthly',
   avgPrice: 'sensor.pool_heating_average_price',

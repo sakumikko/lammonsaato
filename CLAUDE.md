@@ -96,7 +96,7 @@ Note: Other Thermia sensors (supply_temperature, outdoor_temperature, etc.) may 
 - `sensor.pool_thermal_power` - Heat delivered (kW)
 - `sensor.pool_heating_electrical_power` - Electricity used (kW)
 - `sensor.pool_heating_cost_rate` - Current cost (€/h)
-- `sensor.pool_heating_energy_daily` - Daily kWh
+- `sensor.pool_heating_electricity_daily` - Daily kWh (electrical)
 - `sensor.pool_heating_cost_daily` - Daily cost €
 
 ## Known Issues & Workarounds

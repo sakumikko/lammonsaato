@@ -112,7 +112,7 @@ The UI connects to these Home Assistant entities:
 | Target Temp | `input_number.pool_target_temperature` |
 | Delta T | `sensor.pool_heat_exchanger_delta_t` |
 | Power | `sensor.pool_heating_electrical_power` |
-| Daily Energy | `sensor.pool_heating_energy_daily` |
+| Daily Electricity | `sensor.pool_heating_electricity_daily` |
 | Daily Cost | `sensor.pool_heating_cost_daily` |
 
 ### Valve Control (Shelly)

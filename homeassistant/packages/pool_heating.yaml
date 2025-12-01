@@ -676,12 +676,12 @@ script:
 # ============================================
 
 # Riemann sum integration to convert power (kW) to energy (kWh)
+# NOTE: Source is already in kW, so NO unit_prefix needed - integration gives kWh directly
 sensor:
   - platform: integration
     source: sensor.pool_heating_electrical_power
-    name: "Pool Heating Electrical Energy"
-    unique_id: pool_heating_electrical_energy
-    unit_prefix: k
+    name: "Pool Heating Electricity"
+    unique_id: pool_heating_electricity
     unit_time: h
     method: left
 
@@ -697,10 +697,10 @@ sensor:
 # ============================================
 
 utility_meter:
-  # Daily electricity usage for pool heating
-  pool_heating_energy_daily:
-    source: sensor.pool_heating_electrical_energy
-    name: "Pool Heating Energy Daily"
+  # Daily electricity consumption for pool heating
+  pool_heating_electricity_daily:
+    source: sensor.pool_heating_electricity
+    name: "Pool Heating Electricity Daily"
     cycle: daily
 
   # Daily cost for pool heating
@@ -709,10 +709,10 @@ utility_meter:
     name: "Pool Heating Cost Daily"
     cycle: daily
 
-  # Monthly electricity usage
-  pool_heating_energy_monthly:
-    source: sensor.pool_heating_electrical_energy
-    name: "Pool Heating Energy Monthly"
+  # Monthly electricity consumption
+  pool_heating_electricity_monthly:
+    source: sensor.pool_heating_electricity
+    name: "Pool Heating Electricity Monthly"
     cycle: monthly
 
   # Monthly cost
@@ -738,12 +738,12 @@ recorder:
       - sensor.pool_thermal_power
       - sensor.pool_heating_electrical_power
       - sensor.pool_heating_cost_rate
-      - sensor.pool_heating_electrical_energy
+      - sensor.pool_heating_electricity
       - sensor.pool_heating_cumulative_cost
       # Utility meters
-      - sensor.pool_heating_energy_daily
+      - sensor.pool_heating_electricity_daily
       - sensor.pool_heating_cost_daily
-      - sensor.pool_heating_energy_monthly
+      - sensor.pool_heating_electricity_monthly
       - sensor.pool_heating_cost_monthly
       # Nordpool
       - sensor.nordpool_kwh_fi_eur_3_10_0255

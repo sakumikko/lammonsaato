@@ -87,11 +87,11 @@ entities:
     name: Electrical Power
   - entity: sensor.pool_heating_cost_rate
     name: Current Cost Rate
-  - entity: sensor.pool_heating_energy_daily
-    name: Energy Today
+  - entity: sensor.pool_heating_electricity_daily
+    name: Electricity Today
   - entity: sensor.pool_heating_cost_daily
     name: Cost Today
-  - entity: sensor.pool_heating_energy_monthly
-    name: Energy This Month
+  - entity: sensor.pool_heating_electricity_monthly
+    name: Electricity This Month
   - entity: sensor.pool_heating_cost_monthly
     name: Cost This Month

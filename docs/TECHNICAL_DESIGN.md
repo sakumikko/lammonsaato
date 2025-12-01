@@ -84,14 +84,14 @@ Single YAML file containing all HA configuration:
 **Integration Sensors (Riemann Sum):**
 | Entity | Tracks |
 |--------|--------|
-| `sensor.pool_heating_electrical_energy` | Cumulative kWh |
+| `sensor.pool_heating_electricity` | Cumulative kWh (electrical) |
 | `sensor.pool_heating_cumulative_cost` | Cumulative EUR |
 
 **Utility Meters:**
 | Entity | Cycle |
 |--------|-------|
-| `sensor.pool_heating_energy_daily` | Daily kWh |
-| `sensor.pool_heating_energy_monthly` | Monthly kWh |
+| `sensor.pool_heating_electricity_daily` | Daily kWh (electrical) |
+| `sensor.pool_heating_electricity_monthly` | Monthly kWh (electrical) |
 | `sensor.pool_heating_cost_daily` | Daily EUR |
 | `sensor.pool_heating_cost_monthly` | Monthly EUR |
 
