@@ -21,9 +21,7 @@ export function ValveIndicator({ state, onToggle, className }: ValveIndicatorPro
           'relative w-10 h-10 md:w-16 md:h-16 rounded-full border-2 md:border-4 flex items-center justify-center transition-all duration-500 cursor-pointer hover:scale-105 active:scale-95',
           state.transitioning
             ? 'border-warning bg-warning/20 animate-pulse'
-            : isPool
-              ? 'border-hot bg-hot/20 shadow-glow-hot'
-              : 'border-primary bg-primary/20 shadow-glow-primary'
+            : 'border-hot bg-hot/20 shadow-glow-hot'
         )}
       >
         {state.transitioning ? (
@@ -31,8 +29,8 @@ export function ValveIndicator({ state, onToggle, className }: ValveIndicatorPro
         ) : (
           <div
             className={cn(
-              'w-5 h-1.5 md:w-8 md:h-2 rounded-full transition-all duration-500',
-              isPool ? 'bg-hot rotate-90' : 'bg-primary rotate-0'
+              'w-5 h-1.5 md:w-8 md:h-2 rounded-full bg-hot transition-all duration-500',
+              isPool ? 'rotate-90' : 'rotate-0'
             )}
           />
         )}
@@ -43,7 +41,7 @@ export function ValveIndicator({ state, onToggle, className }: ValveIndicatorPro
         <ArrowDown
           className={cn(
             'w-3 h-3 md:w-4 md:h-4 transition-colors',
-            !isPool && !state.transitioning ? 'text-primary' : 'text-muted-foreground/30'
+            !isPool && !state.transitioning ? 'text-hot' : 'text-muted-foreground/30'
           )}
         />
       </div>
