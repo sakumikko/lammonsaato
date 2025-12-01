@@ -1,6 +1,6 @@
 import { cn } from '@/lib/utils';
 import { ScheduleState } from '@/types/heating';
-import { Clock, Euro, Calendar, CheckCircle, Ban, History, AlertCircle } from 'lucide-react';
+import { Clock, Euro, Calendar, CheckCircle, History, AlertCircle } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 import { useTranslation } from 'react-i18next';
 
@@ -79,7 +79,7 @@ export function SchedulePanel({ schedule, nightComplete, onBlockEnabledChange, c
                 isPast
                   ? 'bg-muted/20 border border-muted/30'
                   : isDisabled
-                    ? 'bg-muted/10 opacity-60'
+                    ? 'bg-marja/30 border border-marja/50'
                     : 'bg-muted/30 hover:bg-muted/50'
               )}
             >
@@ -89,7 +89,11 @@ export function SchedulePanel({ schedule, nightComplete, onBlockEnabledChange, c
                     checked={block.enabled}
                     onCheckedChange={(checked) => onBlockEnabledChange(index + 1, checked)}
                     disabled={isPast}
-                    className={cn('scale-75', isPast && 'opacity-30 cursor-not-allowed')}
+                    className={cn(
+                      'scale-75',
+                      isPast && 'opacity-30 cursor-not-allowed',
+                      isDisabled && !isPast && 'data-[state=unchecked]:bg-marja'
+                    )}
                     title={isPast ? t('schedule.blockPast') : undefined}
                   />
                 )}
@@ -98,7 +102,7 @@ export function SchedulePanel({ schedule, nightComplete, onBlockEnabledChange, c
                 ) : block.enabled ? (
                   <Clock className="w-3 h-3 text-primary" />
                 ) : (
-                  <Ban className="w-3 h-3 text-muted-foreground" />
+                  <Clock className="w-3 h-3 text-marja" />
                 )}
                 <span
                   className={cn(
@@ -106,7 +110,7 @@ export function SchedulePanel({ schedule, nightComplete, onBlockEnabledChange, c
                     isPast
                       ? 'text-muted-foreground'
                       : isDisabled
-                        ? 'text-muted-foreground line-through'
+                        ? 'text-foreground/70 line-through'
                         : 'text-foreground'
                   )}
                 >
@@ -125,13 +129,15 @@ export function SchedulePanel({ schedule, nightComplete, onBlockEnabledChange, c
                 <span
                   className={cn(
                     'font-mono text-sm',
-                    isPast || isDisabled
+                    isPast
                       ? 'text-muted-foreground/60'
-                      : block.price < 2
-                        ? 'text-success'
-                        : block.price < 5
-                          ? 'text-warning'
-                          : 'text-destructive'
+                      : isDisabled
+                        ? 'text-foreground/50 line-through'
+                        : block.price < 2
+                          ? 'text-success'
+                          : block.price < 5
+                            ? 'text-warning'
+                            : 'text-destructive'
                   )}
                 >
                   {block.price.toFixed(2)} c

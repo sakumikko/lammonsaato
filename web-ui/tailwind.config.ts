@@ -68,6 +68,9 @@ export default {
         warning: {
           DEFAULT: "hsl(var(--warning))",
         },
+        marja: {
+          DEFAULT: "#ffcccb",
+        },
         sidebar: {
           DEFAULT: "hsl(var(--sidebar-background))",
           foreground: "hsl(var(--sidebar-foreground))",
