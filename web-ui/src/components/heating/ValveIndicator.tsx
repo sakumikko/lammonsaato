@@ -1,6 +1,6 @@
 import { cn } from '@/lib/utils';
 import { ValveState } from '@/types/heating';
-import { ArrowRight, ArrowDown, RefreshCw } from 'lucide-react';
+import { ArrowDown, RefreshCw } from 'lucide-react';
 
 interface ValveIndicatorProps {
   state: ValveState;
@@ -27,29 +27,29 @@ export function ValveIndicator({ state, onToggle, className }: ValveIndicatorPro
         {state.transitioning ? (
           <RefreshCw className="w-4 h-4 md:w-6 md:h-6 text-warning animate-spin" />
         ) : (
-          <div
-            className={cn(
-              'w-5 h-1.5 md:w-8 md:h-2 rounded-full bg-hot transition-all duration-500',
-              isPool ? 'rotate-90' : 'rotate-0'
-            )}
-          />
+          /* L-shaped connector: vertical to heat pump (bottom), horizontal to active circuit */
+          <>
+            {/* Vertical bar - from center going DOWN to heat pump */}
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 w-1.5 h-1/2 md:w-2 bg-hot rounded-full" />
+            {/* Horizontal bar - goes LEFT to pool or RIGHT to radiators */}
+            <div
+              className={cn(
+                'absolute top-1/2 -translate-y-1/2 w-1/2 h-1.5 md:h-2 bg-hot rounded-full transition-all duration-500',
+                isPool ? 'right-1/2' : 'left-1/2'
+              )}
+            />
+            {/* Junction circle for smooth corner */}
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-1.5 h-1.5 md:w-2 md:h-2 bg-hot rounded-full" />
+          </>
         )}
       </button>
 
-      {/* Direction arrows */}
-      <div className="absolute -top-4 md:-top-6 left-1/2 -translate-x-1/2">
+      {/* Arrow from heat pump */}
+      <div className="absolute -bottom-4 md:-bottom-6 left-1/2 -translate-x-1/2">
         <ArrowDown
           className={cn(
-            'w-3 h-3 md:w-4 md:h-4 transition-colors',
-            !isPool && !state.transitioning ? 'text-hot' : 'text-muted-foreground/30'
-          )}
-        />
-      </div>
-      <div className="absolute top-1/2 -right-4 md:-right-6 -translate-y-1/2">
-        <ArrowRight
-          className={cn(
-            'w-3 h-3 md:w-4 md:h-4 transition-colors',
-            isPool && !state.transitioning ? 'text-hot' : 'text-muted-foreground/30'
+            'w-3 h-3 md:w-4 md:h-4 rotate-180 transition-colors',
+            !state.transitioning ? 'text-hot' : 'text-muted-foreground/30'
           )}
         />
       </div>
