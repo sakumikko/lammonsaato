@@ -35,7 +35,7 @@
     "heating": "Heating",
     "ready": "Ready",
     "off": "Off",
-    "target": "Target",
+    "target": "Max Temp",
     "avgPrice": "Avg Price"
   },
   "groundLoop": {
@@ -55,7 +55,7 @@
     "title": "System Controls",
     "poolHeating": "Pool Heating",
     "scheduledHeating": "Scheduled Heating",
-    "targetTemperature": "Target Temperature",
+    "targetTemperature": "Temperature Limit",
     "outdoor": "Outdoor"
   },
   "schedule": {
@@ -67,7 +67,7 @@
     "total": "Total",
     "avg": "Avg",
     "min": "min",
-    "nightComplete": "Target reached - remaining blocks skipped",
+    "nightComplete": "Limit reached - remaining blocks skipped",
     "blockPast": "This block has already completed"
   },
   "stats": {

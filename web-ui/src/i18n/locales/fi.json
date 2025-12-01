@@ -35,7 +35,7 @@
     "heating": "Lämmitys käynnissä",
     "ready": "Valmiina",
     "off": "Pois päältä",
-    "target": "Tavoite",
+    "target": "Yläraja",
     "avgPrice": "Keskihinta"
   },
   "groundLoop": {
@@ -55,7 +55,7 @@
     "title": "Järjestelmän ohjaus",
     "poolHeating": "Altaan lämmitys",
     "scheduledHeating": "Ajastettu lämmitys",
-    "targetTemperature": "Tavoitelämpötila",
+    "targetTemperature": "Lämpötilan yläraja",
     "outdoor": "Ulkolämpötila"
   },
   "schedule": {
@@ -67,7 +67,7 @@
     "total": "Yhteensä",
     "avg": "Ka.",
     "min": "min",
-    "nightComplete": "Tavoite saavutettu – loput lohkot ohitetaan",
+    "nightComplete": "Yläraja saavutettu – loput lohkot ohitetaan",
     "blockPast": "Tämä lohko on jo suoritettu"
   },
   "stats": {
