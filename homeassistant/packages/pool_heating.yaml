@@ -139,6 +139,18 @@ input_text:
 
 template:
   - sensor:
+      # Pool return line temperature (corrected)
+      # The raw sensor reports in hundredths of degrees (e.g., 2573 = 25.73°C)
+      - name: "Pool Return Line Temperature (corrected)"
+        unique_id: pool_return_line_temperature_corrected
+        unit_of_measurement: "°C"
+        device_class: temperature
+        state_class: measurement
+        state: >
+          {{ states('sensor.pool_return_line_temperature') | float(0) / 100 }}
+        availability: >
+          {{ states('sensor.pool_return_line_temperature') not in ['unknown', 'unavailable'] }}
+
       # Temperature difference (delta-T) for energy calculation
       # condenser_out = hot water leaving condenser (going TO pool)
       # condenser_in = cooler water returning to condenser (coming FROM pool)
@@ -720,6 +732,8 @@ recorder:
       - sensor.condenser_out_temperature
       - sensor.condenser_in_temperature
       - sensor.pool_heat_exchanger_delta_t
+      # Pool return line (corrected from raw hundredths)
+      - sensor.pool_return_line_temperature_corrected
       # Energy calculations
       - sensor.pool_thermal_power
       - sensor.pool_heating_electrical_power

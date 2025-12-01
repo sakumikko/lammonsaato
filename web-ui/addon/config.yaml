@@ -1,0 +1,19 @@
+name: "Lämmönsäätö UI"
+version: "1.0.0"
+slug: "lammonsaato-ui"
+description: "Pool heating optimization visualization for Home Assistant"
+arch:
+  - amd64
+  - aarch64
+  - armv7
+url: "https://github.com/yourusername/lammonsaato"
+init: false
+ingress: true
+ingress_port: 8099
+panel_icon: "mdi:pool-thermometer"
+panel_title: "Lämmönsäätö"
+homeassistant_api: true
+hassio_api: true
+auth_api: true
+options: {}
+schema: {}

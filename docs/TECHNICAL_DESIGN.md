@@ -306,6 +306,17 @@ lammonsaato/
 │       ├── test_templates.py
 │       ├── test_firebase.py
 │       └── find_thermia_sensors.py
+├── web-ui/                         # Real-time visualization UI
+│   ├── src/
+│   │   ├── components/heating/    # System diagram components
+│   │   ├── hooks/useHomeAssistant.ts  # HA WebSocket hook
+│   │   └── lib/ha-websocket.ts    # WebSocket client
+│   ├── addon/                     # HA add-on files
+│   │   ├── config.yaml            # Add-on metadata
+│   │   ├── Dockerfile
+│   │   ├── nginx.conf
+│   │   └── run.sh
+│   └── README.md
 ├── tests/
 │   ├── test_price_optimizer.py
 │   ├── test_ha_yaml.py
@@ -321,3 +332,37 @@ lammonsaato/
 ├── Makefile
 └── requirements.txt
 ```
+
+## 10. Web UI Add-on
+
+The `web-ui/` directory contains a React-based real-time visualization of the heating system.
+
+### Architecture
+
+- **Technology**: React 18 + TypeScript + Tailwind CSS + shadcn/ui
+- **Communication**: Home Assistant WebSocket API
+- **Deployment**: HA Add-on with nginx + ingress
+
+### Key Components
+
+| Component | Purpose |
+|-----------|---------|
+| `SystemDiagram` | Main layout with pipes and connections |
+| `HeatPumpUnit` | Heat pump status and temperatures |
+| `GroundLoop` | Brine circuit visualization |
+| `PoolUnit` | Pool heating status |
+| `RadiatorUnit` | Radiator circuit status |
+| `ValveIndicator` | 3-way valve position control |
+| `ControlPanel` | Enable/disable controls |
+| `SchedulePanel` | Nordpool price schedule |
+
+### Building
+
+```bash
+cd web-ui
+npm install
+npm run build
+./build-addon.sh
+```
+
+See `web-ui/README.md` for detailed documentation.

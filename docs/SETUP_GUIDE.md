@@ -236,9 +236,96 @@ Or manually in Home Assistant:
 
 ---
 
-## Step 6: Configure Dashboard
+## Step 6: Install Web UI Add-on (Optional)
 
-### 6.1 Set 24-Hour Time Format
+The web-ui provides a real-time visualization of the heating system with live temperature readings, valve control, and schedule display.
+
+### 6.1 Build the Add-on
+
+On your development machine:
+
+```bash
+cd lammonsaato/web-ui
+
+# Install dependencies
+npm install
+
+# Build the add-on
+./build-addon.sh
+```
+
+### 6.2 Enable SSH Access
+
+Local add-ons require SSH access to Home Assistant OS:
+
+1. Go to **Settings → Add-ons → Add-on Store**
+2. Search for **"Terminal & SSH"** (or "Advanced SSH & Web Terminal")
+3. Install and configure with a password or authorized_keys
+4. Start the add-on
+
+### 6.3 Deploy to Home Assistant
+
+**For Home Assistant OS:**
+
+```bash
+# The /addons folder is at root level (not in /config)
+# First, create the directory
+ssh root@homeassistant.local "mkdir -p /addons/lammonsaato-ui"
+
+# Copy the add-on files
+scp -r addon/* root@homeassistant.local:/addons/lammonsaato-ui/
+```
+
+**Alternative: Using Samba add-on:**
+
+1. Install "Samba share" add-on
+2. Access `\\homeassistant.local\addons` from your computer
+3. Create folder `lammonsaato-ui`
+4. Copy contents of `addon/` folder into it
+
+### 6.4 Install the Add-on
+
+1. Go to **Settings → Add-ons → Add-on Store**
+2. Click the **three-dot menu** (top right) → **Check for updates**
+3. Scroll down - you should see **"Local add-ons"** section
+4. Find **"Lämmönsäätö UI"** and click it
+5. Click **Install**
+6. After installation, enable **"Show in sidebar"**
+7. Click **Start**
+
+**Troubleshooting: "Local add-ons" not appearing:**
+- Ensure files are in `/addons/lammonsaato-ui/` (not `/config/addons/`)
+- Verify `config.yaml` exists in the add-on folder
+- Try restarting Home Assistant
+- Check **Settings → System → Logs** for add-on errors
+
+The UI will be accessible from the sidebar.
+
+### 6.5 Development Mode (Optional)
+
+To run the UI locally and connect to Home Assistant for testing:
+
+```bash
+cd lammonsaato/web-ui
+
+# Create local environment file
+cp .env.example .env.local
+
+# Edit .env.local with your HA details:
+# VITE_HA_URL=http://192.168.x.x:8123
+# VITE_HA_TOKEN=your_long_lived_access_token
+
+# Start development server
+npm run dev
+```
+
+Create a long-lived access token in HA: **Profile → Security → Long-Lived Access Tokens → Create Token**
+
+---
+
+## Step 7: Configure Dashboard
+
+### 7.1 Set 24-Hour Time Format
 
 Home Assistant defaults to 12-hour AM/PM time format. To use 24-hour format:
 
@@ -326,9 +413,9 @@ The automations need your specific Thermia config entry ID to work:
 
 ---
 
-## Step 7: Enable Production Mode
+## Step 8: Enable Production Mode
 
-### 7.1 Verify Automations Exist
+### 8.1 Verify Automations Exist
 
 Go to Settings > Automations & Scenes and verify these exist:
 - Pool: Calculate Heating Schedule
@@ -342,7 +429,7 @@ Go to Settings > Automations & Scenes and verify these exist:
 - Pool: Stop Heating Block 4
 - Pool: Log Temperatures During Heating
 
-### 7.2 Enable Master Switch
+### 8.2 Enable Master Switch
 
 Turn on the master enable switch:
 - Go to Settings > Devices & Services > Helpers
@@ -353,7 +440,7 @@ Or via Developer Tools > States:
 - Find `input_boolean.pool_heating_enabled`
 - Set state to `on`
 
-### 7.3 Wait for Schedule Calculation
+### 8.3 Wait for Schedule Calculation
 
 The schedule will be calculated automatically when:
 - Tomorrow's Nordpool prices become available (~13:00 CET)
@@ -364,23 +451,23 @@ Or manually trigger:
 
 ---
 
-## Step 8: Monitor First Night
+## Step 9: Monitor First Night
 
-### 8.1 Check Schedule
+### 9.1 Check Schedule
 
 After prices are available, verify:
 - `input_text.pool_heating_schedule_info` shows scheduled blocks
 - `input_datetime.pool_heat_block_*_start/end` have valid times
 - `input_number.pool_heat_block_*_price` show prices
 
-### 8.2 Monitor Execution
+### 9.2 Monitor Execution
 
 During the night, monitor:
 - `binary_sensor.pool_heating_active` - should turn on/off with blocks
 - `sensor.condenser_out_temperature` - should rise when heating
 - `sensor.pool_heat_exchanger_delta_t` - temperature difference
 
-### 8.3 Check Logs
+### 9.3 Check Logs
 
 After first night, check:
 - Settings > System > Logs for any errors
@@ -421,6 +508,7 @@ After first night, check:
 | Pyscript optimizer | `/config/pyscript/pool_heating.py` |
 | Pyscript logging | `/config/pyscript/firebase_sync.py` |
 | Secrets | `/config/secrets.yaml` |
+| Web UI add-on | `/addons/lammonsaato-ui/` |
 
 ---
 
