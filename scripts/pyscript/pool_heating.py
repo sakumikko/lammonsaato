@@ -36,17 +36,22 @@ CIRCULATION_PUMP_SWITCH = "switch.altaan_kiertovesipumppu"
 BLOCK_ENTITIES = [
     {"start": "input_datetime.pool_heat_block_1_start",
      "end": "input_datetime.pool_heat_block_1_end",
-     "price": "input_number.pool_heat_block_1_price"},
+     "price": "input_number.pool_heat_block_1_price",
+     "enabled": "input_boolean.pool_heat_block_1_enabled"},
     {"start": "input_datetime.pool_heat_block_2_start",
      "end": "input_datetime.pool_heat_block_2_end",
-     "price": "input_number.pool_heat_block_2_price"},
+     "price": "input_number.pool_heat_block_2_price",
+     "enabled": "input_boolean.pool_heat_block_2_enabled"},
     {"start": "input_datetime.pool_heat_block_3_start",
      "end": "input_datetime.pool_heat_block_3_end",
-     "price": "input_number.pool_heat_block_3_price"},
+     "price": "input_number.pool_heat_block_3_price",
+     "enabled": "input_boolean.pool_heat_block_3_enabled"},
     {"start": "input_datetime.pool_heat_block_4_start",
      "end": "input_datetime.pool_heat_block_4_end",
-     "price": "input_number.pool_heat_block_4_price"},
+     "price": "input_number.pool_heat_block_4_price",
+     "enabled": "input_boolean.pool_heat_block_4_enabled"},
 ]
+NIGHT_COMPLETE_FLAG = "input_boolean.pool_heating_night_complete"
 SCHEDULE_INFO = "input_text.pool_heating_schedule_info"
 SCHEDULE_JSON = "input_text.pool_heating_schedule_json"  # Full schedule as JSON
 # Thermia sensors from thermiagenesis integration
@@ -404,6 +409,23 @@ def calculate_pool_heating_schedule():
     for b in schedule:
         total_minutes = total_minutes + b['duration_minutes']
     log.info(f"Found schedule with {len(schedule)} blocks, {total_minutes} total minutes")
+
+    # Reset night complete flag for new schedule (new night session)
+    service.call(
+        "input_boolean",
+        "turn_off",
+        entity_id=NIGHT_COMPLETE_FLAG
+    )
+    log.info("Reset night complete flag for new schedule")
+
+    # Enable all blocks by default for new schedule
+    for block_entity in BLOCK_ENTITIES:
+        service.call(
+            "input_boolean",
+            "turn_on",
+            entity_id=block_entity["enabled"]
+        )
+    log.info("Enabled all heating blocks for new schedule")
 
     # Update block entities
     for i, block_entity in enumerate(BLOCK_ENTITIES):

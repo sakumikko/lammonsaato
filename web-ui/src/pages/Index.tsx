@@ -12,6 +12,7 @@ const Index = () => {
     setPoolHeatingEnabled,
     setPoolTargetTemp,
     toggleValve,
+    setBlockEnabled,
   } = useHomeAssistant();
 
   const isPoolActive = state.valve.position === 'pool';
@@ -102,7 +103,11 @@ const Index = () => {
               onPoolTempChange={setPoolTargetTemp}
             />
 
-            <SchedulePanel schedule={state.schedule} />
+            <SchedulePanel
+              schedule={state.schedule}
+              nightComplete={state.poolHeating.nightComplete}
+              onBlockEnabledChange={setBlockEnabled}
+            />
           </div>
         </div>
 

@@ -24,6 +24,25 @@ input_boolean:
     name: "Pool Heating Enabled"
     icon: mdi:pool-thermometer
 
+  # Night session complete flag - set when target temp reached
+  pool_heating_night_complete:
+    name: "Pool Heating Night Complete"
+    icon: mdi:check-circle
+
+  # Individual block enable toggles
+  pool_heat_block_1_enabled:
+    name: "Block 1 Enabled"
+    icon: mdi:checkbox-marked
+  pool_heat_block_2_enabled:
+    name: "Block 2 Enabled"
+    icon: mdi:checkbox-marked
+  pool_heat_block_3_enabled:
+    name: "Block 3 Enabled"
+    icon: mdi:checkbox-marked
+  pool_heat_block_4_enabled:
+    name: "Block 4 Enabled"
+    icon: mdi:checkbox-marked
+
 input_datetime:
   # Block 1 - Start and End times
   pool_heat_block_1_start:
@@ -417,6 +436,28 @@ automation:
           title: "Pool Heating Schedule"
           message: "{{ states('input_text.pool_heating_schedule_info') }}"
 
+  # Stop heating when target temperature is reached
+  - id: pool_target_temp_reached
+    alias: "Pool: Stop When Target Reached"
+    description: "Stop heating and skip remaining blocks when pool reaches target temperature"
+    trigger:
+      - platform: numeric_state
+        entity_id: sensor.pool_return_line_temperature_corrected
+        above: input_number.pool_target_temperature
+    condition:
+      - condition: state
+        entity_id: binary_sensor.pool_heating_active
+        state: "on"
+    action:
+      - service: script.pool_heating_block_stop
+      - service: input_boolean.turn_on
+        target:
+          entity_id: input_boolean.pool_heating_night_complete
+      - service: notify.persistent_notification
+        data:
+          title: "Pool Heating Complete"
+          message: "Target temperature {{ states('input_number.pool_target_temperature') }}°C reached. Remaining blocks skipped."
+
   # Start heating at scheduled block times
   - id: pool_start_heating_block_1
     alias: "Pool: Start Heating Block 1"
@@ -427,6 +468,12 @@ automation:
       - condition: state
         entity_id: input_boolean.pool_heating_enabled
         state: "on"
+      - condition: state
+        entity_id: input_boolean.pool_heat_block_1_enabled
+        state: "on"
+      - condition: state
+        entity_id: input_boolean.pool_heating_night_complete
+        state: "off"
       - condition: template
         value_template: >
           {% set block_start = as_datetime(states('input_datetime.pool_heat_block_1_start')) %}
@@ -446,6 +493,12 @@ automation:
       - condition: state
         entity_id: input_boolean.pool_heating_enabled
         state: "on"
+      - condition: state
+        entity_id: input_boolean.pool_heat_block_2_enabled
+        state: "on"
+      - condition: state
+        entity_id: input_boolean.pool_heating_night_complete
+        state: "off"
       - condition: template
         value_template: >
           {% set block_start = as_datetime(states('input_datetime.pool_heat_block_2_start')) %}
@@ -465,6 +518,12 @@ automation:
       - condition: state
         entity_id: input_boolean.pool_heating_enabled
         state: "on"
+      - condition: state
+        entity_id: input_boolean.pool_heat_block_3_enabled
+        state: "on"
+      - condition: state
+        entity_id: input_boolean.pool_heating_night_complete
+        state: "off"
       - condition: template
         value_template: >
           {% set block_start = as_datetime(states('input_datetime.pool_heat_block_3_start')) %}
@@ -484,6 +543,12 @@ automation:
       - condition: state
         entity_id: input_boolean.pool_heating_enabled
         state: "on"
+      - condition: state
+        entity_id: input_boolean.pool_heat_block_4_enabled
+        state: "on"
+      - condition: state
+        entity_id: input_boolean.pool_heating_night_complete
+        state: "off"
       - condition: template
         value_template: >
           {% set block_start = as_datetime(states('input_datetime.pool_heat_block_4_start')) %}
@@ -765,3 +830,9 @@ recorder:
       - input_datetime.pool_heat_block_3_end
       - input_datetime.pool_heat_block_4_start
       - input_datetime.pool_heat_block_4_end
+      # Block enable/disable controls
+      - input_boolean.pool_heating_night_complete
+      - input_boolean.pool_heat_block_1_enabled
+      - input_boolean.pool_heat_block_2_enabled
+      - input_boolean.pool_heat_block_3_enabled
+      - input_boolean.pool_heat_block_4_enabled

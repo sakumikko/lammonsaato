@@ -43,33 +43,38 @@ Pool heating is expensive and typically runs at fixed times regardless of electr
 | FR-7 | System SHALL stop heating at scheduled block end times |
 | FR-8 | System SHALL provide manual start/stop override controls |
 | FR-9 | System SHALL provide a master enable/disable toggle |
+| FR-10 | System SHALL stop heating and skip remaining night schedules when pool target temperature is reached |
+| FR-11 | User SHALL be able to disable individual heating blocks (e.g., to skip high-price periods) |
 
 ### 4.3 Energy Monitoring
 
 | ID | Requirement |
 |----|-------------|
-| FR-10 | System SHALL calculate thermal power from condenser temperature differential |
-| FR-11 | System SHALL estimate electrical consumption using assumed COP |
-| FR-12 | System SHALL calculate real-time cost based on current electricity price |
-| FR-13 | System SHALL aggregate daily and monthly energy/cost totals |
+| FR-12 | System SHALL calculate thermal power from condenser temperature differential |
+| FR-13 | System SHALL estimate electrical consumption using assumed COP |
+| FR-14 | System SHALL calculate real-time cost based on current electricity price |
+| FR-15 | System SHALL aggregate daily and monthly energy/cost totals |
 
 ### 4.4 Session Logging
 
 | ID | Requirement |
 |----|-------------|
-| FR-14 | System SHALL log heating session start with initial temperatures |
-| FR-15 | System SHALL log temperatures periodically during heating |
-| FR-16 | System SHALL log session end with energy/cost summary |
-| FR-17 | System SHALL store session data locally in JSON format |
+| FR-16 | System SHALL log heating session start with initial temperatures |
+| FR-17 | System SHALL log temperatures periodically during heating |
+| FR-18 | System SHALL log session end with energy/cost summary |
+| FR-19 | System SHALL store session data locally in JSON format |
 
-### 4.5 Dashboard
+### 4.5 Dashboard & UI
 
 | ID | Requirement |
 |----|-------------|
-| FR-18 | Dashboard SHALL display current heating status |
-| FR-19 | Dashboard SHALL display scheduled heating blocks with times and prices |
-| FR-20 | Dashboard SHALL display real-time energy metrics when heating is active |
-| FR-21 | Dashboard SHALL display daily/monthly cost summaries |
+| FR-20 | Dashboard SHALL display current heating status |
+| FR-21 | Dashboard SHALL display scheduled heating blocks with times and prices |
+| FR-22 | Dashboard SHALL display real-time energy metrics when heating is active |
+| FR-23 | Dashboard SHALL display daily/monthly cost summaries |
+| FR-24 | Web UI SHALL allow user to set pool target temperature |
+| FR-25 | Web UI SHALL allow user to enable/disable individual heating blocks |
+| FR-26 | Web UI SHALL allow user to toggle master heating enabled state |
 
 ## 5. Non-Functional Requirements
 

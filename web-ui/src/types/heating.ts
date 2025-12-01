@@ -18,6 +18,7 @@ export interface PoolHeatingState {
   active: boolean;
   inHeatingWindow: boolean;
   targetTemp: number;
+  nightComplete: boolean;
   returnLineTemp: number;
   heatExchangerDeltaT: number;
   electricalPower: number;
@@ -37,6 +38,7 @@ export interface PriceBlock {
   end: string;
   price: number;
   duration: number;
+  enabled: boolean;
 }
 
 export interface ScheduleState {

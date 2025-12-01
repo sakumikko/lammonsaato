@@ -35,6 +35,8 @@ import { getHAWebSocket, HAEntityState } from '@/lib/ha-websocket';
  * - input_datetime.pool_heat_block_N_start -> schedule.blocks[N].start
  * - input_datetime.pool_heat_block_N_end -> schedule.blocks[N].end
  * - input_number.pool_heat_block_N_price -> schedule.blocks[N].price
+ * - input_boolean.pool_heat_block_N_enabled -> schedule.blocks[N].enabled
+ * - input_boolean.pool_heating_night_complete -> poolHeating.nightComplete
  * - binary_sensor.nordpool_tomorrow_available -> schedule.nordpoolAvailable
  * - sensor.nordpool_kwh_fi_eur_3_10_0255 -> schedule.currentPrice
  */
@@ -56,6 +58,7 @@ const ENTITIES = {
   poolActive: 'binary_sensor.pool_heating_active',
   inHeatingWindow: 'binary_sensor.pool_in_heating_window',
   poolTargetTemp: 'input_number.pool_target_temperature',
+  nightComplete: 'input_boolean.pool_heating_night_complete',
   deltaT: 'sensor.pool_heat_exchanger_delta_t',
   electricalPower: 'sensor.pool_heating_electrical_power',
   dailyEnergy: 'sensor.pool_heating_electricity_daily',
@@ -79,6 +82,7 @@ const getBlockEntities = (n: number) => ({
   start: `input_datetime.pool_heat_block_${n}_start`,
   end: `input_datetime.pool_heat_block_${n}_end`,
   price: `input_number.pool_heat_block_${n}_price`,
+  enabled: `input_boolean.pool_heat_block_${n}_enabled`,
 });
 
 // Default state when disconnected or entities unavailable
@@ -102,6 +106,7 @@ const defaultState: SystemState = {
     active: false,
     inHeatingWindow: false,
     targetTemp: 27.5,
+    nightComplete: false,
     returnLineTemp: 0,
     heatExchangerDeltaT: 0,
     electricalPower: 0,
@@ -200,6 +205,7 @@ export interface UseHomeAssistantReturn {
   setPoolTargetTemp: (temp: number) => Promise<void>;
   toggleValve: () => Promise<void>;
   setPoolActive: (active: boolean) => Promise<void>;
+  setBlockEnabled: (blockNumber: number, enabled: boolean) => Promise<void>;
 }
 
 export function useHomeAssistant(): UseHomeAssistantReturn {
@@ -242,6 +248,7 @@ export function useHomeAssistant(): UseHomeAssistantReturn {
       active: parseBoolean(get(ENTITIES.poolActive)),
       inHeatingWindow: parseBoolean(get(ENTITIES.inHeatingWindow)),
       targetTemp: parseNumber(get(ENTITIES.poolTargetTemp)) || 27.5,
+      nightComplete: parseBoolean(get(ENTITIES.nightComplete)),
       returnLineTemp: parseNumber(get(ENTITIES.returnLineTemp)),
       heatExchangerDeltaT: parseNumber(get(ENTITIES.deltaT)),
       electricalPower: parseNumber(get(ENTITIES.electricalPower)),
@@ -266,6 +273,7 @@ export function useHomeAssistant(): UseHomeAssistantReturn {
       const start = parseTime(get(blockEntities.start));
       const end = parseTime(get(blockEntities.end));
       const price = parseNumber(get(blockEntities.price));
+      const enabled = parseBoolean(get(blockEntities.enabled));
       const duration = calculateBlockDuration(start, end);
 
       // Only include blocks with valid times (non-empty start/end and valid duration)
@@ -275,6 +283,7 @@ export function useHomeAssistant(): UseHomeAssistantReturn {
           end,
           price,
           duration,
+          enabled,
         });
       }
     }
@@ -414,6 +423,13 @@ export function useHomeAssistant(): UseHomeAssistantReturn {
     }
   }, []);
 
+  const setBlockEnabled = useCallback(async (blockNumber: number, enabled: boolean) => {
+    const entityId = `input_boolean.pool_heat_block_${blockNumber}_enabled`;
+    await ws.current.callService('input_boolean', enabled ? 'turn_on' : 'turn_off', {
+      entity_id: entityId,
+    });
+  }, []);
+
   return {
     state,
     connected,
@@ -424,5 +440,6 @@ export function useHomeAssistant(): UseHomeAssistantReturn {
     setPoolTargetTemp,
     toggleValve,
     setPoolActive,
+    setBlockEnabled,
   };
 }

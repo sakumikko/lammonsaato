@@ -3,6 +3,10 @@
 **Last Updated:** 2025-11-30
 **Project:** lammonsaato (Pool Heating Optimizer for Home Assistant)
 
+## Important Development Rules
+
+**Entity ID Stability:** Do NOT change identifiers of existing entities (sensors, switches, inputs) without explicit user approval. This breaks dashboards, automations, and history. It is acceptable to add new entities when needed.
+
 ## Project Overview
 
 Home Assistant automation system that:
