@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import { useHomeAssistant } from '@/hooks/useHomeAssistant';
 import { SystemDiagram } from '@/components/heating/SystemDiagram';
 import { ControlPanel } from '@/components/heating/ControlPanel';
@@ -19,14 +18,8 @@ const Index = () => {
     setPoolTargetTemp,
     toggleValve,
     setBlockEnabled,
+    setGearLimit,
   } = useHomeAssistant();
-
-  // Gear settings state (TODO: connect to Home Assistant entities)
-  const [gearSettings, setGearSettings] = useState({
-    heating: { min: 3, max: 8 },
-    pool: { min: 3, max: 9 },
-    tapWater: { min: 2, max: 8 },
-  });
 
   const isPoolActive = state.valve.position === 'pool';
 
@@ -50,8 +43,8 @@ const Index = () => {
             <div className="flex items-center gap-1.5 md:gap-4">
               {/* Settings, Theme and Language switchers */}
               <SettingsSheet
-                gearSettings={gearSettings}
-                onGearSettingsChange={setGearSettings}
+                gearSettings={state.gearSettings}
+                onGearLimitChange={setGearLimit}
                 currentGears={{
                   heating: state.heatPump.compressorGear,
                 }}

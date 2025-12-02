@@ -11,12 +11,8 @@ import { GearSettingsCard } from './GearSettingsCard';
 import { Settings, Home, Waves, Droplet } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { cn } from '@/lib/utils';
-
-interface GearSettings {
-  heating: { min: number; max: number };
-  pool: { min: number; max: number };
-  tapWater: { min: number; max: number };
-}
+import { GearSettings } from '@/types/heating';
+import { GearCircuit, GearLimitType } from '@/hooks/useHomeAssistant';
 
 interface SettingsSheetProps {
   gearSettings: GearSettings;
@@ -25,32 +21,18 @@ interface SettingsSheetProps {
     pool?: number;
     tapWater?: number;
   };
-  onGearSettingsChange: (settings: GearSettings) => void;
+  onGearLimitChange: (circuit: GearCircuit, type: GearLimitType, value: number) => void;
   className?: string;
 }
 
 export function SettingsSheet({
   gearSettings,
   currentGears,
-  onGearSettingsChange,
+  onGearLimitChange,
   className,
 }: SettingsSheetProps) {
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
-
-  const updateSetting = (
-    circuit: keyof GearSettings,
-    type: 'min' | 'max',
-    value: number
-  ) => {
-    onGearSettingsChange({
-      ...gearSettings,
-      [circuit]: {
-        ...gearSettings[circuit],
-        [type]: value,
-      },
-    });
-  };
 
   return (
     <Sheet open={open} onOpenChange={setOpen}>
@@ -88,8 +70,8 @@ export function SettingsSheet({
             minValue={gearSettings.heating.min}
             maxValue={gearSettings.heating.max}
             currentGear={currentGears?.heating}
-            onMinChange={(v) => updateSetting('heating', 'min', v)}
-            onMaxChange={(v) => updateSetting('heating', 'max', v)}
+            onMinChange={(v) => onGearLimitChange('heating', 'min', v)}
+            onMaxChange={(v) => onGearLimitChange('heating', 'max', v)}
           />
 
           {/* Pool Circuit */}
@@ -101,8 +83,8 @@ export function SettingsSheet({
             minValue={gearSettings.pool.min}
             maxValue={gearSettings.pool.max}
             currentGear={currentGears?.pool}
-            onMinChange={(v) => updateSetting('pool', 'min', v)}
-            onMaxChange={(v) => updateSetting('pool', 'max', v)}
+            onMinChange={(v) => onGearLimitChange('pool', 'min', v)}
+            onMaxChange={(v) => onGearLimitChange('pool', 'max', v)}
           />
 
           {/* Tap Water (DHW) */}
@@ -114,8 +96,8 @@ export function SettingsSheet({
             minValue={gearSettings.tapWater.min}
             maxValue={gearSettings.tapWater.max}
             currentGear={currentGears?.tapWater}
-            onMinChange={(v) => updateSetting('tapWater', 'min', v)}
-            onMaxChange={(v) => updateSetting('tapWater', 'max', v)}
+            onMinChange={(v) => onGearLimitChange('tapWater', 'min', v)}
+            onMaxChange={(v) => onGearLimitChange('tapWater', 'max', v)}
           />
         </div>
       </SheetContent>

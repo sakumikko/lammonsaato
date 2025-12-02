@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { SystemState, HeatPumpState, PoolHeatingState, ValveState, ScheduleState, PriceBlock } from '@/types/heating';
+import { SystemState, HeatPumpState, PoolHeatingState, ValveState, ScheduleState, PriceBlock, GearSettings } from '@/types/heating';
 import { getHAWebSocket, HAEntityState } from '@/lib/ha-websocket';
 
 /**
@@ -75,6 +75,14 @@ const ENTITIES = {
   nordpoolAvailable: 'binary_sensor.nordpool_tomorrow_available',
   nordpoolPrice: 'sensor.nordpool_kwh_fi_eur_3_10_0255',
   scheduleJson: 'input_text.pool_heating_schedule_json',
+
+  // Gear settings (Thermia Genesis)
+  minGearHeating: 'number.minimum_allowed_gear_in_heating',
+  maxGearHeating: 'number.maximum_allowed_gear_in_heating',
+  minGearPool: 'number.minimum_allowed_gear_in_pool',
+  maxGearPool: 'number.maximum_allowed_gear_in_pool',
+  minGearTapWater: 'number.minimum_allowed_gear_in_tap_water',
+  maxGearTapWater: 'number.maximum_allowed_gear_in_tap_water',
 } as const;
 
 // Block entities (1-4)
@@ -124,6 +132,11 @@ const defaultState: SystemState = {
     nordpoolAvailable: false,
     currentPrice: 0,
     scheduledMinutes: 0,
+  },
+  gearSettings: {
+    heating: { min: 1, max: 10 },
+    pool: { min: 1, max: 10 },
+    tapWater: { min: 1, max: 10 },
   },
 };
 
@@ -201,6 +214,9 @@ function calculateBlockDuration(start: string, end: string): number {
   return endMins - startMins;
 }
 
+export type GearCircuit = 'heating' | 'pool' | 'tapWater';
+export type GearLimitType = 'min' | 'max';
+
 export interface UseHomeAssistantReturn {
   state: SystemState;
   connected: boolean;
@@ -212,6 +228,7 @@ export interface UseHomeAssistantReturn {
   toggleValve: () => Promise<void>;
   setPoolActive: (active: boolean) => Promise<void>;
   setBlockEnabled: (blockNumber: number, enabled: boolean) => Promise<void>;
+  setGearLimit: (circuit: GearCircuit, type: GearLimitType, value: number) => Promise<void>;
 }
 
 export function useHomeAssistant(): UseHomeAssistantReturn {
@@ -304,7 +321,23 @@ export function useHomeAssistant(): UseHomeAssistantReturn {
       scheduledMinutes: blocks.reduce((sum, b) => sum + b.duration, 0),
     };
 
-    return { heatPump, poolHeating, valve, schedule };
+    // Gear settings from Thermia Genesis
+    const gearSettings: GearSettings = {
+      heating: {
+        min: parseNumber(get(ENTITIES.minGearHeating)) || 1,
+        max: parseNumber(get(ENTITIES.maxGearHeating)) || 10,
+      },
+      pool: {
+        min: parseNumber(get(ENTITIES.minGearPool)) || 1,
+        max: parseNumber(get(ENTITIES.maxGearPool)) || 10,
+      },
+      tapWater: {
+        min: parseNumber(get(ENTITIES.minGearTapWater)) || 1,
+        max: parseNumber(get(ENTITIES.maxGearTapWater)) || 10,
+      },
+    };
+
+    return { heatPump, poolHeating, valve, schedule, gearSettings };
   }, []);
 
   // Initial connection and state fetch
@@ -439,6 +472,30 @@ export function useHomeAssistant(): UseHomeAssistantReturn {
     });
   }, []);
 
+  const setGearLimit = useCallback(async (circuit: GearCircuit, type: GearLimitType, value: number) => {
+    // Map circuit and type to entity ID
+    const entityMap: Record<GearCircuit, Record<GearLimitType, string>> = {
+      heating: {
+        min: ENTITIES.minGearHeating,
+        max: ENTITIES.maxGearHeating,
+      },
+      pool: {
+        min: ENTITIES.minGearPool,
+        max: ENTITIES.maxGearPool,
+      },
+      tapWater: {
+        min: ENTITIES.minGearTapWater,
+        max: ENTITIES.maxGearTapWater,
+      },
+    };
+
+    const entityId = entityMap[circuit][type];
+    await ws.current.callService('number', 'set_value', {
+      entity_id: entityId,
+      value: value,
+    });
+  }, []);
+
   return {
     state,
     connected,
@@ -450,5 +507,6 @@ export function useHomeAssistant(): UseHomeAssistantReturn {
     toggleValve,
     setPoolActive,
     setBlockEnabled,
+    setGearLimit,
   };
 }

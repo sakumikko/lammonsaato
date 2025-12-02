@@ -49,9 +49,21 @@ export interface ScheduleState {
   scheduledMinutes: number;
 }
 
+export interface GearLimits {
+  min: number;
+  max: number;
+}
+
+export interface GearSettings {
+  heating: GearLimits;
+  pool: GearLimits;
+  tapWater: GearLimits;
+}
+
 export interface SystemState {
   heatPump: HeatPumpState;
   poolHeating: PoolHeatingState;
   valve: ValveState;
   schedule: ScheduleState;
+  gearSettings: GearSettings;
 }
