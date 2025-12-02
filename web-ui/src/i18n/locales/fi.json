@@ -95,12 +95,34 @@
   },
   "settings": {
     "title": "Lämpöpumpun asetukset",
-    "description": "Aseta kompressorin vaihderajat jokaiselle lämmityspiirille",
+    "description": "Lämpötilarajat ja kompressorin vaihdeasetukaset",
     "heatingCircuit": "Lämmityspiiri",
     "poolCircuit": "Allaspiiri",
     "tapWaterCircuit": "Käyttövesi (LKV)",
     "minimumGear": "Minimivaihde",
     "maximumGear": "Maksimivaihde",
-    "currentGear": "Nykyinen"
+    "currentGear": "Nykyinen",
+    "current": "Nykyinen",
+    "gearLimitsSection": "Kompressorin vaihderajat",
+    "hotGasProtection": "Kuumakaasu-suojaus",
+    "hotGasPumpStart": "HGW-pumppu käyntiin",
+    "hotGasLowerStop": "Alarajan pysäytys",
+    "hotGasUpperStop": "Ylärajan pysäytys",
+    "tapWaterSettings": "Käyttöveden asetukset",
+    "tapWaterStart": "Aloituslämpötila",
+    "tapWaterStop": "Lopetuslämpötila",
+    "heatingCurveLimits": "Lämmityskäyrän rajat",
+    "curveMaxLimit": "Maksimi menolämpötila",
+    "curveMinLimit": "Minimi menolämpötila"
+  },
+  "temperatures": {
+    "title": "Lämpötilaseuranta",
+    "hotGas": "Kuumakaasu",
+    "outdoor": "Ulkolämpötila",
+    "tapWater": "Käyttövesi",
+    "warning": "Korkea lämpö",
+    "danger": "Kriittinen!",
+    "warningAt": "Varoitus >{{temp}}°C",
+    "dangerAt": "Vaara >{{temp}}°C"
   }
 }

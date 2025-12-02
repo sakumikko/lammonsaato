@@ -95,12 +95,34 @@
   },
   "settings": {
     "title": "Heat Pump Settings",
-    "description": "Configure compressor gear limits for each heating circuit",
+    "description": "Configure temperature limits and compressor gear settings",
     "heatingCircuit": "Heating Circuit",
     "poolCircuit": "Pool Circuit",
     "tapWaterCircuit": "Tap Water (DHW)",
     "minimumGear": "Minimum Gear",
     "maximumGear": "Maximum Gear",
-    "currentGear": "Current"
+    "currentGear": "Current",
+    "current": "Current",
+    "gearLimitsSection": "Compressor Gear Limits",
+    "hotGasProtection": "Hot Gas Protection",
+    "hotGasPumpStart": "HGW Pump Start",
+    "hotGasLowerStop": "Lower Stop Limit",
+    "hotGasUpperStop": "Upper Stop Limit",
+    "tapWaterSettings": "Tap Water Settings",
+    "tapWaterStart": "Start Temperature",
+    "tapWaterStop": "Stop Temperature",
+    "heatingCurveLimits": "Heating Curve Limits",
+    "curveMaxLimit": "Maximum Supply Temp",
+    "curveMinLimit": "Minimum Supply Temp"
+  },
+  "temperatures": {
+    "title": "Temperature Monitor",
+    "hotGas": "Hot Gas",
+    "outdoor": "Outdoor",
+    "tapWater": "Tap Water",
+    "warning": "High temp",
+    "danger": "Critical!",
+    "warningAt": "Warning >{{temp}}°C",
+    "dangerAt": "Danger >{{temp}}°C"
   }
 }

@@ -1,5 +1,16 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { SystemState, HeatPumpState, PoolHeatingState, ValveState, ScheduleState, PriceBlock, GearSettings } from '@/types/heating';
+import {
+  SystemState,
+  HeatPumpState,
+  PoolHeatingState,
+  ValveState,
+  ScheduleState,
+  PriceBlock,
+  GearSettings,
+  TapWaterState,
+  HotGasSettings,
+  HeatingCurveSettings,
+} from '@/types/heating';
 import { getHAWebSocket, HAEntityState } from '@/lib/ha-websocket';
 
 /**
@@ -83,6 +94,27 @@ const ENTITIES = {
   maxGearPool: 'number.maximum_allowed_gear_in_pool',
   minGearTapWater: 'number.minimum_allowed_gear_in_tap_water',
   maxGearTapWater: 'number.maximum_allowed_gear_in_tap_water',
+
+  // Hot gas / refrigerant temperatures (Thermia Genesis)
+  dischargePipeTemp: 'sensor.discharge_pipe_temperature',
+  suctionGasTemp: 'sensor.suction_gas_temperature',
+  liquidLineTemp: 'sensor.liquid_line_temperature',
+
+  // Tap water temperatures (Thermia Genesis)
+  tapWaterTop: 'sensor.tap_water_top_temperature',
+  tapWaterLower: 'sensor.tap_water_lower_temperature',
+  tapWaterWeighted: 'sensor.tap_water_weighted_temperature',
+  tapWaterStartTemp: 'number.tap_water_start_temperature',
+  tapWaterStopTemp: 'number.tap_water_stop_temperature',
+
+  // Hot gas pump control (Thermia Genesis)
+  hotGasPumpStartTemp: 'number.hot_gas_pump_start_temperature',
+  hotGasLowerStopLimit: 'number.hot_gas_pump_lower_stop_limit',
+  hotGasUpperStopLimit: 'number.hot_gas_pump_upper_stop_limit',
+
+  // Heating curve settings (Thermia Genesis)
+  heatingCurveMax: 'number.heat_curve_max_limitation',
+  heatingCurveMin: 'number.heat_curve_min_limitation',
 } as const;
 
 // Block entities (1-4)
@@ -108,6 +140,9 @@ const defaultState: SystemState = {
     condenserDeltaT: 0,
     outdoorTemp: 0,
     heatpumpMode: 'Off',
+    dischargePipeTemp: 0,
+    suctionGasTemp: 0,
+    liquidLineTemp: 0,
   },
   poolHeating: {
     enabled: false,
@@ -137,6 +172,22 @@ const defaultState: SystemState = {
     heating: { min: 1, max: 10 },
     pool: { min: 1, max: 10 },
     tapWater: { min: 1, max: 10 },
+  },
+  tapWater: {
+    topTemp: 0,
+    lowerTemp: 0,
+    weightedTemp: 0,
+    startTemp: 45,
+    stopTemp: 55,
+  },
+  hotGasSettings: {
+    pumpStartTemp: 70,
+    lowerStopLimit: 60,
+    upperStopLimit: 95,
+  },
+  heatingCurve: {
+    maxLimitation: 55,
+    minLimitation: 20,
   },
 };
 
@@ -216,6 +267,9 @@ function calculateBlockDuration(start: string, end: string): number {
 
 export type GearCircuit = 'heating' | 'pool' | 'tapWater';
 export type GearLimitType = 'min' | 'max';
+export type TapWaterSetting = 'startTemp' | 'stopTemp';
+export type HotGasSetting = 'pumpStartTemp' | 'lowerStopLimit' | 'upperStopLimit';
+export type HeatingCurveSetting = 'maxLimitation' | 'minLimitation';
 
 export interface UseHomeAssistantReturn {
   state: SystemState;
@@ -229,6 +283,9 @@ export interface UseHomeAssistantReturn {
   setPoolActive: (active: boolean) => Promise<void>;
   setBlockEnabled: (blockNumber: number, enabled: boolean) => Promise<void>;
   setGearLimit: (circuit: GearCircuit, type: GearLimitType, value: number) => Promise<void>;
+  setTapWaterSetting: (setting: TapWaterSetting, value: number) => Promise<void>;
+  setHotGasSetting: (setting: HotGasSetting, value: number) => Promise<void>;
+  setHeatingCurveSetting: (setting: HeatingCurveSetting, value: number) => Promise<void>;
 }
 
 export function useHomeAssistant(): UseHomeAssistantReturn {
@@ -263,6 +320,10 @@ export function useHomeAssistant(): UseHomeAssistantReturn {
       outdoorTemp: parseNumber(get(ENTITIES.outdoor)),
       // Derive mode: if running with heat (condenserOut > condenserIn), it's heating
       heatpumpMode: isRunning ? (condenserOut > condenserIn ? 'Heat' : 'Cool') : parseHeatPumpMode(get(ENTITIES.heatPumpMode)),
+      // Hot gas / refrigerant temps
+      dischargePipeTemp: parseNumber(get(ENTITIES.dischargePipeTemp)),
+      suctionGasTemp: parseNumber(get(ENTITIES.suctionGasTemp)),
+      liquidLineTemp: parseNumber(get(ENTITIES.liquidLineTemp)),
     };
 
     // Pool heating state
@@ -337,7 +398,29 @@ export function useHomeAssistant(): UseHomeAssistantReturn {
       },
     };
 
-    return { heatPump, poolHeating, valve, schedule, gearSettings };
+    // Tap water state
+    const tapWater: TapWaterState = {
+      topTemp: parseNumber(get(ENTITIES.tapWaterTop)),
+      lowerTemp: parseNumber(get(ENTITIES.tapWaterLower)),
+      weightedTemp: parseNumber(get(ENTITIES.tapWaterWeighted)),
+      startTemp: parseNumber(get(ENTITIES.tapWaterStartTemp)) || 45,
+      stopTemp: parseNumber(get(ENTITIES.tapWaterStopTemp)) || 55,
+    };
+
+    // Hot gas pump settings
+    const hotGasSettings: HotGasSettings = {
+      pumpStartTemp: parseNumber(get(ENTITIES.hotGasPumpStartTemp)) || 70,
+      lowerStopLimit: parseNumber(get(ENTITIES.hotGasLowerStopLimit)) || 60,
+      upperStopLimit: parseNumber(get(ENTITIES.hotGasUpperStopLimit)) || 95,
+    };
+
+    // Heating curve settings
+    const heatingCurve: HeatingCurveSettings = {
+      maxLimitation: parseNumber(get(ENTITIES.heatingCurveMax)) || 55,
+      minLimitation: parseNumber(get(ENTITIES.heatingCurveMin)) || 20,
+    };
+
+    return { heatPump, poolHeating, valve, schedule, gearSettings, tapWater, hotGasSettings, heatingCurve };
   }, []);
 
   // Initial connection and state fetch
@@ -496,6 +579,40 @@ export function useHomeAssistant(): UseHomeAssistantReturn {
     });
   }, []);
 
+  const setTapWaterSetting = useCallback(async (setting: TapWaterSetting, value: number) => {
+    const entityMap: Record<TapWaterSetting, string> = {
+      startTemp: ENTITIES.tapWaterStartTemp,
+      stopTemp: ENTITIES.tapWaterStopTemp,
+    };
+    await ws.current.callService('number', 'set_value', {
+      entity_id: entityMap[setting],
+      value: value,
+    });
+  }, []);
+
+  const setHotGasSetting = useCallback(async (setting: HotGasSetting, value: number) => {
+    const entityMap: Record<HotGasSetting, string> = {
+      pumpStartTemp: ENTITIES.hotGasPumpStartTemp,
+      lowerStopLimit: ENTITIES.hotGasLowerStopLimit,
+      upperStopLimit: ENTITIES.hotGasUpperStopLimit,
+    };
+    await ws.current.callService('number', 'set_value', {
+      entity_id: entityMap[setting],
+      value: value,
+    });
+  }, []);
+
+  const setHeatingCurveSetting = useCallback(async (setting: HeatingCurveSetting, value: number) => {
+    const entityMap: Record<HeatingCurveSetting, string> = {
+      maxLimitation: ENTITIES.heatingCurveMax,
+      minLimitation: ENTITIES.heatingCurveMin,
+    };
+    await ws.current.callService('number', 'set_value', {
+      entity_id: entityMap[setting],
+      value: value,
+    });
+  }, []);
+
   return {
     state,
     connected,
@@ -508,5 +625,8 @@ export function useHomeAssistant(): UseHomeAssistantReturn {
     setPoolActive,
     setBlockEnabled,
     setGearLimit,
+    setTapWaterSetting,
+    setHotGasSetting,
+    setHeatingCurveSetting,
   };
 }

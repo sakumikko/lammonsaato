@@ -19,6 +19,9 @@ const Index = () => {
     toggleValve,
     setBlockEnabled,
     setGearLimit,
+    setTapWaterSetting,
+    setHotGasSetting,
+    setHeatingCurveSetting,
   } = useHomeAssistant();
 
   const isPoolActive = state.valve.position === 'pool';
@@ -44,7 +47,14 @@ const Index = () => {
               {/* Settings, Theme and Language switchers */}
               <SettingsSheet
                 gearSettings={state.gearSettings}
+                tapWater={state.tapWater}
+                hotGasSettings={state.hotGasSettings}
+                heatingCurve={state.heatingCurve}
+                heatPump={state.heatPump}
                 onGearLimitChange={setGearLimit}
+                onTapWaterChange={setTapWaterSetting}
+                onHotGasChange={setHotGasSetting}
+                onHeatingCurveChange={setHeatingCurveSetting}
                 currentGears={{
                   heating: state.heatPump.compressorGear,
                 }}

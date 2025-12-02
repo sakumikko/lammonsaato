@@ -11,6 +11,10 @@ export interface HeatPumpState {
   condenserDeltaT: number;
   outdoorTemp: number;
   heatpumpMode: 'Heat' | 'Cool' | 'Off';
+  // Hot gas / discharge temperatures
+  dischargePipeTemp: number;
+  suctionGasTemp: number;
+  liquidLineTemp: number;
 }
 
 export interface PoolHeatingState {
@@ -60,10 +64,32 @@ export interface GearSettings {
   tapWater: GearLimits;
 }
 
+export interface TapWaterState {
+  topTemp: number;
+  lowerTemp: number;
+  weightedTemp: number;
+  startTemp: number;
+  stopTemp: number;
+}
+
+export interface HotGasSettings {
+  pumpStartTemp: number;
+  lowerStopLimit: number;
+  upperStopLimit: number;
+}
+
+export interface HeatingCurveSettings {
+  maxLimitation: number;
+  minLimitation: number;
+}
+
 export interface SystemState {
   heatPump: HeatPumpState;
   poolHeating: PoolHeatingState;
   valve: ValveState;
   schedule: ScheduleState;
   gearSettings: GearSettings;
+  tapWater: TapWaterState;
+  hotGasSettings: HotGasSettings;
+  heatingCurve: HeatingCurveSettings;
 }

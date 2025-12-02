@@ -1,0 +1,247 @@
+# Thermia Heat Pump Protection Automations
+# These automations protect the compressor from overheating during cold weather
+# and manage tap water temperature during extreme conditions.
+
+# ============================================================================
+# AUTOMATIONS
+# ============================================================================
+
+automation:
+  # -------------------------------------------------------------------------
+  # High Discharge Temperature Protection
+  # Reduces max gear when discharge pipe temp exceeds safe limits
+  # -------------------------------------------------------------------------
+  - id: thermia_high_discharge_temp_reduce_gear
+    alias: "Thermia: Reduce gear on high discharge temperature"
+    description: >
+      When discharge pipe temperature exceeds 100°C for 2 minutes,
+      reduce the maximum allowed gear in heating by 1.
+      This protects the compressor from overheating.
+    trigger:
+      - platform: numeric_state
+        entity_id: sensor.discharge_pipe_temperature
+        above: 100
+        for:
+          minutes: 2
+    condition:
+      - condition: numeric_state
+        entity_id: number.maximum_allowed_gear_in_heating
+        above: 3  # Don't reduce below gear 3
+    action:
+      - service: number.set_value
+        target:
+          entity_id: number.maximum_allowed_gear_in_heating
+        data:
+          value: >
+            {{ (states('number.maximum_allowed_gear_in_heating') | int) - 1 }}
+      - service: persistent_notification.create
+        data:
+          title: "Thermia Protection Active"
+          message: >
+            Discharge temperature is {{ states('sensor.discharge_pipe_temperature') }}°C.
+            Reduced max heating gear to {{ (states('number.maximum_allowed_gear_in_heating') | int) - 1 }}.
+          notification_id: thermia_high_temp_warning
+    mode: single
+
+  # -------------------------------------------------------------------------
+  # Critical Discharge Temperature - Emergency Gear Reduction
+  # -------------------------------------------------------------------------
+  - id: thermia_critical_discharge_temp
+    alias: "Thermia: Emergency gear reduction on critical temperature"
+    description: >
+      When discharge pipe temperature exceeds 110°C, immediately
+      reduce max gear to 5 to protect the compressor.
+    trigger:
+      - platform: numeric_state
+        entity_id: sensor.discharge_pipe_temperature
+        above: 110
+    action:
+      - service: number.set_value
+        target:
+          entity_id: number.maximum_allowed_gear_in_heating
+        data:
+          value: 5
+      - service: number.set_value
+        target:
+          entity_id: number.maximum_allowed_gear_in_tap_water
+        data:
+          value: 5
+      - service: persistent_notification.create
+        data:
+          title: "⚠️ Thermia Critical Temperature!"
+          message: >
+            Discharge temperature reached {{ states('sensor.discharge_pipe_temperature') }}°C!
+            Max gears limited to 5 for protection.
+          notification_id: thermia_critical_temp
+    mode: single
+
+  # -------------------------------------------------------------------------
+  # Restore Gear Limits - When Temperature Normalizes
+  # -------------------------------------------------------------------------
+  - id: thermia_restore_gear_limits
+    alias: "Thermia: Restore gear limits when temperature normalizes"
+    description: >
+      When discharge pipe temperature drops below 85°C for 10 minutes,
+      restore normal max gear limits.
+    trigger:
+      - platform: numeric_state
+        entity_id: sensor.discharge_pipe_temperature
+        below: 85
+        for:
+          minutes: 10
+    condition:
+      - condition: numeric_state
+        entity_id: number.maximum_allowed_gear_in_heating
+        below: 9  # Only restore if currently limited
+    action:
+      - service: number.set_value
+        target:
+          entity_id: number.maximum_allowed_gear_in_heating
+        data:
+          value: 9
+      - service: number.set_value
+        target:
+          entity_id: number.maximum_allowed_gear_in_tap_water
+        data:
+          value: 9
+      - service: persistent_notification.dismiss
+        data:
+          notification_id: thermia_high_temp_warning
+      - service: persistent_notification.dismiss
+        data:
+          notification_id: thermia_critical_temp
+    mode: single
+
+  # -------------------------------------------------------------------------
+  # Cold Weather Protection - Reduce Tap Water Target
+  # -------------------------------------------------------------------------
+  - id: thermia_cold_weather_tap_water
+    alias: "Thermia: Reduce tap water target in extreme cold"
+    description: >
+      When outdoor temperature drops below -15°C and discharge temp
+      is elevated, reduce tap water stop temperature to reduce load.
+    trigger:
+      - platform: numeric_state
+        entity_id: sensor.outdoor_temperature
+        below: -15
+    condition:
+      - condition: numeric_state
+        entity_id: sensor.discharge_pipe_temperature
+        above: 95
+    action:
+      - service: number.set_value
+        target:
+          entity_id: number.tap_water_stop_temperature
+        data:
+          value: 50
+      - service: persistent_notification.create
+        data:
+          title: "Cold Weather Mode"
+          message: >
+            Outdoor temp is {{ states('sensor.outdoor_temperature') }}°C.
+            Tap water target reduced to 50°C to protect compressor.
+          notification_id: thermia_cold_weather
+    mode: single
+
+  # -------------------------------------------------------------------------
+  # Restore Tap Water Target - When Weather Improves
+  # -------------------------------------------------------------------------
+  - id: thermia_restore_tap_water
+    alias: "Thermia: Restore tap water target when weather improves"
+    description: >
+      Restore normal tap water temperature target when outdoor
+      temperature rises above -10°C.
+    trigger:
+      - platform: numeric_state
+        entity_id: sensor.outdoor_temperature
+        above: -10
+        for:
+          minutes: 30
+    condition:
+      - condition: numeric_state
+        entity_id: number.tap_water_stop_temperature
+        below: 55  # Only if currently reduced
+    action:
+      - service: number.set_value
+        target:
+          entity_id: number.tap_water_stop_temperature
+        data:
+          value: 55
+      - service: persistent_notification.dismiss
+        data:
+          notification_id: thermia_cold_weather
+    mode: single
+
+  # -------------------------------------------------------------------------
+  # Discharge Temperature Logging
+  # Logs high discharge temps for analysis
+  # -------------------------------------------------------------------------
+  - id: thermia_log_high_discharge_temp
+    alias: "Thermia: Log high discharge temperature events"
+    description: >
+      Log when discharge temperature exceeds 100°C for historical analysis.
+    trigger:
+      - platform: numeric_state
+        entity_id: sensor.discharge_pipe_temperature
+        above: 100
+    action:
+      - service: logbook.log
+        data:
+          name: "Thermia High Temp"
+          message: >
+            Discharge temp: {{ states('sensor.discharge_pipe_temperature') }}°C,
+            Outdoor: {{ states('sensor.outdoor_temperature') }}°C,
+            Gear: {{ states('number.maximum_allowed_gear_in_heating') }}
+          entity_id: sensor.discharge_pipe_temperature
+          domain: climate
+    mode: single
+
+# ============================================================================
+# SENSORS FOR MONITORING
+# ============================================================================
+
+sensor:
+  # Delta between discharge and outdoor temp (indicates compressor load)
+  - platform: template
+    sensors:
+      thermia_discharge_outdoor_delta:
+        friendly_name: "Discharge-Outdoor Delta"
+        unit_of_measurement: "°C"
+        device_class: temperature
+        value_template: >
+          {% set discharge = states('sensor.discharge_pipe_temperature') | float(0) %}
+          {% set outdoor = states('sensor.outdoor_temperature') | float(0) %}
+          {{ (discharge - outdoor) | round(1) }}
+        availability_template: >
+          {{ states('sensor.discharge_pipe_temperature') not in ['unknown', 'unavailable']
+             and states('sensor.outdoor_temperature') not in ['unknown', 'unavailable'] }}
+
+# ============================================================================
+# BINARY SENSORS FOR STATUS
+# ============================================================================
+
+binary_sensor:
+  - platform: template
+    sensors:
+      thermia_discharge_temp_warning:
+        friendly_name: "Discharge Temperature Warning"
+        device_class: problem
+        value_template: >
+          {{ states('sensor.discharge_pipe_temperature') | float(0) > 100 }}
+        availability_template: >
+          {{ states('sensor.discharge_pipe_temperature') not in ['unknown', 'unavailable'] }}
+
+      thermia_discharge_temp_critical:
+        friendly_name: "Discharge Temperature Critical"
+        device_class: problem
+        value_template: >
+          {{ states('sensor.discharge_pipe_temperature') | float(0) > 110 }}
+        availability_template: >
+          {{ states('sensor.discharge_pipe_temperature') not in ['unknown', 'unavailable'] }}
+
+      thermia_cold_weather_mode:
+        friendly_name: "Cold Weather Mode Active"
+        value_template: >
+          {{ states('sensor.outdoor_temperature') | float(0) < -15 }}
+        availability_template: >
+          {{ states('sensor.outdoor_temperature') not in ['unknown', 'unavailable'] }}
