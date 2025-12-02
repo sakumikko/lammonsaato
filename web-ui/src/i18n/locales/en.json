@@ -92,5 +92,15 @@
     "light": "Light",
     "dark": "Dark",
     "toggle": "Toggle theme"
+  },
+  "settings": {
+    "title": "Heat Pump Settings",
+    "description": "Configure compressor gear limits for each heating circuit",
+    "heatingCircuit": "Heating Circuit",
+    "poolCircuit": "Pool Circuit",
+    "tapWaterCircuit": "Tap Water (DHW)",
+    "minimumGear": "Minimum Gear",
+    "maximumGear": "Maximum Gear",
+    "currentGear": "Current"
   }
 }

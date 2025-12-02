@@ -92,5 +92,15 @@
     "light": "Vaalea",
     "dark": "Tumma",
     "toggle": "Vaihda teemaa"
+  },
+  "settings": {
+    "title": "Lämpöpumpun asetukset",
+    "description": "Aseta kompressorin vaihderajat jokaiselle lämmityspiirille",
+    "heatingCircuit": "Lämmityspiiri",
+    "poolCircuit": "Allaspiiri",
+    "tapWaterCircuit": "Käyttövesi (LKV)",
+    "minimumGear": "Minimivaihde",
+    "maximumGear": "Maksimivaihde",
+    "currentGear": "Nykyinen"
   }
 }
