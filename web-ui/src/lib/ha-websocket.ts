@@ -22,6 +22,17 @@ export interface HAEvent {
   };
 }
 
+export interface StatisticsResult {
+  start: string;
+  end: string;
+  sum?: number;
+  mean?: number;
+  min?: number;
+  max?: number;
+  state?: number;
+  last_reset?: string;
+}
+
 type MessageHandler = (message: unknown) => void;
 type StateChangeCallback = (entityId: string, state: HAEntityState) => void;
 type ConnectionCallback = (connected: boolean) => void;
@@ -247,6 +258,51 @@ export class HAWebSocket {
       service,
       service_data: data,
     });
+  }
+
+  /**
+   * Fetch statistics for entities over a time period
+   * Uses the recorder/statistics_during_period API
+   */
+  async getStatistics(
+    startTime: Date,
+    endTime: Date,
+    statisticIds: string[],
+    period: '5minute' | 'hour' | 'day' | 'week' | 'month' = 'day'
+  ): Promise<Record<string, StatisticsResult[]>> {
+    if (!this.isAuthenticated) {
+      throw new Error('Not connected to Home Assistant');
+    }
+    return this.sendCommand({
+      type: 'recorder/statistics_during_period',
+      start_time: startTime.toISOString(),
+      end_time: endTime.toISOString(),
+      statistic_ids: statisticIds,
+      period,
+      types: ['sum', 'mean', 'min', 'max', 'state'],
+    }) as Promise<Record<string, StatisticsResult[]>>;
+  }
+
+  /**
+   * Fetch raw history for entities over a time period
+   */
+  async getHistory(
+    startTime: Date,
+    endTime: Date,
+    entityIds: string[],
+    minimalResponse: boolean = true
+  ): Promise<HAEntityState[][]> {
+    if (!this.isAuthenticated) {
+      throw new Error('Not connected to Home Assistant');
+    }
+    return this.sendCommand({
+      type: 'history/history_during_period',
+      start_time: startTime.toISOString(),
+      end_time: endTime.toISOString(),
+      entity_ids: entityIds,
+      minimal_response: minimalResponse,
+      significant_changes_only: false,
+    }) as Promise<HAEntityState[][]>;
   }
 
   onStateChange(callback: StateChangeCallback): () => void {

@@ -124,5 +124,37 @@
     "danger": "Kriittinen!",
     "warningAt": "Varoitus >{{temp}}°C",
     "dangerAt": "Vaara >{{temp}}°C"
+  },
+  "analytics": {
+    "title": "Analytiikka",
+    "timeRange": {
+      "1w": "1 viikko",
+      "4w": "4 viikkoa",
+      "3m": "3 kuukautta",
+      "12m": "12 kuukautta"
+    },
+    "summary": {
+      "totalEnergy": "Kokonaisenergia",
+      "totalCost": "Kokonaiskustannus",
+      "savings": "Säästö",
+      "avgOutdoorTemp": "Keskim. ulkolämpötila",
+      "avgPrice": "Keskihinta"
+    },
+    "charts": {
+      "energy": "Energiankulutus",
+      "energyThermal": "Lämpöenergia",
+      "energyElectric": "Sähköenergia",
+      "cost": "Kustannusanalyysi",
+      "costActual": "Toteutunut kustannus",
+      "costBaseline": "Vertailuhinta (ka. 21-07)",
+      "tempCorrelation": "Lämpötila vs kulutus",
+      "poolTemp": "Altaan lämpötila"
+    },
+    "labels": {
+      "saved": "säästetty"
+    },
+    "footer": {
+      "note": "Tiedot perustuvat lämpöenergian siirtoon hyötysuhteella {{cop}}"
+    }
   }
 }

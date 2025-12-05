@@ -124,5 +124,37 @@
     "danger": "Critical!",
     "warningAt": "Warning >{{temp}}°C",
     "dangerAt": "Danger >{{temp}}°C"
+  },
+  "analytics": {
+    "title": "Analytics",
+    "timeRange": {
+      "1w": "1 Week",
+      "4w": "4 Weeks",
+      "3m": "3 Months",
+      "12m": "12 Months"
+    },
+    "summary": {
+      "totalEnergy": "Total Energy",
+      "totalCost": "Total Cost",
+      "savings": "Savings",
+      "avgOutdoorTemp": "Avg Outdoor Temp",
+      "avgPrice": "Avg Price"
+    },
+    "charts": {
+      "energy": "Energy Consumption",
+      "energyThermal": "Thermal",
+      "energyElectric": "Electric",
+      "cost": "Cost Analysis",
+      "costActual": "Actual Cost",
+      "costBaseline": "Baseline (Avg 21-07)",
+      "tempCorrelation": "Temperature vs Consumption",
+      "poolTemp": "Pool Temperature"
+    },
+    "labels": {
+      "saved": "saved"
+    },
+    "footer": {
+      "note": "Data is calculated based on thermal energy transfer with COP {{cop}}"
+    }
   }
 }

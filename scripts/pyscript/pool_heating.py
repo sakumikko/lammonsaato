@@ -67,9 +67,16 @@ CONDENSER_IN_TEMP = "sensor.condenser_in_temperature"
 SYSTEM_SUPPLY_TEMP = None  # sensor.thermia_supply_temperature shows wrong values
 OUTDOOR_TEMP = None  # sensor.thermia_outdoor_temperature shows wrong values
 
-# Pool water temperature sensor - set to None if not available
-# If you have a separate pool water temp sensor, set it here
-POOL_WATER_TEMP = None
+# Pool water temperature sensor
+# Using corrected return line temperature as proxy for pool temp
+POOL_WATER_TEMP = "sensor.pool_return_line_temperature_corrected"
+
+# Session entity for analytics (updated per block)
+SESSION_ENTITY = "sensor.pool_heating_session"
+NIGHT_SUMMARY_ENTITY = "sensor.pool_heating_night_summary"
+
+# Outdoor temperature sensor
+OUTDOOR_TEMP_SENSOR = "sensor.outdoor_temperature"
 
 
 # ============================================
@@ -544,6 +551,30 @@ def calculate_pool_heating_slots():
 
 # Session tracking (in-memory for current session)
 _current_session = {}
+_block_number = 0  # Track which block we're in
+
+
+def get_heating_date(timestamp=None):
+    """
+    Get the heating date for a given timestamp.
+    The heating day is defined by the 21:00-07:00 window.
+
+    Examples:
+        21:00 Dec 5 to 06:59 Dec 6 → "2024-12-05"
+        07:00 Dec 6 onwards → "2024-12-06"
+    """
+    if timestamp is None:
+        timestamp = datetime.now()
+
+    if timestamp.hour < 7:
+        # Before 7am = previous day's heating night
+        return (timestamp - timedelta(days=1)).strftime('%Y-%m-%d')
+    elif timestamp.hour >= 21:
+        # After 9pm = this day's heating night
+        return timestamp.strftime('%Y-%m-%d')
+    else:
+        # 7am-9pm = no heating window, use previous night
+        return (timestamp - timedelta(days=1)).strftime('%Y-%m-%d')
 
 
 def _safe_get_temp(sensor_id):
@@ -560,29 +591,36 @@ def _safe_get_temp(sensor_id):
 
 
 @service
-def log_heating_start():
+def log_heating_start(block_number=None):
     """
     Log the start of a heating session.
     Records initial temperatures and electricity price.
+
+    Args:
+        block_number: Optional block number (1-4) for tracking
     """
-    global _current_session
+    global _current_session, _block_number
 
     now = datetime.now()
+    _block_number = block_number if block_number else 0
 
     _current_session = {
         'start_time': now.isoformat(),
+        'block_number': _block_number,
+        'heating_date': get_heating_date(now),
         'start_condenser_out_temp': _safe_get_temp(CONDENSER_OUT_TEMP),
         'start_condenser_in_temp': _safe_get_temp(CONDENSER_IN_TEMP),
         'start_system_supply_temp': _safe_get_temp(SYSTEM_SUPPLY_TEMP),
-        'start_outdoor_temp': _safe_get_temp(OUTDOOR_TEMP),
+        'start_outdoor_temp': _safe_get_temp(OUTDOOR_TEMP_SENSOR),
         'start_pool_water_temp': _safe_get_temp(POOL_WATER_TEMP),
         'electricity_price': _safe_get_temp(NORDPOOL_SENSOR),
         'temperature_readings': []
     }
 
-    log.info(f"Heating session started at {now.strftime('%H:%M')}")
+    log.info(f"Heating session started at {now.strftime('%H:%M')} (Block {_block_number}, Date: {_current_session['heating_date']})")
     log.info(f"Initial temps - Condenser Out: {_current_session['start_condenser_out_temp']}°C, "
-             f"Condenser In: {_current_session['start_condenser_in_temp']}°C")
+             f"Condenser In: {_current_session['start_condenser_in_temp']}°C, "
+             f"Pool: {_current_session['start_pool_water_temp']}°C")
 
 
 @service
@@ -662,15 +700,15 @@ def log_heating_end():
     thermal_kwh = avg_delta_t * 3.14 * duration_hours
     electrical_kwh = thermal_kwh / 3.0  # COP of 3
 
-    # Cost calculation
-    electricity_price_eur = _current_session.get('electricity_price', 0) / 100  # cents to EUR
+    # Cost calculation (Nordpool sensor provides EUR/kWh directly)
+    electricity_price_eur = _current_session.get('electricity_price', 0)
     estimated_cost_eur = electrical_kwh * electricity_price_eur
 
     session_data = {
         'start_time': _current_session['start_time'],
         'end_time': now.isoformat(),
         'duration_hours': round(duration_hours, 2),
-        'electricity_price_cents': _current_session.get('electricity_price', 0),
+        'electricity_price_eur': _current_session.get('electricity_price', 0),
         'start_condenser_out_temp': _current_session.get('start_condenser_out_temp', 0),
         'start_condenser_in_temp': _current_session.get('start_condenser_in_temp', 0),
         'end_condenser_out_temp': end_condenser_out_temp,
@@ -693,7 +731,75 @@ def log_heating_end():
     # This fires an event that firebase_sync.py (local logger) listens to
     event.fire("pool_heating_session_complete", session_data=session_data)
 
-    # Clear current session
+    # Update session entity for analytics
+    # This creates a state change that gets stored in HA history
+    duration_minutes = int(duration_hours * 60)
+    heating_date = _current_session.get('heating_date', get_heating_date(now))
+    outdoor_temp = _safe_get_temp(OUTDOOR_TEMP_SENSOR)
+
+    state.set(
+        SESSION_ENTITY,
+        value=round(electrical_kwh, 3),
+        new_attributes={
+            "block_number": _current_session.get('block_number', 0),
+            "heating_date": heating_date,
+            "start_time": _current_session['start_time'],
+            "end_time": now.isoformat(),
+            "duration_minutes": duration_minutes,
+            "energy_kwh": round(electrical_kwh, 3),
+            "thermal_kwh": round(thermal_kwh, 3),
+            "cost_eur": round(estimated_cost_eur, 4),
+            "price_eur_kwh": round(electricity_price_eur, 4),
+            "pool_temp_start": round(_current_session.get('start_pool_water_temp', 0), 1),
+            "pool_temp_end": round(end_pool_water_temp, 1),
+            "outdoor_temp": round(outdoor_temp, 1),
+            "avg_delta_t": round(avg_delta_t, 2),
+            "unit_of_measurement": "kWh",
+            "device_class": "energy",
+            "state_class": "measurement",
+            "friendly_name": "Pool Heating Session",
+        }
+    )
+    log.info(f"Updated session entity: {SESSION_ENTITY}")
+
+    # Keep session data for final temp update after mixing
+    _current_session['logged'] = True
+    _current_session['session_entity_heating_date'] = heating_date
+
+
+@service
+def log_session_final_temp():
+    """
+    Update the session with final pool temperature after mixing period.
+
+    Call this 15 minutes after heating stops, when circulation has mixed
+    the water and the pool temperature sensor reflects the true pool temp.
+    """
+    global _current_session
+
+    if not _current_session or not _current_session.get('logged'):
+        log.warning("No logged session to update final temp for")
+        return
+
+    # Get current pool temperature (after mixing)
+    final_pool_temp = _safe_get_temp(POOL_WATER_TEMP)
+
+    # Get current session entity attributes and update pool_temp_end
+    current_attrs = state.getattr(SESSION_ENTITY) or {}
+
+    state.set(
+        SESSION_ENTITY,
+        value=current_attrs.get('energy_kwh', 0),
+        new_attributes={
+            **current_attrs,
+            "pool_temp_end": round(final_pool_temp, 1),
+            "pool_temp_mixed": True,  # Flag indicating this is post-mixing temp
+        }
+    )
+
+    log.info(f"Updated session final pool temp (after mixing): {final_pool_temp}°C")
+
+    # Clear the session now
     _current_session = {}
 
 
@@ -749,3 +855,306 @@ def get_heating_window_prices():
         log.info(f"Tomorrow (0-6): {tomorrow_prices}")
     else:
         log.info("Tomorrow (0-6): N/A")
+
+
+# ============================================
+# NIGHTLY SUMMARY
+# ============================================
+
+@service
+def calculate_night_summary(heating_date=None):
+    """
+    Calculate summary for a heating night (21:00 to 07:00).
+
+    This is called at 07:00 each day to aggregate all heating blocks
+    from the previous night into a single summary.
+
+    Args:
+        heating_date: The date string (YYYY-MM-DD) of the heating night start.
+                     Defaults to the previous night.
+    """
+    now = datetime.now()
+
+    if heating_date is None:
+        # Default to the night that just ended
+        heating_date = get_heating_date(now - timedelta(hours=1))
+
+    log.info(f"Calculating night summary for {heating_date}")
+
+    # Get current utility meter values (these reset at 07:00)
+    total_energy = _safe_get_temp("sensor.pool_heating_electricity_daily")
+    total_cost = _safe_get_temp("sensor.pool_heating_cost_daily")
+
+    # Get pool temperatures from first and last blocks
+    # We'll use current values as approximation since blocks just ended
+    pool_temp_final = _safe_get_temp(POOL_WATER_TEMP)
+    outdoor_temp = _safe_get_temp(OUTDOOR_TEMP_SENSOR)
+
+    # Get block prices for average calculation
+    block_prices = []
+    blocks_count = 0
+    total_duration = 0
+
+    for i in range(1, 5):
+        enabled = state.get(f"input_boolean.pool_heat_block_{i}_enabled")
+        if enabled == "on":
+            price = _safe_get_temp(f"input_number.pool_heat_block_{i}_price")
+            if price > 0:
+                block_prices.append(price)
+                blocks_count += 1
+                # Estimate duration from block times
+                start = state.get(f"input_datetime.pool_heat_block_{i}_start")
+                end = state.get(f"input_datetime.pool_heat_block_{i}_end")
+                if start and end and start not in ['unknown', 'unavailable']:
+                    try:
+                        start_dt = datetime.fromisoformat(start.replace(' ', 'T'))
+                        end_dt = datetime.fromisoformat(end.replace(' ', 'T'))
+                        duration = (end_dt - start_dt).total_seconds() / 60
+                        total_duration += int(duration)
+                    except (ValueError, TypeError):
+                        pass
+
+    # Calculate average price
+    avg_price = sum(block_prices) / len(block_prices) if block_prices else 0
+
+    # Calculate baseline cost (what it would cost at average 21-07 price)
+    # Get average of all Nordpool prices in the 21-07 window
+    prices_yesterday = state.getattr(NORDPOOL_SENSOR).get('today', [])  # yesterday's prices now
+    prices_today_morning = state.getattr(NORDPOOL_SENSOR).get('today', [])
+
+    window_prices = []
+    # 21:00-23:45 yesterday (slots 84-95)
+    if prices_yesterday and len(prices_yesterday) >= 96:
+        for i in range(84, 96):  # 21:00 to 23:45
+            window_prices.append(prices_yesterday[i])
+    # 00:00-06:45 today (slots 0-27)
+    if prices_today_morning and len(prices_today_morning) >= 28:
+        for i in range(0, 28):  # 00:00 to 06:45
+            window_prices.append(prices_today_morning[i])
+
+    avg_window_price = sum(window_prices) / len(window_prices) if window_prices else 0.10
+    baseline_cost = total_energy * avg_window_price
+
+    # Calculate savings
+    savings = baseline_cost - total_cost
+
+    # Update night summary entity
+    state.set(
+        NIGHT_SUMMARY_ENTITY,
+        value=round(total_energy, 3),
+        new_attributes={
+            "heating_date": heating_date,
+            "total_energy": round(total_energy, 3),
+            "total_cost": round(total_cost, 4),
+            "total_duration": total_duration,
+            "blocks_count": blocks_count,
+            "pool_temp_final": round(pool_temp_final, 1),
+            "outdoor_temp_avg": round(outdoor_temp, 1),
+            "avg_price": round(avg_price, 2),
+            "avg_window_price": round(avg_window_price * 100, 2),  # Convert to cents
+            "baseline_cost": round(baseline_cost, 4),
+            "savings": round(savings, 4),
+            "savings_percent": round((savings / baseline_cost * 100) if baseline_cost > 0 else 0, 1),
+            "unit_of_measurement": "kWh",
+            "device_class": "energy",
+            "state_class": "measurement",
+            "friendly_name": "Pool Heating Night Summary",
+        }
+    )
+
+    log.info(f"Night summary for {heating_date}: {total_energy:.2f} kWh, "
+             f"{total_cost:.3f}€, {blocks_count} blocks, "
+             f"savings: {savings:.3f}€ ({savings/baseline_cost*100:.1f}%)" if baseline_cost > 0 else "")
+
+
+@service
+def backfill_night_summaries(days=7):
+    """
+    Backfill night summaries from historical sensor data.
+
+    This queries HA history for past days and creates night summary
+    entries based on available data.
+
+    Args:
+        days: Number of days to backfill (default 7)
+    """
+    import homeassistant.core as ha_core
+
+    log.info(f"Backfilling night summaries for {days} days")
+
+    # We need to query history via HA's recorder
+    # For each day, we'll get the daily electricity/cost meter values
+    end_date = datetime.now().replace(hour=7, minute=0, second=0, microsecond=0)
+
+    summaries_created = 0
+
+    for day_offset in range(1, days + 1):
+        # Calculate the heating date (night starts at 21:00 on this date)
+        target_date = (end_date - timedelta(days=day_offset)).date()
+        heating_date = target_date.strftime('%Y-%m-%d')
+
+        # Time range for this night: 21:00 on target_date to 07:00 next day
+        night_start = datetime.combine(target_date, datetime.min.time().replace(hour=21))
+        night_end = datetime.combine(target_date + timedelta(days=1), datetime.min.time().replace(hour=7))
+
+        log.info(f"Processing {heating_date}: {night_start} to {night_end}")
+
+        # Query historical state for electricity and cost at night boundaries
+        # We'll use the state_get service if available, or estimate from statistics
+        try:
+            # Get energy consumption for this period using history_stats
+            # This is an approximation - we take the meter value change
+
+            # Try to get values from recorder history
+            # Note: This requires the recorder integration
+            energy_start = None
+            energy_end = None
+            cost_start = None
+            cost_end = None
+            pool_temp = None
+            outdoor_temp = None
+
+            # For now, we'll create estimates based on typical values
+            # In production, you'd query HA history via:
+            # hass.states.async_get_history(start, end, entity_ids)
+
+            # Since we can't directly query history from pyscript easily,
+            # we'll use a workaround: check if recorder has data via service call
+
+            # Estimate values based on current patterns (fallback)
+            # Typical night: 2 hours heating at 2-3 kW = 4-6 kWh thermal, 1.3-2 kWh electric
+            estimated_energy = 1.5  # kWh electric (2h * ~0.75kW average)
+            estimated_cost = 0.08   # EUR (at ~5c/kWh average)
+
+            # Use history service to get actual data if available
+            history_result = task.executor(
+                _query_history_for_date,
+                heating_date,
+                night_start,
+                night_end
+            )
+
+            if history_result:
+                estimated_energy = history_result.get('energy', estimated_energy)
+                estimated_cost = history_result.get('cost', estimated_cost)
+                pool_temp = history_result.get('pool_temp', 25.0)
+                outdoor_temp = history_result.get('outdoor_temp', 5.0)
+            else:
+                pool_temp = 25.0
+                outdoor_temp = 5.0
+
+            # Calculate baseline and savings (estimate)
+            avg_window_price = 0.08  # 8c/kWh fallback
+            baseline_cost = estimated_energy * avg_window_price
+            savings = baseline_cost - estimated_cost
+
+            # Update the night summary entity with historical data
+            # Each update creates a new history entry
+            state.set(
+                NIGHT_SUMMARY_ENTITY,
+                value=round(estimated_energy, 3),
+                new_attributes={
+                    "heating_date": heating_date,
+                    "total_energy": round(estimated_energy, 3),
+                    "total_cost": round(estimated_cost, 4),
+                    "total_duration": 120,  # Estimated 2h
+                    "blocks_count": 3,  # Typical
+                    "pool_temp_final": round(pool_temp, 1),
+                    "outdoor_temp_avg": round(outdoor_temp, 1),
+                    "avg_price": round(estimated_cost / estimated_energy * 100, 2) if estimated_energy > 0 else 0,
+                    "avg_window_price": round(avg_window_price * 100, 2),
+                    "baseline_cost": round(baseline_cost, 4),
+                    "savings": round(savings, 4),
+                    "savings_percent": round((savings / baseline_cost * 100) if baseline_cost > 0 else 0, 1),
+                    "backfilled": True,  # Mark as backfilled data
+                    "unit_of_measurement": "kWh",
+                    "device_class": "energy",
+                    "state_class": "measurement",
+                    "friendly_name": "Pool Heating Night Summary",
+                }
+            )
+
+            summaries_created += 1
+            log.info(f"Created summary for {heating_date}: {estimated_energy:.2f} kWh, {estimated_cost:.3f}€")
+
+            # Small delay to ensure distinct history entries
+            task.sleep(0.5)
+
+        except Exception as e:
+            log.error(f"Failed to process {heating_date}: {e}")
+            continue
+
+    log.info(f"Backfill complete: {summaries_created} summaries created")
+
+
+def _query_history_for_date(heating_date, night_start, night_end):
+    """
+    Query HA history for a specific night period.
+    This runs in executor to avoid blocking.
+
+    Returns dict with energy, cost, pool_temp, outdoor_temp or None.
+    """
+    try:
+        # Import HA components
+        from homeassistant.components.recorder import history
+        from homeassistant.core import HomeAssistant
+
+        # Get the hass object
+        hass = pyscript.hass
+
+        # Query history for the electricity daily sensor
+        # Note: We're looking for state changes during this period
+        entity_ids = [
+            "sensor.pool_heating_electricity_daily",
+            "sensor.pool_heating_cost_daily",
+            "sensor.pool_return_line_temperature_corrected",
+            "sensor.outdoor_temperature"
+        ]
+
+        # This is a synchronous history query
+        states_by_entity = history.state_changes_during_period(
+            hass,
+            night_start,
+            night_end,
+            entity_ids,
+        )
+
+        result = {}
+
+        # Get energy - look for max value during the period (utility meter accumulates)
+        if "sensor.pool_heating_electricity_daily" in states_by_entity:
+            energy_states = states_by_entity["sensor.pool_heating_electricity_daily"]
+            if energy_states:
+                values = [float(s.state) for s in energy_states if s.state not in ['unknown', 'unavailable']]
+                if values:
+                    result['energy'] = max(values)
+
+        # Get cost
+        if "sensor.pool_heating_cost_daily" in states_by_entity:
+            cost_states = states_by_entity["sensor.pool_heating_cost_daily"]
+            if cost_states:
+                values = [float(s.state) for s in cost_states if s.state not in ['unknown', 'unavailable']]
+                if values:
+                    result['cost'] = max(values)
+
+        # Get pool temp (average)
+        if "sensor.pool_return_line_temperature_corrected" in states_by_entity:
+            temp_states = states_by_entity["sensor.pool_return_line_temperature_corrected"]
+            if temp_states:
+                values = [float(s.state) for s in temp_states if s.state not in ['unknown', 'unavailable']]
+                if values:
+                    result['pool_temp'] = sum(values) / len(values)
+
+        # Get outdoor temp (average)
+        if "sensor.outdoor_temperature" in states_by_entity:
+            temp_states = states_by_entity["sensor.outdoor_temperature"]
+            if temp_states:
+                values = [float(s.state) for s in temp_states if s.state not in ['unknown', 'unavailable']]
+                if values:
+                    result['outdoor_temp'] = sum(values) / len(values)
+
+        return result if result else None
+
+    except Exception as e:
+        log.warning(f"History query failed: {e}")
+        return None

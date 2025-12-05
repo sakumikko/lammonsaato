@@ -5,7 +5,9 @@ import { SchedulePanel } from '@/components/heating/SchedulePanel';
 import { SettingsSheet } from '@/components/heating/SettingsSheet';
 import { LanguageSwitcher } from '@/components/LanguageSwitcher';
 import { ThemeToggle } from '@/components/ThemeToggle';
-import { Activity, Zap, Wifi, WifiOff } from 'lucide-react';
+import { Activity, Zap, Wifi, WifiOff, BarChart3 } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { Button } from '@/components/ui/button';
 import { useTranslation } from 'react-i18next';
 
 const Index = () => {
@@ -44,6 +46,13 @@ const Index = () => {
 
             {/* Status indicator */}
             <div className="flex items-center gap-1.5 md:gap-4">
+              {/* Analytics link */}
+              <Link to="/analytics">
+                <Button variant="ghost" size="sm" className="gap-1.5">
+                  <BarChart3 className="w-4 h-4" />
+                  <span className="hidden md:inline">{t('analytics.title')}</span>
+                </Button>
+              </Link>
               {/* Settings, Theme and Language switchers */}
               <SettingsSheet
                 gearSettings={state.gearSettings}

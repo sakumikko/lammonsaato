@@ -230,7 +230,7 @@ template:
           {{ states('sensor.pool_thermal_power') not in ['unknown', 'unavailable'] }}
 
       # Current electricity cost rate (EUR/h)
-      # Nordpool price is in c/kWh, convert to EUR/kWh
+      # Nordpool price is in EUR/kWh
       # NOTE: Only calculates when pool heating is active
       - name: "Pool Heating Cost Rate"
         unique_id: pool_heating_cost_rate
@@ -238,8 +238,7 @@ template:
         state: >
           {% if is_state('binary_sensor.pool_heating_active', 'on') %}
             {% set electrical_kw = states('sensor.pool_heating_electrical_power') | float(0) %}
-            {% set price_cents = states('sensor.nordpool_kwh_fi_eur_3_10_0255') | float(0) %}
-            {% set price_eur = price_cents / 100 %}
+            {% set price_eur = states('sensor.nordpool_kwh_fi_eur_3_10_0255') | float(0) %}
             {{ (electrical_kw * price_eur) | round(3) }}
           {% else %}
             0
@@ -337,6 +336,41 @@ template:
         state: >
           {{ state_attr('sensor.nordpool_kwh_fi_eur_3_10_0255', 'tomorrow_valid') | default(false) }}
 
+  # 15-minute energy aggregation sensor (aligned with Nordpool pricing periods)
+  - trigger:
+      - platform: time_pattern
+        minutes: "/15"
+    sensor:
+      - name: "Pool Heating 15min Energy"
+        unique_id: pool_heating_15min_energy
+        unit_of_measurement: "kWh"
+        state_class: measurement
+        device_class: energy
+        state: >
+          {% set current = states('sensor.pool_heating_electricity') | float(0) %}
+          {% set last = this.attributes.get('cumulative_at_period_start', current) | float(0) %}
+          {{ (current - last) | round(4) }}
+        attributes:
+          cumulative_at_period_start: "{{ states('sensor.pool_heating_electricity') }}"
+          period_start: "{{ now().replace(minute=(now().minute // 15) * 15, second=0, microsecond=0).isoformat() }}"
+          period_price_eur: "{{ states('sensor.nordpool_kwh_fi_eur_3_10_0255') | float(0) }}"
+          period_cost_eur: >
+            {% set current = states('sensor.pool_heating_electricity') | float(0) %}
+            {% set last = this.attributes.get('cumulative_at_period_start', current) | float(0) %}
+            {% set energy = current - last %}
+            {% set price = states('sensor.nordpool_kwh_fi_eur_3_10_0255') | float(0) %}
+            {{ (energy * price) | round(4) }}
+          heating_date: >
+            {% set hour = now().hour %}
+            {% if hour < 7 %}
+              {{ (now() - timedelta(days=1)).strftime('%Y-%m-%d') }}
+            {% elif hour >= 21 %}
+              {{ now().strftime('%Y-%m-%d') }}
+            {% else %}
+              {{ (now() - timedelta(days=1)).strftime('%Y-%m-%d') }}
+            {% endif %}
+
+  - binary_sensor:
       # Is currently within a scheduled heating block
       - name: "Pool In Heating Window"
         unique_id: pool_in_heating_window
@@ -632,6 +666,17 @@ automation:
       - service: pyscript.log_pool_temperatures
         continue_on_error: true  # Don't fail if Thermia sensors unavailable
 
+  # Calculate nightly summary at end of heating window
+  - id: pool_night_summary
+    alias: "Pool: Calculate Night Summary"
+    description: "Calculate summary stats at end of heating window (07:00)"
+    trigger:
+      - platform: time
+        at: "07:00:00"
+    action:
+      - service: pyscript.calculate_night_summary
+        continue_on_error: true
+
 # ============================================
 # SCRIPTS
 # ============================================
@@ -664,23 +709,34 @@ script:
 
   pool_heating_block_stop:
     alias: "Pool Heating Block Stop"
-    description: "Stop a heating block - enables prevention, disables circulation"
+    description: "Stop heating, log energy, run circulation 15min for mixing, then log final temp"
     sequence:
       # Turn ON the heating prevention switch (stops heat pump from heating pool)
       - service: switch.turn_on
         target:
           entity_id: switch.altaan_lammityksen_esto
-      # Turn OFF the circulation pump
-      - service: switch.turn_off
-        target:
-          entity_id: switch.altaan_kiertovesipumppu
-      # Log end - continue even if Thermia unavailable
+      # Log session end NOW - captures accurate heating duration and energy
       - service: pyscript.log_heating_end
         continue_on_error: true
       - service: logbook.log
         data:
           name: "Pool Heating"
-          message: "Block stopped"
+          message: "Heating stopped, circulation continues for mixing"
+          entity_id: binary_sensor.pool_heating_active
+      # Keep circulation running for 15 minutes to mix water
+      - delay:
+          minutes: 15
+      # Turn OFF the circulation pump
+      - service: switch.turn_off
+        target:
+          entity_id: switch.altaan_kiertovesipumppu
+      # Update final pool temp AFTER mixing
+      - service: pyscript.log_session_final_temp
+        continue_on_error: true
+      - service: logbook.log
+        data:
+          name: "Pool Heating"
+          message: "Block stopped, final pool temp logged after mixing"
           entity_id: binary_sensor.pool_heating_active
 
   pool_heating_stop:
@@ -701,7 +757,7 @@ script:
 
   pool_heating_manual_start:
     alias: "Pool Heating Manual Start (30 min)"
-    description: "Manual 30-minute heating session with logging"
+    description: "Manual 30-minute heating session with logging and 15-min mixing"
     sequence:
       # Log start
       - service: pyscript.log_heating_start
@@ -720,20 +776,32 @@ script:
           entity_id: binary_sensor.pool_heating_active
       - delay:
           minutes: 30
-      # Stop heating
+      # Stop heating but keep circulation
       - service: switch.turn_on
         target:
           entity_id: switch.altaan_lammityksen_esto
-      - service: switch.turn_off
-        target:
-          entity_id: switch.altaan_kiertovesipumppu
-      # Log end
+      # Log session end NOW - captures accurate heating duration and energy
       - service: pyscript.log_heating_end
         continue_on_error: true
       - service: logbook.log
         data:
           name: "Pool Heating"
-          message: "Manual 30-min session ended"
+          message: "Heating stopped, mixing for 15 min"
+          entity_id: binary_sensor.pool_heating_active
+      # Mix water for 15 minutes
+      - delay:
+          minutes: 15
+      # Stop circulation
+      - service: switch.turn_off
+        target:
+          entity_id: switch.altaan_kiertovesipumppu
+      # Update final pool temp after mixing
+      - service: pyscript.log_session_final_temp
+        continue_on_error: true
+      - service: logbook.log
+        data:
+          name: "Pool Heating"
+          message: "Manual session ended, final temp logged after mixing"
           entity_id: binary_sensor.pool_heating_active
 
 # ============================================
@@ -763,16 +831,18 @@ sensor:
 
 utility_meter:
   # Daily electricity consumption for pool heating
+  # Resets at 07:00 to align with heating window end (21:00-07:00)
   pool_heating_electricity_daily:
     source: sensor.pool_heating_electricity
     name: "Pool Heating Electricity Daily"
-    cycle: daily
+    cron: "0 7 * * *"
 
   # Daily cost for pool heating
+  # Resets at 07:00 to align with heating window end
   pool_heating_cost_daily:
     source: sensor.pool_heating_cumulative_cost
     name: "Pool Heating Cost Daily"
-    cycle: daily
+    cron: "0 7 * * *"
 
   # Monthly electricity consumption
   pool_heating_electricity_monthly:
@@ -799,6 +869,8 @@ recorder:
       - sensor.pool_heat_exchanger_delta_t
       # Pool return line (corrected from raw hundredths)
       - sensor.pool_return_line_temperature_corrected
+      # Outdoor temperature
+      - sensor.outdoor_temperature
       # Energy calculations
       - sensor.pool_thermal_power
       - sensor.pool_heating_electrical_power
@@ -810,6 +882,10 @@ recorder:
       - sensor.pool_heating_cost_daily
       - sensor.pool_heating_electricity_monthly
       - sensor.pool_heating_cost_monthly
+      # Analytics entities (15-min, session, nightly)
+      - sensor.pool_heating_15min_energy
+      - sensor.pool_heating_session
+      - sensor.pool_heating_night_summary
       # Nordpool
       - sensor.nordpool_kwh_fi_eur_3_10_0255
       # Pool heating switches
