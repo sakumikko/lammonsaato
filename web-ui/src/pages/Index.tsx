@@ -2,6 +2,7 @@ import { useHomeAssistant } from '@/hooks/useHomeAssistant';
 import { SystemDiagram } from '@/components/heating/SystemDiagram';
 import { ControlPanel } from '@/components/heating/ControlPanel';
 import { SchedulePanel } from '@/components/heating/SchedulePanel';
+import { SettingsSheet } from '@/components/heating/SettingsSheet';
 import { LanguageSwitcher } from '@/components/LanguageSwitcher';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { Activity, Zap, Wifi, WifiOff } from 'lucide-react';
@@ -17,6 +18,10 @@ const Index = () => {
     setPoolTargetTemp,
     toggleValve,
     setBlockEnabled,
+    setGearLimit,
+    setTapWaterSetting,
+    setHotGasSetting,
+    setHeatingCurveSetting,
   } = useHomeAssistant();
 
   const isPoolActive = state.valve.position === 'pool';
@@ -39,7 +44,21 @@ const Index = () => {
 
             {/* Status indicator */}
             <div className="flex items-center gap-1.5 md:gap-4">
-              {/* Theme and Language switchers */}
+              {/* Settings, Theme and Language switchers */}
+              <SettingsSheet
+                gearSettings={state.gearSettings}
+                tapWater={state.tapWater}
+                hotGasSettings={state.hotGasSettings}
+                heatingCurve={state.heatingCurve}
+                heatPump={state.heatPump}
+                onGearLimitChange={setGearLimit}
+                onTapWaterChange={setTapWaterSetting}
+                onHotGasChange={setHotGasSetting}
+                onHeatingCurveChange={setHeatingCurveSetting}
+                currentGears={{
+                  heating: state.heatPump.compressorGear,
+                }}
+              />
               <ThemeToggle />
               <LanguageSwitcher />
               {/* Connection status */}
