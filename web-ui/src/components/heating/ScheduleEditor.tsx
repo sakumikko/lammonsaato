@@ -27,7 +27,7 @@ interface ScheduleEditorProps {
   parameters: ScheduleParameters;
   isInHeatingWindow: boolean;
   onSave: (params: ScheduleParameters) => Promise<void>;
-  onRecalculate: () => Promise<void>;
+  onRecalculate: () => Promise<boolean>;
 }
 
 // Valid options for dropdowns
@@ -81,13 +81,19 @@ export function useScheduleEditor({
     setSuccessMessage(null);
     try {
       await onSave(editParams);
-      await onRecalculate();
-      setSuccessMessage(t('schedule.editor.success'));
+      const recalcSucceeded = await onRecalculate();
+      if (recalcSucceeded) {
+        setSuccessMessage(t('schedule.editor.success'));
+      } else {
+        // Recalculation failed (likely no prices available)
+        // Parameters are saved and will apply at next calculation
+        setSuccessMessage(t('schedule.editor.successPending'));
+      }
       // Auto-close after success
       setTimeout(() => {
         setIsOpen(false);
         setSuccessMessage(null);
-      }, 1500);
+      }, 2000);
     } catch (error) {
       console.error('Failed to save schedule parameters:', error);
     } finally {

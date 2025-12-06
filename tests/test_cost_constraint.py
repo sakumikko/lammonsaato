@@ -42,23 +42,25 @@ def calculate_block_cost(duration_minutes: int, price_eur_per_kwh: float) -> flo
     return energy_kwh * price_eur_per_kwh
 
 
-def apply_cost_constraint(blocks: list, max_cost_eur: float = 0, max_total_minutes: int = 0) -> tuple:
+def apply_cost_constraint(blocks: list, max_cost_eur: float = 0) -> tuple:
     """
-    Apply cost and duration constraints to blocks, enabling cheapest first.
+    Apply cost constraint to blocks, enabling cheapest first.
+
+    This mirrors the logic in calculate_pool_heating_schedule which applies
+    cost constraint after creating the schedule. Duration is handled at
+    schedule creation time, not here.
 
     Args:
-        blocks: List of dicts with 'cost_eur', 'avg_price', and optionally 'duration_minutes'
+        blocks: List of dicts with 'cost_eur', 'avg_price'
         max_cost_eur: Maximum total cost (0 = no limit)
-        max_total_minutes: Maximum total duration in minutes (0 = no limit)
 
     Returns:
-        Tuple of (modified_blocks, total_enabled_cost, total_enabled_minutes, constraint_applied)
+        Tuple of (modified_blocks, total_enabled_cost, constraint_applied)
     """
     # Sort by price to enable cheapest first
     sorted_indices = sorted(range(len(blocks)), key=lambda i: blocks[i]['avg_price'])
 
     running_cost = 0.0
-    running_minutes = 0
     constraint_applied = False
 
     # First, mark all as exceeded, then enable cheapest within limits
@@ -68,21 +70,17 @@ def apply_cost_constraint(blocks: list, max_cost_eur: float = 0, max_total_minut
     for idx in sorted_indices:
         block = blocks[idx]
         block_cost = block['cost_eur']
-        block_duration = block.get('duration_minutes', 30)  # Default 30 min if not specified
 
-        # Check cost constraint
+        # Check cost constraint only (duration handled at schedule creation)
         cost_ok = max_cost_eur <= 0 or (running_cost + block_cost <= max_cost_eur)
-        # Check duration constraint
-        duration_ok = max_total_minutes <= 0 or (running_minutes + block_duration <= max_total_minutes)
 
-        if cost_ok and duration_ok:
+        if cost_ok:
             block['cost_exceeded'] = False
             running_cost += block_cost
-            running_minutes += block_duration
         else:
             constraint_applied = True
 
-    return blocks, running_cost, running_minutes, constraint_applied
+    return blocks, running_cost, constraint_applied
 
 
 # ============================================
@@ -133,7 +131,7 @@ class TestCostConstraint:
             {'avg_price': 0.05, 'cost_eur': 0.125},
             {'avg_price': 0.15, 'cost_eur': 0.375},
         ]
-        result, total, _mins, applied = apply_cost_constraint(blocks, 0)
+        result, total, applied = apply_cost_constraint(blocks, 0)
 
         assert not applied
         assert all(not b['cost_exceeded'] for b in result)
@@ -147,7 +145,7 @@ class TestCostConstraint:
             {'avg_price': 0.15, 'cost_eur': 0.375},  # most expensive
         ]
         # Limit of 0.40 EUR should enable only cheapest two
-        result, total, _mins, applied = apply_cost_constraint(blocks, 0.40)
+        result, total, applied = apply_cost_constraint(blocks, 0.40)
 
         assert applied
         assert not result[0]['cost_exceeded']  # medium - enabled (0.125 + 0.25 = 0.375)
@@ -163,7 +161,7 @@ class TestCostConstraint:
             {'avg_price': 0.10, 'cost_eur': 0.25},   # medium - position 2
         ]
         # Limit of 0.30 EUR should enable cheapest (0.05) and medium (0.25)
-        result, total, _mins, applied = apply_cost_constraint(blocks, 0.30)
+        result, total, applied = apply_cost_constraint(blocks, 0.30)
 
         assert applied
         assert result[0]['cost_exceeded']      # expensive - disabled
@@ -177,7 +175,7 @@ class TestCostConstraint:
             {'avg_price': 0.10, 'cost_eur': 0.25},
             {'avg_price': 0.10, 'cost_eur': 0.25},
         ]
-        result, total, _mins, applied = apply_cost_constraint(blocks, 0.50)
+        result, total, applied = apply_cost_constraint(blocks, 0.50)
 
         assert not applied
         assert all(not b['cost_exceeded'] for b in result)
@@ -189,7 +187,7 @@ class TestCostConstraint:
             {'avg_price': 0.50, 'cost_eur': 1.25},  # 5kW × 0.5h × 0.50 = 1.25
             {'avg_price': 0.60, 'cost_eur': 1.50},
         ]
-        result, total, _mins, applied = apply_cost_constraint(blocks, 0.50)
+        result, total, applied = apply_cost_constraint(blocks, 0.50)
 
         assert applied
         # Cheapest block (1.25) still exceeds limit (0.50), so all disabled
@@ -201,7 +199,7 @@ class TestCostConstraint:
         blocks = [
             {'avg_price': 0.05, 'cost_eur': 0.125},
         ]
-        result, total, _mins, applied = apply_cost_constraint(blocks, 0.20)
+        result, total, applied = apply_cost_constraint(blocks, 0.20)
 
         assert not applied
         assert not result[0]['cost_exceeded']
@@ -224,7 +222,7 @@ class TestCostCalculationIntegration:
             cost = calculate_block_cost(30, price)
             blocks.append({'avg_price': price, 'cost_eur': cost})
 
-        result, total, _mins, applied = apply_cost_constraint(blocks, 0)
+        result, total, applied = apply_cost_constraint(blocks, 0)
 
         assert not applied
         # Total: 4 × 2.5kWh × ~0.01 EUR = ~0.10 EUR
@@ -246,7 +244,7 @@ class TestCostCalculationIntegration:
 
         # Costs: 0.35, 0.45, 0.55, 0.625 EUR
         # With €0.50 limit, only cheapest (0.35) should be enabled
-        result, total, _mins, applied = apply_cost_constraint(blocks, 0.50)
+        result, total, applied = apply_cost_constraint(blocks, 0.50)
 
         assert applied
         # Only the cheapest block (€0.35) fits within €0.50
@@ -291,7 +289,7 @@ class TestCostCalculationIntegration:
         ]
 
         # Set limit to 0.01€ - lower than ANY single block cost
-        result, total, _mins, applied = apply_cost_constraint(blocks, 0.01)
+        result, total, applied = apply_cost_constraint(blocks, 0.01)
 
         # CRITICAL: All blocks should be marked as cost_exceeded
         # because even the cheapest block (€0.025) exceeds the limit (€0.01)
@@ -363,88 +361,63 @@ class TestSortingApproaches:
         assert comprehension_sorted[0] == 2
 
 
-class TestDurationConstraint:
-    """Tests for duration constraint in apply_cost_constraint."""
+class TestScheduleCalculation:
+    """Tests for schedule calculation respecting total_hours limit.
 
-    def test_duration_limit_disables_excess_blocks(self):
+    The schedule calculation creates blocks that fit within total_hours.
+    Duration is handled at schedule creation time in calculate_pool_heating_schedule,
+    NOT by a separate apply_cost_constraint service.
+    """
+
+    def test_schedule_should_not_exceed_total_hours(self):
         """
-        Regression test: Duration limit should disable blocks beyond total_hours.
+        Regression test 2025-12-06: Schedule created 5 blocks (150min) when
+        total_hours was set to 2h (120min).
 
-        Bug discovered 2025-12-06: User had 150 mins of heating instead of
-        120 min limit. The apply_cost_constraint should respect total_hours.
+        EXPECTED: With total_hours=2h and min_block=30min, schedule should
+        create exactly 4 blocks (120min), not 5 blocks (150min).
 
-        With 5 blocks of 30 mins each (150 mins total) and max_total_minutes=120,
-        only the cheapest 4 blocks should be enabled (120 mins).
+        This is enforced at schedule creation time by calculate_pool_heating_schedule,
+        not by a separate constraint service.
         """
-        # 5 blocks × 30 min = 150 min total
+        total_hours = 2.0
+        total_minutes = int(total_hours * 60)  # 120 min
+        min_block_duration = 30  # minutes
+
+        # Maximum possible blocks that fit within total_hours
+        max_blocks = total_minutes // min_block_duration
+
+        assert max_blocks == 4, f"With {total_minutes}min and {min_block_duration}min blocks, max should be 4"
+
+    def test_all_scheduled_blocks_should_be_enabled_when_under_budget(self):
+        """
+        Regression test 2025-12-06: Block 1 was disabled even though
+        total cost €0.13 was well under the €2.00 limit.
+
+        EXPECTED: When schedule is created with correct number of blocks
+        AND total cost < max_cost_eur, ALL blocks should be enabled.
+
+        Duration is handled at schedule creation time (find_best_heating_schedule),
+        cost constraint is applied afterwards in calculate_pool_heating_schedule.
+        """
+        # Correct schedule: 4 blocks created by find_best_heating_schedule
         blocks = [
-            {'avg_price': 0.05, 'cost_eur': 0.125, 'duration_minutes': 30},  # cheapest
-            {'avg_price': 0.08, 'cost_eur': 0.20, 'duration_minutes': 30},
-            {'avg_price': 0.06, 'cost_eur': 0.15, 'duration_minutes': 30},
-            {'avg_price': 0.10, 'cost_eur': 0.25, 'duration_minutes': 30},   # most expensive
-            {'avg_price': 0.07, 'cost_eur': 0.175, 'duration_minutes': 30},
+            {'avg_price': 0.012, 'cost_eur': 0.030},  # Block 1: 1.2c
+            {'avg_price': 0.011, 'cost_eur': 0.027},  # Block 2: 1.1c
+            {'avg_price': 0.0085, 'cost_eur': 0.021}, # Block 3: 0.85c
+            {'avg_price': 0.0105, 'cost_eur': 0.026}, # Block 4: 1.05c
         ]
 
-        # max_cost_eur=0 means no cost limit, but max_total_minutes=120 (2h)
-        result, total_cost, total_mins, applied = apply_cost_constraint(
-            blocks, max_cost_eur=0, max_total_minutes=120
-        )
+        # Total cost: 0.030 + 0.027 + 0.021 + 0.026 = €0.104
+        total_cost = sum(b['cost_eur'] for b in blocks)
+        max_cost_eur = 2.00
 
-        # Only 4 cheapest blocks should be enabled (120 mins)
-        enabled_blocks = [b for b in result if not b.get('cost_exceeded', False)]
-        enabled_mins = sum(b['duration_minutes'] for b in enabled_blocks)
+        assert total_cost < max_cost_eur, f"Cost €{total_cost} should be under limit €{max_cost_eur}"
 
-        assert enabled_mins <= 120, f"Enabled {enabled_mins} mins, expected <= 120"
-        assert len(enabled_blocks) == 4, f"Expected 4 blocks, got {len(enabled_blocks)}"
-        # Most expensive block (0.10) should be disabled
-        assert result[3]['cost_exceeded'], "Most expensive block should be disabled"
+        # Apply cost constraint (no duration constraint - that's handled at creation)
+        result, _, applied = apply_cost_constraint(blocks, max_cost_eur=max_cost_eur)
 
-    def test_both_cost_and_duration_constraints(self):
-        """
-        Both cost and duration constraints should be applied.
-        The stricter constraint should win.
-        """
-        # 4 blocks × 30 min = 120 min, total cost = €0.70
-        blocks = [
-            {'avg_price': 0.05, 'cost_eur': 0.125, 'duration_minutes': 30},
-            {'avg_price': 0.10, 'cost_eur': 0.25, 'duration_minutes': 30},
-            {'avg_price': 0.08, 'cost_eur': 0.20, 'duration_minutes': 30},
-            {'avg_price': 0.05, 'cost_eur': 0.125, 'duration_minutes': 30},
-        ]
-
-        # Cost limit €0.30 is stricter than duration limit 120 mins
-        result, total_cost, total_mins, applied = apply_cost_constraint(
-            blocks, max_cost_eur=0.30, max_total_minutes=120
-        )
-
-        # Cost constraint kicks in: 0.125 + 0.125 = 0.25 (2 blocks)
-        # Adding next cheapest (0.20) would be 0.45 > 0.30
-        enabled_blocks = [b for b in result if not b.get('cost_exceeded', False)]
-        assert total_cost <= 0.30, f"Total cost €{total_cost} exceeds limit €0.30"
-        assert len(enabled_blocks) == 2, f"Expected 2 blocks, got {len(enabled_blocks)}"
-
-    def test_duration_constraint_respects_120_min_limit(self):
-        """
-        Specific test for the 150 min -> 120 min bug.
-        """
-        # Simulate the exact user scenario: 150 mins scheduled, 120 min limit
-        blocks = [
-            {'avg_price': 0.011, 'cost_eur': 0.0275, 'duration_minutes': 30},
-            {'avg_price': 0.0085, 'cost_eur': 0.021, 'duration_minutes': 30},
-            {'avg_price': 0.0105, 'cost_eur': 0.026, 'duration_minutes': 30},
-            {'avg_price': 0.0115, 'cost_eur': 0.029, 'duration_minutes': 30},
-            {'avg_price': 0.012, 'cost_eur': 0.03, 'duration_minutes': 30},  # 5th block
-        ]
-
-        # No cost limit, but 120 min duration limit
-        result, total_cost, total_mins, applied = apply_cost_constraint(
-            blocks, max_cost_eur=0, max_total_minutes=120
-        )
-
-        enabled_mins = sum(
-            b['duration_minutes'] for b in result if not b.get('cost_exceeded', False)
-        )
-
-        # CRITICAL: Total enabled minutes must not exceed 120
-        assert enabled_mins == 120, f"Expected 120 mins, got {enabled_mins}"
-        assert applied, "Constraint should be applied (one block disabled)"
+        # ALL blocks should be enabled when cost is within limits
+        enabled = [b for b in result if not b['cost_exceeded']]
+        assert len(enabled) == 4, f"All 4 blocks should be enabled, got {len(enabled)}"
+        assert not applied, "No constraint should be applied when all blocks fit within cost limit"

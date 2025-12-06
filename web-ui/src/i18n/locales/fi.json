@@ -81,6 +81,7 @@
       "saveRecalc": "Tallenna ja laske uudelleen",
       "saving": "Tallennetaan...",
       "success": "Aikataulu päivitetty",
+      "successPending": "Asetukset tallennettu (aikataulu päivittyy kun hinnat saatavilla)",
       "minMaxError": "Min ei voi olla suurempi kuin max",
       "maxCost": "Enimmäiskust.",
       "noLimit": "Ei rajaa",

@@ -307,7 +307,7 @@ export interface UseHomeAssistantReturn {
   setHeatingCurveSetting: (setting: HeatingCurveSetting, value: number) => Promise<void>;
   // Schedule parameter controls
   setScheduleParameters: (params: Partial<ScheduleParameters>) => Promise<void>;
-  recalculateSchedule: () => Promise<void>;
+  recalculateSchedule: () => Promise<boolean>;
   isInHeatingWindow: () => boolean;
 }
 
@@ -695,20 +695,16 @@ export function useHomeAssistant(): UseHomeAssistantReturn {
     await Promise.all(calls);
   }, []);
 
-  const recalculateSchedule = useCallback(async () => {
+  const recalculateSchedule = useCallback(async (): Promise<boolean> => {
     // Try to calculate a new schedule (may fail if tomorrow's prices not available)
+    // Duration is handled at schedule creation time, cost constraint is applied internally.
+    // If calculation fails (no prices), parameters are saved for next calculation.
     try {
       await ws.current.callService('pyscript', 'calculate_pool_heating_schedule', {});
+      return true; // Schedule recalculated successfully
     } catch (e) {
-      console.warn('calculate_pool_heating_schedule failed, applying cost constraint only:', e);
-    }
-
-    // Always apply cost constraint to existing blocks
-    // This ensures cost limit is applied even when full recalculation fails
-    try {
-      await ws.current.callService('pyscript', 'apply_cost_constraint', {});
-    } catch (e) {
-      console.warn('apply_cost_constraint failed:', e);
+      console.warn('calculate_pool_heating_schedule failed (prices not available?):', e);
+      return false; // Parameters saved, will apply at next calculation
     }
   }, []);
 

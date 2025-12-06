@@ -81,6 +81,7 @@
       "saveRecalc": "Save & Recalculate",
       "saving": "Saving...",
       "success": "Schedule updated",
+      "successPending": "Settings saved (schedule will update when prices available)",
       "minMaxError": "Min must be less than or equal to max",
       "maxCost": "Max Cost",
       "noLimit": "No limit",
