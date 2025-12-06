@@ -831,18 +831,18 @@ sensor:
 
 utility_meter:
   # Daily electricity consumption for pool heating
-  # Resets at 07:00 to align with heating window end (21:00-07:00)
+  # Resets at 20:30, just before heating window starts (21:00-07:00)
   pool_heating_electricity_daily:
     source: sensor.pool_heating_electricity
     name: "Pool Heating Electricity Daily"
-    cron: "0 7 * * *"
+    cron: "30 20 * * *"
 
   # Daily cost for pool heating
-  # Resets at 07:00 to align with heating window end
+  # Resets at 20:30, just before heating window starts
   pool_heating_cost_daily:
     source: sensor.pool_heating_cumulative_cost
     name: "Pool Heating Cost Daily"
-    cron: "0 7 * * *"
+    cron: "30 20 * * *"
 
   # Monthly electricity consumption
   pool_heating_electricity_monthly:
