@@ -2,9 +2,11 @@
 # Copy this file to /config/packages/pool_heating.yaml
 #
 # Updated for 15-minute Nordpool intervals with flexible heating blocks:
-# - 30-45 minute heating blocks
+# - 30-60 minute heating blocks (configurable)
 # - Equal duration breaks between blocks
-# - Total 2 hours (120 minutes) of heating per night
+# - Up to 5 hours (300 minutes) of heating per night
+# - Supports up to 10 blocks for maximum flexibility
+# - Cost constraint: set max EUR per night, cheapest blocks are enabled first
 #
 # Pool Heating Control:
 # - switch.altaan_lammityksen_esto: Heating prevention switch (OFF = allow heating)
@@ -42,6 +44,61 @@ input_boolean:
   pool_heat_block_4_enabled:
     name: "Block 4 Enabled"
     icon: mdi:checkbox-marked
+  pool_heat_block_5_enabled:
+    name: "Block 5 Enabled"
+    icon: mdi:checkbox-marked
+  pool_heat_block_6_enabled:
+    name: "Block 6 Enabled"
+    icon: mdi:checkbox-marked
+  pool_heat_block_7_enabled:
+    name: "Block 7 Enabled"
+    icon: mdi:checkbox-marked
+  pool_heat_block_8_enabled:
+    name: "Block 8 Enabled"
+    icon: mdi:checkbox-marked
+  pool_heat_block_9_enabled:
+    name: "Block 9 Enabled"
+    icon: mdi:checkbox-marked
+  pool_heat_block_10_enabled:
+    name: "Block 10 Enabled"
+    icon: mdi:checkbox-marked
+
+  # Cost-exceeded flags (set by schedule calculation when block exceeds cost limit)
+  pool_heat_block_1_cost_exceeded:
+    name: "Block 1 Cost Exceeded"
+    icon: mdi:currency-eur-off
+  pool_heat_block_2_cost_exceeded:
+    name: "Block 2 Cost Exceeded"
+    icon: mdi:currency-eur-off
+  pool_heat_block_3_cost_exceeded:
+    name: "Block 3 Cost Exceeded"
+    icon: mdi:currency-eur-off
+  pool_heat_block_4_cost_exceeded:
+    name: "Block 4 Cost Exceeded"
+    icon: mdi:currency-eur-off
+  pool_heat_block_5_cost_exceeded:
+    name: "Block 5 Cost Exceeded"
+    icon: mdi:currency-eur-off
+  pool_heat_block_6_cost_exceeded:
+    name: "Block 6 Cost Exceeded"
+    icon: mdi:currency-eur-off
+  pool_heat_block_7_cost_exceeded:
+    name: "Block 7 Cost Exceeded"
+    icon: mdi:currency-eur-off
+  pool_heat_block_8_cost_exceeded:
+    name: "Block 8 Cost Exceeded"
+    icon: mdi:currency-eur-off
+  pool_heat_block_9_cost_exceeded:
+    name: "Block 9 Cost Exceeded"
+    icon: mdi:currency-eur-off
+  pool_heat_block_10_cost_exceeded:
+    name: "Block 10 Cost Exceeded"
+    icon: mdi:currency-eur-off
+
+  # Cost limit applied flag (set when cost limit caused blocks to be disabled)
+  pool_heating_cost_limit_applied:
+    name: "Cost Limit Applied"
+    icon: mdi:alert-circle-outline
 
 input_datetime:
   # Block 1 - Start and End times
@@ -92,6 +149,85 @@ input_datetime:
     has_time: true
     icon: mdi:clock-end
 
+  # Block 5 - Start and End times
+  pool_heat_block_5_start:
+    name: "Block 5 Start"
+    has_date: true
+    has_time: true
+    icon: mdi:clock-start
+  pool_heat_block_5_end:
+    name: "Block 5 End"
+    has_date: true
+    has_time: true
+    icon: mdi:clock-end
+
+  # Block 6 - Start and End times
+  pool_heat_block_6_start:
+    name: "Block 6 Start"
+    has_date: true
+    has_time: true
+    icon: mdi:clock-start
+  pool_heat_block_6_end:
+    name: "Block 6 End"
+    has_date: true
+    has_time: true
+    icon: mdi:clock-end
+
+  # Block 7 - Start and End times
+  pool_heat_block_7_start:
+    name: "Block 7 Start"
+    has_date: true
+    has_time: true
+    icon: mdi:clock-start
+  pool_heat_block_7_end:
+    name: "Block 7 End"
+    has_date: true
+    has_time: true
+    icon: mdi:clock-end
+
+  # Block 8 - Start and End times
+  pool_heat_block_8_start:
+    name: "Block 8 Start"
+    has_date: true
+    has_time: true
+    icon: mdi:clock-start
+  pool_heat_block_8_end:
+    name: "Block 8 End"
+    has_date: true
+    has_time: true
+    icon: mdi:clock-end
+
+  # Block 9 - Start and End times
+  pool_heat_block_9_start:
+    name: "Block 9 Start"
+    has_date: true
+    has_time: true
+    icon: mdi:clock-start
+  pool_heat_block_9_end:
+    name: "Block 9 End"
+    has_date: true
+    has_time: true
+    icon: mdi:clock-end
+
+  # Block 10 - Start and End times
+  pool_heat_block_10_start:
+    name: "Block 10 Start"
+    has_date: true
+    has_time: true
+    icon: mdi:clock-start
+  pool_heat_block_10_end:
+    name: "Block 10 End"
+    has_date: true
+    has_time: true
+    icon: mdi:clock-end
+
+  # Thermal calibration timestamps
+  pool_last_calibration_time:
+    name: "Last Thermal Calibration"
+    has_date: true
+    has_time: true
+    icon: mdi:thermometer-check
+
 input_number:
   pool_heat_block_1_price:
     name: "Block 1 Price"
@@ -121,6 +257,121 @@ input_number:
     step: 0.01
     unit_of_measurement: "c/kWh"
     icon: mdi:currency-eur
+  pool_heat_block_5_price:
+    name: "Block 5 Price"
+    min: -50
+    max: 500
+    step: 0.01
+    unit_of_measurement: "c/kWh"
+    icon: mdi:currency-eur
+  pool_heat_block_6_price:
+    name: "Block 6 Price"
+    min: -50
+    max: 500
+    step: 0.01
+    unit_of_measurement: "c/kWh"
+    icon: mdi:currency-eur
+  pool_heat_block_7_price:
+    name: "Block 7 Price"
+    min: -50
+    max: 500
+    step: 0.01
+    unit_of_measurement: "c/kWh"
+    icon: mdi:currency-eur
+  pool_heat_block_8_price:
+    name: "Block 8 Price"
+    min: -50
+    max: 500
+    step: 0.01
+    unit_of_measurement: "c/kWh"
+    icon: mdi:currency-eur
+  pool_heat_block_9_price:
+    name: "Block 9 Price"
+    min: -50
+    max: 500
+    step: 0.01
+    unit_of_measurement: "c/kWh"
+    icon: mdi:currency-eur
+  pool_heat_block_10_price:
+    name: "Block 10 Price"
+    min: -50
+    max: 500
+    step: 0.01
+    unit_of_measurement: "c/kWh"
+    icon: mdi:currency-eur
+
+  # Cost per block (EUR) - calculated based on duration and price
+  pool_heat_block_1_cost:
+    name: "Block 1 Cost"
+    min: 0
+    max: 10
+    step: 0.001
+    unit_of_measurement: "€"
+    icon: mdi:currency-eur
+  pool_heat_block_2_cost:
+    name: "Block 2 Cost"
+    min: 0
+    max: 10
+    step: 0.001
+    unit_of_measurement: "€"
+    icon: mdi:currency-eur
+  pool_heat_block_3_cost:
+    name: "Block 3 Cost"
+    min: 0
+    max: 10
+    step: 0.001
+    unit_of_measurement: "€"
+    icon: mdi:currency-eur
+  pool_heat_block_4_cost:
+    name: "Block 4 Cost"
+    min: 0
+    max: 10
+    step: 0.001
+    unit_of_measurement: "€"
+    icon: mdi:currency-eur
+  pool_heat_block_5_cost:
+    name: "Block 5 Cost"
+    min: 0
+    max: 10
+    step: 0.001
+    unit_of_measurement: "€"
+    icon: mdi:currency-eur
+  pool_heat_block_6_cost:
+    name: "Block 6 Cost"
+    min: 0
+    max: 10
+    step: 0.001
+    unit_of_measurement: "€"
+    icon: mdi:currency-eur
+  pool_heat_block_7_cost:
+    name: "Block 7 Cost"
+    min: 0
+    max: 10
+    step: 0.001
+    unit_of_measurement: "€"
+    icon: mdi:currency-eur
+  pool_heat_block_8_cost:
+    name: "Block 8 Cost"
+    min: 0
+    max: 10
+    step: 0.001
+    unit_of_measurement: "€"
+    icon: mdi:currency-eur
+  pool_heat_block_9_cost:
+    name: "Block 9 Cost"
+    min: 0
+    max: 10
+    step: 0.001
+    unit_of_measurement: "€"
+    icon: mdi:currency-eur
+  pool_heat_block_10_cost:
+    name: "Block 10 Cost"
+    min: 0
+    max: 10
+    step: 0.001
+    unit_of_measurement: "€"
+    icon: mdi:currency-eur
+
   pool_target_temperature:
     name: "Pool Target Temperature"
     min: 20
@@ -128,6 +379,74 @@ input_number:
     step: 0.5
     unit_of_measurement: "°C"
     icon: mdi:thermometer
+
+  # Schedule calculation parameters
+  pool_heating_min_block_duration:
+    name: "Min Block Duration"
+    min: 30
+    max: 60
+    step: 15
+    unit_of_measurement: "min"
+    icon: mdi:timer-outline
+
+  pool_heating_max_block_duration:
+    name: "Max Block Duration"
+    min: 30
+    max: 60
+    step: 15
+    unit_of_measurement: "min"
+    icon: mdi:timer
+
+  pool_heating_total_hours:
+    name: "Total Heating Hours"
+    min: 0
+    max: 5
+    step: 0.5
+    unit_of_measurement: "h"
+    icon: mdi:clock-outline
+
+  # Cost constraint: max EUR per night (0 = no limit)
+  pool_heating_max_cost_eur:
+    name: "Max Cost per Night"
+    min: 0
+    max: 10
+    step: 0.01
+    unit_of_measurement: "€"
+    icon: mdi:cash-lock
+
+  # Total scheduled cost (sum of enabled blocks)
+  pool_heating_total_cost:
+    name: "Total Scheduled Cost"
+    min: 0
+    max: 50
+    step: 0.001
+    unit_of_measurement: "€"
+    icon: mdi:cash-check
+
+  # Thermal calibration - true pool temperatures from circulation readings
+  pool_true_temp_pre_heating:
+    name: "True Pool Temp (Pre-Heating)"
+    min: 10
+    max: 40
+    step: 0.1
+    unit_of_measurement: "°C"
+    icon: mdi:thermometer
+
+  pool_true_temp_post_heating:
+    name: "True Pool Temp (Post-Heating)"
+    min: 10
+    max: 40
+    step: 0.1
+    unit_of_measurement: "°C"
+    icon: mdi:thermometer-high
+
+  pool_true_temp_daytime:
+    name: "True Pool Temp (Daytime)"
+    min: 10
+    max: 40
+    step: 0.1
+    unit_of_measurement: "°C"
+    icon: mdi:thermometer-lines
 
 input_text:
   pool_heating_schedule_info:
@@ -138,6 +457,10 @@ input_text:
     name: "Schedule JSON"
     max: 255
     icon: mdi:code-json
+  pool_heating_night_summary_data:
+    name: "Pool Heating Night Summary Data"
+    max: 255
+    icon: mdi:chart-line
 
 # ============================================
 # THERMIA SENSOR MAPPING
@@ -254,12 +577,8 @@ template:
         state: >
           {% set now_ts = now() %}
           {% set ns = namespace(future_blocks=[]) %}
-          {% for block in [
-            states('input_datetime.pool_heat_block_1_start'),
-            states('input_datetime.pool_heat_block_2_start'),
-            states('input_datetime.pool_heat_block_3_start'),
-            states('input_datetime.pool_heat_block_4_start')
-          ] %}
+          {% for i in range(1, 11) %}
+            {% set block = states('input_datetime.pool_heat_block_' ~ i ~ '_start') %}
             {% if block not in ['unknown', 'unavailable', ''] %}
               {% set block_dt = strptime(block, '%Y-%m-%d %H:%M:%S') | as_local %}
               {% if block_dt > now_ts %}
@@ -280,41 +599,59 @@ template:
         state: >
           {{ states('sensor.nordpool_kwh_fi_eur_3_10_0255') | float(0) * 100 }}
 
-      # Average price for scheduled heating blocks
+      # Average price for scheduled heating blocks (only enabled blocks)
       - name: "Pool Heating Average Price"
         unique_id: pool_heating_avg_price
         unit_of_measurement: "c/kWh"
         state: >
-          {% set prices = [
-            states('input_number.pool_heat_block_1_price') | float(0),
-            states('input_number.pool_heat_block_2_price') | float(0),
-            states('input_number.pool_heat_block_3_price') | float(0),
-            states('input_number.pool_heat_block_4_price') | float(0)
-          ] %}
-          {% set valid_prices = prices | select('gt', 0) | list %}
-          {% if valid_prices | length > 0 %}
-            {{ (valid_prices | sum / valid_prices | length) | round(2) }}
+          {% set ns = namespace(prices=[]) %}
+          {% for i in range(1, 11) %}
+            {% if is_state('input_boolean.pool_heat_block_' ~ i ~ '_enabled', 'on') %}
+              {% set price = states('input_number.pool_heat_block_' ~ i ~ '_price') | float(0) %}
+              {% if price > 0 %}
+                {% set ns.prices = ns.prices + [price] %}
+              {% endif %}
+            {% endif %}
+          {% endfor %}
+          {% if ns.prices | length > 0 %}
+            {{ (ns.prices | sum / ns.prices | length) | round(2) }}
           {% else %}
             0
           {% endif %}
 
-      # Number of scheduled heating blocks
+      # Number of scheduled heating blocks (recent and valid)
       - name: "Pool Heating Block Count"
         unique_id: pool_heating_block_count
         state: >
           {% set now_ts = now() %}
           {% set cutoff = now_ts - timedelta(hours=12) %}
           {% set ns = namespace(count=0) %}
-          {% for block in [
-            states('input_datetime.pool_heat_block_1_start'),
-            states('input_datetime.pool_heat_block_2_start'),
-            states('input_datetime.pool_heat_block_3_start'),
-            states('input_datetime.pool_heat_block_4_start')
-          ] %}
+          {% for i in range(1, 11) %}
+            {% set block = states('input_datetime.pool_heat_block_' ~ i ~ '_start') %}
             {% if block not in ['unknown', 'unavailable', ''] %}
               {% set block_dt = strptime(block, '%Y-%m-%d %H:%M:%S') | as_local %}
               {% if block_dt > cutoff %}
                 {% set ns.count = ns.count + 1 %}
+              {% endif %}
+            {% endif %}
+          {% endfor %}
+          {{ ns.count }}
+
+      # Count of enabled blocks (blocks that will actually run)
+      - name: "Pool Heating Enabled Block Count"
+        unique_id: pool_heating_enabled_block_count
+        state: >
+          {% set now_ts = now() %}
+          {% set cutoff = now_ts - timedelta(hours=12) %}
+          {% set ns = namespace(count=0) %}
+          {% for i in range(1, 11) %}
+            {% if is_state('input_boolean.pool_heat_block_' ~ i ~ '_enabled', 'on') %}
+              {% set block = states('input_datetime.pool_heat_block_' ~ i ~ '_start') %}
+              {% if block not in ['unknown', 'unavailable', ''] %}
+                {% set block_dt = strptime(block, '%Y-%m-%d %H:%M:%S') | as_local %}
+                {% if block_dt > cutoff %}
+                  {% set ns.count = ns.count + 1 %}
+                {% endif %}
               {% endif %}
             {% endif %}
           {% endfor %}
@@ -370,6 +707,50 @@ template:
               {{ (now() - timedelta(days=1)).strftime('%Y-%m-%d') }}
             {% endif %}
 
+  # Night summary sensor - parses JSON stored in input_text for persistence
+  - sensor:
+      - name: "Pool Heating Night Summary"
+        unique_id: pool_heating_night_summary
+        unit_of_measurement: "kWh"
+        device_class: energy
+        state_class: measurement
+        icon: mdi:chart-line
+        state: >
+          {% set data = states('input_text.pool_heating_night_summary_data') %}
+          {% if data and data not in ['unknown', 'unavailable', ''] %}
+            {{ (data | from_json).energy | default(0) }}
+          {% else %}
+            0
+          {% endif %}
+        attributes:
+          heating_date: >
+            {% set data = states('input_text.pool_heating_night_summary_data') %}
+            {{ (data | from_json).date | default('') if data and data not in ['unknown', 'unavailable', ''] else '' }}
+          total_cost: >
+            {% set data = states('input_text.pool_heating_night_summary_data') %}
+            {{ (data | from_json).cost | default(0) if data and data not in ['unknown', 'unavailable', ''] else 0 }}
+          baseline_cost: >
+            {% set data = states('input_text.pool_heating_night_summary_data') %}
+            {{ (data | from_json).baseline | default(0) if data and data not in ['unknown', 'unavailable', ''] else 0 }}
+          savings: >
+            {% set data = states('input_text.pool_heating_night_summary_data') %}
+            {{ (data | from_json).savings | default(0) if data and data not in ['unknown', 'unavailable', ''] else 0 }}
+          duration_minutes: >
+            {% set data = states('input_text.pool_heating_night_summary_data') %}
+            {{ (data | from_json).duration | default(0) if data and data not in ['unknown', 'unavailable', ''] else 0 }}
+          blocks_count: >
+            {% set data = states('input_text.pool_heating_night_summary_data') %}
+            {{ (data | from_json).blocks | default(0) if data and data not in ['unknown', 'unavailable', ''] else 0 }}
+          outdoor_temp_avg: >
+            {% set data = states('input_text.pool_heating_night_summary_data') %}
+            {{ (data | from_json).outdoor_avg | default(0) if data and data not in ['unknown', 'unavailable', ''] else 0 }}
+          pool_temp_final: >
+            {% set data = states('input_text.pool_heating_night_summary_data') %}
+            {{ (data | from_json).pool_final | default(0) if data and data not in ['unknown', 'unavailable', ''] else 0 }}
+          avg_price_cents: >
+            {% set data = states('input_text.pool_heating_night_summary_data') %}
+            {{ ((data | from_json).avg_price | default(0) * 100) | round(2) if data and data not in ['unknown', 'unavailable', ''] else 0 }}
+
   - binary_sensor:
       # Is currently within a scheduled heating block
       - name: "Pool In Heating Window"
@@ -377,7 +758,7 @@ template:
         state: >
           {% set now_ts = now() %}
           {% set ns = namespace(in_block=false) %}
-          {% for i in range(1, 5) %}
+          {% for i in range(1, 11) %}
             {% set start = states('input_datetime.pool_heat_block_' ~ i ~ '_start') %}
             {% set end = states('input_datetime.pool_heat_block_' ~ i ~ '_end') %}
             {% if start not in ['unknown', 'unavailable', ''] and end not in ['unknown', 'unavailable', ''] %}
@@ -389,6 +770,13 @@ template:
             {% endif %}
           {% endfor %}
           {{ ns.in_block }}
+
+      # Is cost limit currently applied (some blocks disabled due to cost)
+      - name: "Pool Heating Cost Limit Active"
+        unique_id: pool_heating_cost_limit_active
+        device_class: problem
+        state: >
+          {{ is_state('input_boolean.pool_heating_cost_limit_applied', 'on') }}
 
 # ============================================
 # AUTOMATIONS
@@ -651,6 +1039,246 @@ automation:
     action:
       - service: script.pool_heating_block_stop
 
+  # Block 5 Start/Stop
+  - id: pool_start_heating_block_5
+    alias: "Pool: Start Heating Block 5"
+    trigger:
+      - platform: time
+        at: input_datetime.pool_heat_block_5_start
+    condition:
+      - condition: state
+        entity_id: input_boolean.pool_heating_enabled
+        state: "on"
+      - condition: state
+        entity_id: input_boolean.pool_heat_block_5_enabled
+        state: "on"
+      - condition: state
+        entity_id: input_boolean.pool_heating_night_complete
+        state: "off"
+      - condition: template
+        value_template: >
+          {% set block_start = as_datetime(states('input_datetime.pool_heat_block_5_start')) %}
+          {% set block_end = as_datetime(states('input_datetime.pool_heat_block_5_end')) %}
+          {{ block_start.date() >= (now() - timedelta(days=1)).date() and block_end > block_start }}
+    action:
+      - service: script.pool_heating_block_start
+        data:
+          block_number: 5
+
+  - id: pool_stop_heating_block_5
+    alias: "Pool: Stop Heating Block 5"
+    trigger:
+      - platform: time
+        at: input_datetime.pool_heat_block_5_end
+    condition:
+      - condition: template
+        value_template: >
+          {% set start = as_datetime(states('input_datetime.pool_heat_block_5_start')) %}
+          {% set end = as_datetime(states('input_datetime.pool_heat_block_5_end')) %}
+          {{ end > start and end.date() >= (now() - timedelta(days=1)).date() }}
+    action:
+      - service: script.pool_heating_block_stop
+
+  # Block 6 Start/Stop
+  - id: pool_start_heating_block_6
+    alias: "Pool: Start Heating Block 6"
+    trigger:
+      - platform: time
+        at: input_datetime.pool_heat_block_6_start
+    condition:
+      - condition: state
+        entity_id: input_boolean.pool_heating_enabled
+        state: "on"
+      - condition: state
+        entity_id: input_boolean.pool_heat_block_6_enabled
+        state: "on"
+      - condition: state
+        entity_id: input_boolean.pool_heating_night_complete
+        state: "off"
+      - condition: template
+        value_template: >
+          {% set block_start = as_datetime(states('input_datetime.pool_heat_block_6_start')) %}
+          {% set block_end = as_datetime(states('input_datetime.pool_heat_block_6_end')) %}
+          {{ block_start.date() >= (now() - timedelta(days=1)).date() and block_end > block_start }}
+    action:
+      - service: script.pool_heating_block_start
+        data:
+          block_number: 6
+
+  - id: pool_stop_heating_block_6
+    alias: "Pool: Stop Heating Block 6"
+    trigger:
+      - platform: time
+        at: input_datetime.pool_heat_block_6_end
+    condition:
+      - condition: template
+        value_template: >
+          {% set start = as_datetime(states('input_datetime.pool_heat_block_6_start')) %}
+          {% set end = as_datetime(states('input_datetime.pool_heat_block_6_end')) %}
+          {{ end > start and end.date() >= (now() - timedelta(days=1)).date() }}
+    action:
+      - service: script.pool_heating_block_stop
+
+  # Block 7 Start/Stop
+  - id: pool_start_heating_block_7
+    alias: "Pool: Start Heating Block 7"
+    trigger:
+      - platform: time
+        at: input_datetime.pool_heat_block_7_start
+    condition:
+      - condition: state
+        entity_id: input_boolean.pool_heating_enabled
+        state: "on"
+      - condition: state
+        entity_id: input_boolean.pool_heat_block_7_enabled
+        state: "on"
+      - condition: state
+        entity_id: input_boolean.pool_heating_night_complete
+        state: "off"
+      - condition: template
+        value_template: >
+          {% set block_start = as_datetime(states('input_datetime.pool_heat_block_7_start')) %}
+          {% set block_end = as_datetime(states('input_datetime.pool_heat_block_7_end')) %}
+          {{ block_start.date() >= (now() - timedelta(days=1)).date() and block_end > block_start }}
+    action:
+      - service: script.pool_heating_block_start
+        data:
+          block_number: 7
+
+  - id: pool_stop_heating_block_7
+    alias: "Pool: Stop Heating Block 7"
+    trigger:
+      - platform: time
+        at: input_datetime.pool_heat_block_7_end
+    condition:
+      - condition: template
+        value_template: >
+          {% set start = as_datetime(states('input_datetime.pool_heat_block_7_start')) %}
+          {% set end = as_datetime(states('input_datetime.pool_heat_block_7_end')) %}
+          {{ end > start and end.date() >= (now() - timedelta(days=1)).date() }}
+    action:
+      - service: script.pool_heating_block_stop
+
+  # Block 8 Start/Stop
+  - id: pool_start_heating_block_8
+    alias: "Pool: Start Heating Block 8"
+    trigger:
+      - platform: time
+        at: input_datetime.pool_heat_block_8_start
+    condition:
+      - condition: state
+        entity_id: input_boolean.pool_heating_enabled
+        state: "on"
+      - condition: state
+        entity_id: input_boolean.pool_heat_block_8_enabled
+        state: "on"
+      - condition: state
+        entity_id: input_boolean.pool_heating_night_complete
+        state: "off"
+      - condition: template
+        value_template: >
+          {% set block_start = as_datetime(states('input_datetime.pool_heat_block_8_start')) %}
+          {% set block_end = as_datetime(states('input_datetime.pool_heat_block_8_end')) %}
+          {{ block_start.date() >= (now() - timedelta(days=1)).date() and block_end > block_start }}
+    action:
+      - service: script.pool_heating_block_start
+        data:
+          block_number: 8
+
+  - id: pool_stop_heating_block_8
+    alias: "Pool: Stop Heating Block 8"
+    trigger:
+      - platform: time
+        at: input_datetime.pool_heat_block_8_end
+    condition:
+      - condition: template
+        value_template: >
+          {% set start = as_datetime(states('input_datetime.pool_heat_block_8_start')) %}
+          {% set end = as_datetime(states('input_datetime.pool_heat_block_8_end')) %}
+          {{ end > start and end.date() >= (now() - timedelta(days=1)).date() }}
+    action:
+      - service: script.pool_heating_block_stop
+
+  # Block 9 Start/Stop
+  - id: pool_start_heating_block_9
+    alias: "Pool: Start Heating Block 9"
+    trigger:
+      - platform: time
+        at: input_datetime.pool_heat_block_9_start
+    condition:
+      - condition: state
+        entity_id: input_boolean.pool_heating_enabled
+        state: "on"
+      - condition: state
+        entity_id: input_boolean.pool_heat_block_9_enabled
+        state: "on"
+      - condition: state
+        entity_id: input_boolean.pool_heating_night_complete
+        state: "off"
+      - condition: template
+        value_template: >
+          {% set block_start = as_datetime(states('input_datetime.pool_heat_block_9_start')) %}
+          {% set block_end = as_datetime(states('input_datetime.pool_heat_block_9_end')) %}
+          {{ block_start.date() >= (now() - timedelta(days=1)).date() and block_end > block_start }}
+    action:
+      - service: script.pool_heating_block_start
+        data:
+          block_number: 9
+
+  - id: pool_stop_heating_block_9
+    alias: "Pool: Stop Heating Block 9"
+    trigger:
+      - platform: time
+        at: input_datetime.pool_heat_block_9_end
+    condition:
+      - condition: template
+        value_template: >
+          {% set start = as_datetime(states('input_datetime.pool_heat_block_9_start')) %}
+          {% set end = as_datetime(states('input_datetime.pool_heat_block_9_end')) %}
+          {{ end > start and end.date() >= (now() - timedelta(days=1)).date() }}
+    action:
+      - service: script.pool_heating_block_stop
+
+  # Block 10 Start/Stop
+  - id: pool_start_heating_block_10
+    alias: "Pool: Start Heating Block 10"
+    trigger:
+      - platform: time
+        at: input_datetime.pool_heat_block_10_start
+    condition:
+      - condition: state
+        entity_id: input_boolean.pool_heating_enabled
+        state: "on"
+      - condition: state
+        entity_id: input_boolean.pool_heat_block_10_enabled
+        state: "on"
+      - condition: state
+        entity_id: input_boolean.pool_heating_night_complete
+        state: "off"
+      - condition: template
+        value_template: >
+          {% set block_start = as_datetime(states('input_datetime.pool_heat_block_10_start')) %}
+          {% set block_end = as_datetime(states('input_datetime.pool_heat_block_10_end')) %}
+          {{ block_start.date() >= (now() - timedelta(days=1)).date() and block_end > block_start }}
+    action:
+      - service: script.pool_heating_block_start
+        data:
+          block_number: 10
+
+  - id: pool_stop_heating_block_10
+    alias: "Pool: Stop Heating Block 10"
+    trigger:
+      - platform: time
+        at: input_datetime.pool_heat_block_10_end
+    condition:
+      - condition: template
+        value_template: >
+          {% set start = as_datetime(states('input_datetime.pool_heat_block_10_start')) %}
+          {% set end = as_datetime(states('input_datetime.pool_heat_block_10_end')) %}
+          {{ end > start and end.date() >= (now() - timedelta(days=1)).date() }}
+    action:
+      - service: script.pool_heating_block_stop
+
   # Log temperature data during heating
   # Continues even if Thermia sensors are temporarily unavailable
   - id: pool_log_temperatures
@@ -677,6 +1305,155 @@ automation:
       - service: pyscript.calculate_night_summary
         continue_on_error: true
 
+  # ============================================
+  # THERMAL CALIBRATION AUTOMATIONS
+  # Run circulation to get true pool temperature readings
+  # ============================================
+
+  # Pre-heating calibration: 20:30-21:00
+  # Run circulation to measure true pool temp before heating starts
+  - id: pool_thermal_calibration_pre_heating
+    alias: "Pool: Pre-Heating Thermal Calibration"
+    description: "Run circulation 30 min before heating to get true pool temp"
+    trigger:
+      - platform: time
+        at: "20:30:00"
+    condition:
+      - condition: state
+        entity_id: input_boolean.pool_heating_enabled
+        state: "on"
+    action:
+      # Start circulation only (block heating)
+      - service: switch.turn_on
+        target:
+          entity_id: switch.altaan_lammityksen_esto
+      - service: switch.turn_on
+        target:
+          entity_id: switch.altaan_kiertovesipumppu
+      - service: logbook.log
+        data:
+          name: "Pool Thermal"
+          message: "Pre-heating calibration started - circulation only"
+      # Wait for sensor to stabilize (25 min)
+      - delay:
+          minutes: 25
+      # Record true temperature
+      - service: pyscript.record_true_pool_temp
+        data:
+          measurement_type: "pre_heating"
+        continue_on_error: true
+      # Continue circulation for 5 more min
+      - delay:
+          minutes: 5
+      # Stop circulation, allow heating for upcoming window
+      - service: switch.turn_off
+        target:
+          entity_id: switch.altaan_kiertovesipumppu
+      - service: switch.turn_off
+        target:
+          entity_id: switch.altaan_lammityksen_esto
+      - service: logbook.log
+        data:
+          name: "Pool Thermal"
+          message: "Pre-heating calibration complete"
+
+  # Post-heating calibration: 07:30-08:00
+  # Run circulation to measure true pool temp after heating ends
+  - id: pool_thermal_calibration_post_heating
+    alias: "Pool: Post-Heating Thermal Calibration"
+    description: "Run circulation 30 min after heating to get true pool temp"
+    trigger:
+      - platform: time
+        at: "07:30:00"
+    action:
+      # Start circulation only (block heating)
+      - service: switch.turn_on
+        target:
+          entity_id: switch.altaan_lammityksen_esto
+      - service: switch.turn_on
+        target:
+          entity_id: switch.altaan_kiertovesipumppu
+      - service: logbook.log
+        data:
+          name: "Pool Thermal"
+          message: "Post-heating calibration started - circulation only"
+      # Wait for sensor to stabilize (25 min)
+      - delay:
+          minutes: 25
+      # Record true temperature
+      - service: pyscript.record_true_pool_temp
+        data:
+          measurement_type: "post_heating"
+        continue_on_error: true
+      # Continue circulation for 5 more min
+      - delay:
+          minutes: 5
+      # Stop circulation
+      - service: switch.turn_off
+        target:
+          entity_id: switch.altaan_kiertovesipumppu
+      - service: switch.turn_off
+        target:
+          entity_id: switch.altaan_lammityksen_esto
+      - service: logbook.log
+        data:
+          name: "Pool Thermal"
+          message: "Post-heating calibration complete"
+
+  # Daytime calibration: 14:00-14:30
+  # Run circulation to track cooling curve
+  - id: pool_thermal_calibration_daytime
+    alias: "Pool: Daytime Thermal Calibration"
+    description: "Run circulation at midday to track cooling curve"
+    trigger:
+      - platform: time
+        at: "14:00:00"
+    action:
+      # Start circulation only (block heating)
+      - service: switch.turn_on
+        target:
+          entity_id: switch.altaan_lammityksen_esto
+      - service: switch.turn_on
+        target:
+          entity_id: switch.altaan_kiertovesipumppu
+      - service: logbook.log
+        data:
+          name: "Pool Thermal"
+          message: "Daytime calibration started - circulation only"
+      # Wait for sensor to stabilize (25 min)
+      - delay:
+          minutes: 25
+      # Record true temperature
+      - service: pyscript.record_true_pool_temp
+        data:
+          measurement_type: "daytime"
+        continue_on_error: true
+      # Continue circulation for 5 more min
+      - delay:
+          minutes: 5
+      # Stop circulation
+      - service: switch.turn_off
+        target:
+          entity_id: switch.altaan_kiertovesipumppu
+      - service: switch.turn_off
+        target:
+          entity_id: switch.altaan_lammityksen_esto
+      - service: logbook.log
+        data:
+          name: "Pool Thermal"
+          message: "Daytime calibration complete"
+
+  # Periodic update of estimated true temperature
+  - id: pool_update_estimated_temp
+    alias: "Pool Update Estimated Temperature"
+    description: "Update estimated true pool temp every 30 minutes"
+    trigger:
+      - platform: time_pattern
+        minutes: "/30"
+    action:
+      - service: pyscript.estimate_true_pool_temp
+        continue_on_error: true
+
 # ============================================
 # SCRIPTS
 # ============================================
@@ -687,7 +1464,7 @@ script:
     description: "Start a heating block - disables prevention, enables circulation"
     fields:
       block_number:
-        description: "Block number (1-4)"
+        description: "Block number (1-10)"
         example: 1
     sequence:
       # Log start - continue even if Thermia unavailable
@@ -892,12 +1669,29 @@ recorder:
       - switch.altaan_lammityksen_esto
       - switch.altaan_kiertovesipumppu
       - binary_sensor.pool_heating_active
-      # Block prices
+      # Block prices (1-10)
       - input_number.pool_heat_block_1_price
       - input_number.pool_heat_block_2_price
       - input_number.pool_heat_block_3_price
       - input_number.pool_heat_block_4_price
-      # Block schedules
+      - input_number.pool_heat_block_5_price
+      - input_number.pool_heat_block_6_price
+      - input_number.pool_heat_block_7_price
+      - input_number.pool_heat_block_8_price
+      - input_number.pool_heat_block_9_price
+      - input_number.pool_heat_block_10_price
+      # Block costs (1-10)
+      - input_number.pool_heat_block_1_cost
+      - input_number.pool_heat_block_2_cost
+      - input_number.pool_heat_block_3_cost
+      - input_number.pool_heat_block_4_cost
+      - input_number.pool_heat_block_5_cost
+      - input_number.pool_heat_block_6_cost
+      - input_number.pool_heat_block_7_cost
+      - input_number.pool_heat_block_8_cost
+      - input_number.pool_heat_block_9_cost
+      - input_number.pool_heat_block_10_cost
+      # Block schedules (1-10)
       - input_datetime.pool_heat_block_1_start
       - input_datetime.pool_heat_block_1_end
       - input_datetime.pool_heat_block_2_start
@@ -906,9 +1700,44 @@ recorder:
       - input_datetime.pool_heat_block_3_end
       - input_datetime.pool_heat_block_4_start
       - input_datetime.pool_heat_block_4_end
-      # Block enable/disable controls
+      - input_datetime.pool_heat_block_5_start
+      - input_datetime.pool_heat_block_5_end
+      - input_datetime.pool_heat_block_6_start
+      - input_datetime.pool_heat_block_6_end
+      - input_datetime.pool_heat_block_7_start
+      - input_datetime.pool_heat_block_7_end
+      - input_datetime.pool_heat_block_8_start
+      - input_datetime.pool_heat_block_8_end
+      - input_datetime.pool_heat_block_9_start
+      - input_datetime.pool_heat_block_9_end
+      - input_datetime.pool_heat_block_10_start
+      - input_datetime.pool_heat_block_10_end
+      # Block enable/disable controls (1-10)
       - input_boolean.pool_heating_night_complete
       - input_boolean.pool_heat_block_1_enabled
       - input_boolean.pool_heat_block_2_enabled
       - input_boolean.pool_heat_block_3_enabled
       - input_boolean.pool_heat_block_4_enabled
+      - input_boolean.pool_heat_block_5_enabled
+      - input_boolean.pool_heat_block_6_enabled
+      - input_boolean.pool_heat_block_7_enabled
+      - input_boolean.pool_heat_block_8_enabled
+      - input_boolean.pool_heat_block_9_enabled
+      - input_boolean.pool_heat_block_10_enabled
+      # Cost-exceeded flags (1-10)
+      - input_boolean.pool_heat_block_1_cost_exceeded
+      - input_boolean.pool_heat_block_2_cost_exceeded
+      - input_boolean.pool_heat_block_3_cost_exceeded
+      - input_boolean.pool_heat_block_4_cost_exceeded
+      - input_boolean.pool_heat_block_5_cost_exceeded
+      - input_boolean.pool_heat_block_6_cost_exceeded
+      - input_boolean.pool_heat_block_7_cost_exceeded
+      - input_boolean.pool_heat_block_8_cost_exceeded
+      - input_boolean.pool_heat_block_9_cost_exceeded
+      - input_boolean.pool_heat_block_10_cost_exceeded
+      # Cost constraint
+      - input_boolean.pool_heating_cost_limit_applied
+      - input_number.pool_heating_max_cost_eur
+      - input_number.pool_heating_total_cost
+      - binary_sensor.pool_heating_cost_limit_active
+      - sensor.pool_heating_enabled_block_count

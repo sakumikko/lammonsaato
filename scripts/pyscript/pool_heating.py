@@ -137,6 +137,7 @@ POOL_WATER_TEMP = "sensor.pool_return_line_temperature_corrected"
 # Session entity for analytics (updated per block)
 SESSION_ENTITY = "sensor.pool_heating_session"
 NIGHT_SUMMARY_ENTITY = "sensor.pool_heating_night_summary"
+NIGHT_SUMMARY_DATA_ENTITY = "input_text.pool_heating_night_summary_data"
 
 # Outdoor temperature sensor
 OUTDOOR_TEMP_SENSOR = "sensor.outdoor_temperature"
@@ -1210,29 +1211,23 @@ def calculate_night_summary(heating_date=None):
     # Calculate savings
     savings = baseline_cost - total_cost
 
-    # Update night summary entity
-    state.set(
-        NIGHT_SUMMARY_ENTITY,
-        value=round(total_energy, 3),
-        new_attributes={
-            "heating_date": heating_date,
-            "total_energy": round(total_energy, 3),
-            "total_cost": round(total_cost, 4),
-            "total_duration": total_duration,
-            "blocks_count": blocks_count,
-            "pool_temp_final": round(pool_temp_final, 1),
-            "outdoor_temp_avg": round(outdoor_temp, 1),
-            "avg_price": round(avg_price, 2),
-            "avg_window_price": round(avg_window_price * 100, 2),  # Convert to cents
-            "baseline_cost": round(baseline_cost, 4),
-            "savings": round(savings, 4),
-            "savings_percent": round((savings / baseline_cost * 100) if baseline_cost > 0 else 0, 1),
-            "unit_of_measurement": "kWh",
-            "device_class": "energy",
-            "state_class": "measurement",
-            "friendly_name": "Pool Heating Night Summary",
-        }
-    )
+    # Store night summary as JSON in input_text for persistence across restarts
+    # The template sensor in pool_heating.yaml parses this JSON
+    import json
+    summary_data = json.dumps({
+        "date": heating_date,
+        "energy": round(total_energy, 3),
+        "cost": round(total_cost, 4),
+        "baseline": round(baseline_cost, 4),
+        "savings": round(savings, 4),
+        "duration": total_duration,
+        "blocks": blocks_count,
+        "outdoor_avg": round(outdoor_temp, 1),
+        "pool_final": round(pool_temp_final, 1),
+        "avg_price": round(avg_price / 100, 4),  # Store in EUR/kWh for consistency
+    })
+
+    input_text.set_value(entity_id=NIGHT_SUMMARY_DATA_ENTITY, value=summary_data)
 
     log.info(f"Night summary for {heating_date}: {total_energy:.2f} kWh, "
              f"{total_cost:.3f}€, {blocks_count} blocks, "
@@ -1320,31 +1315,25 @@ def backfill_night_summaries(days=7):
             baseline_cost = estimated_energy * avg_window_price
             savings = baseline_cost - estimated_cost
 
-            # Update the night summary entity with historical data
-            # Each update creates a new history entry
-            state.set(
-                NIGHT_SUMMARY_ENTITY,
-                value=round(estimated_energy, 3),
-                new_attributes={
-                    "heating_date": heating_date,
-                    "total_energy": round(estimated_energy, 3),
-                    "total_cost": round(estimated_cost, 4),
-                    "total_duration": 120,  # Estimated 2h
-                    "blocks_count": 3,  # Typical
-                    "pool_temp_final": round(pool_temp, 1),
-                    "outdoor_temp_avg": round(outdoor_temp, 1),
-                    "avg_price": round(estimated_cost / estimated_energy * 100, 2) if estimated_energy > 0 else 0,
-                    "avg_window_price": round(avg_window_price * 100, 2),
-                    "baseline_cost": round(baseline_cost, 4),
-                    "savings": round(savings, 4),
-                    "savings_percent": round((savings / baseline_cost * 100) if baseline_cost > 0 else 0, 1),
-                    "backfilled": True,  # Mark as backfilled data
-                    "unit_of_measurement": "kWh",
-                    "device_class": "energy",
-                    "state_class": "measurement",
-                    "friendly_name": "Pool Heating Night Summary",
-                }
-            )
+            # Store night summary as JSON in input_text for persistence
+            # Note: This only stores the latest summary - historical backfill
+            # would require HA's long-term statistics or external storage
+            import json
+            summary_data = json.dumps({
+                "date": heating_date,
+                "energy": round(estimated_energy, 3),
+                "cost": round(estimated_cost, 4),
+                "baseline": round(baseline_cost, 4),
+                "savings": round(savings, 4),
+                "duration": 120,  # Estimated 2h
+                "blocks": 3,  # Typical
+                "outdoor_avg": round(outdoor_temp, 1),
+                "pool_final": round(pool_temp, 1),
+                "avg_price": round(estimated_cost / estimated_energy, 4) if estimated_energy > 0 else 0,
+                "backfilled": True,
+            })
+
+            input_text.set_value(entity_id=NIGHT_SUMMARY_DATA_ENTITY, value=summary_data)
 
             summaries_created += 1
             log.info(f"Created summary for {heating_date}: {estimated_energy:.2f} kWh, {estimated_cost:.3f}€")
