@@ -44,6 +44,15 @@ export interface PriceBlock {
   price: number;
   duration: number;
   enabled: boolean;
+  costEur: number;        // Cost of this block in EUR
+  costExceeded: boolean;  // True if disabled due to cost limit
+}
+
+export interface ScheduleParameters {
+  minBlockDuration: number;  // 30, 45, or 60 minutes
+  maxBlockDuration: number;  // 30, 45, or 60 minutes
+  totalHours: number;        // 0 to 6 in 0.5 steps
+  maxCostEur: number | null; // Maximum cost limit in EUR, null = no limit
 }
 
 export interface ScheduleState {
@@ -51,6 +60,9 @@ export interface ScheduleState {
   nordpoolAvailable: boolean;
   currentPrice: number;
   scheduledMinutes: number;
+  parameters: ScheduleParameters;
+  totalCost: number;          // Total cost of enabled blocks in EUR
+  costLimitApplied: boolean;  // True if cost limit caused some blocks to be disabled
 }
 
 export interface GearLimits {

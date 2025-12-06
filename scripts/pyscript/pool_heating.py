@@ -16,10 +16,24 @@ import json
 
 HEATING_WINDOW_START = 21  # 9 PM
 HEATING_WINDOW_END = 7     # 7 AM
-TOTAL_HEATING_MINUTES = 120  # 2 hours total heating
-MIN_BLOCK_MINUTES = 30       # Minimum consecutive heating duration
-MAX_BLOCK_MINUTES = 45       # Maximum consecutive heating duration
 SLOT_DURATION_MINUTES = 15   # Nordpool now uses 15-minute intervals
+
+# Default values for schedule parameters (used as fallbacks)
+DEFAULT_TOTAL_HEATING_MINUTES = 120  # 2 hours total heating
+DEFAULT_MIN_BLOCK_MINUTES = 30       # Minimum consecutive heating duration
+DEFAULT_MAX_BLOCK_MINUTES = 45       # Maximum consecutive heating duration
+
+# Power consumption for cost calculation
+POWER_KW = 5.0  # Heat pump electrical draw during pool heating
+
+# Valid ranges for schedule parameters
+VALID_BLOCK_DURATIONS = [30, 45, 60]  # minutes
+VALID_TOTAL_HOURS = [x * 0.5 for x in range(0, 11)]  # 0, 0.5, 1.0, ..., 5.0
+
+# Schedule parameter entity IDs
+PARAM_MIN_BLOCK_DURATION = "input_number.pool_heating_min_block_duration"
+PARAM_MAX_BLOCK_DURATION = "input_number.pool_heating_max_block_duration"
+PARAM_TOTAL_HOURS = "input_number.pool_heating_total_hours"
 
 # Entity IDs
 # IMPORTANT: Update this if your Nordpool sensor has a different entity ID
@@ -32,25 +46,74 @@ HEATING_PREVENTION_SWITCH = "switch.altaan_lammityksen_esto"
 # Circulation pump: turn ON when heating, OFF when not
 CIRCULATION_PUMP_SWITCH = "switch.altaan_kiertovesipumppu"
 
-# Heating block entities (supports up to 4 blocks for flexibility)
+# Heating block entities (supports up to 10 blocks)
 BLOCK_ENTITIES = [
     {"start": "input_datetime.pool_heat_block_1_start",
      "end": "input_datetime.pool_heat_block_1_end",
      "price": "input_number.pool_heat_block_1_price",
-     "enabled": "input_boolean.pool_heat_block_1_enabled"},
+     "cost": "input_number.pool_heat_block_1_cost",
+     "enabled": "input_boolean.pool_heat_block_1_enabled",
+     "cost_exceeded": "input_boolean.pool_heat_block_1_cost_exceeded"},
     {"start": "input_datetime.pool_heat_block_2_start",
      "end": "input_datetime.pool_heat_block_2_end",
      "price": "input_number.pool_heat_block_2_price",
-     "enabled": "input_boolean.pool_heat_block_2_enabled"},
+     "cost": "input_number.pool_heat_block_2_cost",
+     "enabled": "input_boolean.pool_heat_block_2_enabled",
+     "cost_exceeded": "input_boolean.pool_heat_block_2_cost_exceeded"},
     {"start": "input_datetime.pool_heat_block_3_start",
      "end": "input_datetime.pool_heat_block_3_end",
      "price": "input_number.pool_heat_block_3_price",
-     "enabled": "input_boolean.pool_heat_block_3_enabled"},
+     "cost": "input_number.pool_heat_block_3_cost",
+     "enabled": "input_boolean.pool_heat_block_3_enabled",
+     "cost_exceeded": "input_boolean.pool_heat_block_3_cost_exceeded"},
     {"start": "input_datetime.pool_heat_block_4_start",
      "end": "input_datetime.pool_heat_block_4_end",
      "price": "input_number.pool_heat_block_4_price",
-     "enabled": "input_boolean.pool_heat_block_4_enabled"},
+     "cost": "input_number.pool_heat_block_4_cost",
+     "enabled": "input_boolean.pool_heat_block_4_enabled",
+     "cost_exceeded": "input_boolean.pool_heat_block_4_cost_exceeded"},
+    {"start": "input_datetime.pool_heat_block_5_start",
+     "end": "input_datetime.pool_heat_block_5_end",
+     "price": "input_number.pool_heat_block_5_price",
+     "cost": "input_number.pool_heat_block_5_cost",
+     "enabled": "input_boolean.pool_heat_block_5_enabled",
+     "cost_exceeded": "input_boolean.pool_heat_block_5_cost_exceeded"},
+    {"start": "input_datetime.pool_heat_block_6_start",
+     "end": "input_datetime.pool_heat_block_6_end",
+     "price": "input_number.pool_heat_block_6_price",
+     "cost": "input_number.pool_heat_block_6_cost",
+     "enabled": "input_boolean.pool_heat_block_6_enabled",
+     "cost_exceeded": "input_boolean.pool_heat_block_6_cost_exceeded"},
+    {"start": "input_datetime.pool_heat_block_7_start",
+     "end": "input_datetime.pool_heat_block_7_end",
+     "price": "input_number.pool_heat_block_7_price",
+     "cost": "input_number.pool_heat_block_7_cost",
+     "enabled": "input_boolean.pool_heat_block_7_enabled",
+     "cost_exceeded": "input_boolean.pool_heat_block_7_cost_exceeded"},
+    {"start": "input_datetime.pool_heat_block_8_start",
+     "end": "input_datetime.pool_heat_block_8_end",
+     "price": "input_number.pool_heat_block_8_price",
+     "cost": "input_number.pool_heat_block_8_cost",
+     "enabled": "input_boolean.pool_heat_block_8_enabled",
+     "cost_exceeded": "input_boolean.pool_heat_block_8_cost_exceeded"},
+    {"start": "input_datetime.pool_heat_block_9_start",
+     "end": "input_datetime.pool_heat_block_9_end",
+     "price": "input_number.pool_heat_block_9_price",
+     "cost": "input_number.pool_heat_block_9_cost",
+     "enabled": "input_boolean.pool_heat_block_9_enabled",
+     "cost_exceeded": "input_boolean.pool_heat_block_9_cost_exceeded"},
+    {"start": "input_datetime.pool_heat_block_10_start",
+     "end": "input_datetime.pool_heat_block_10_end",
+     "price": "input_number.pool_heat_block_10_price",
+     "cost": "input_number.pool_heat_block_10_cost",
+     "enabled": "input_boolean.pool_heat_block_10_enabled",
+     "cost_exceeded": "input_boolean.pool_heat_block_10_cost_exceeded"},
 ]
+
+# Cost constraint parameters
+PARAM_MAX_COST_EUR = "input_number.pool_heating_max_cost_eur"
+PARAM_TOTAL_COST = "input_number.pool_heating_total_cost"
+PARAM_COST_LIMIT_APPLIED = "input_boolean.pool_heating_cost_limit_applied"
 NIGHT_COMPLETE_FLAG = "input_boolean.pool_heating_night_complete"
 SCHEDULE_INFO = "input_text.pool_heating_schedule_info"
 SCHEDULE_JSON = "input_text.pool_heating_schedule_json"  # Full schedule as JSON
@@ -359,6 +422,91 @@ def find_best_heating_slots(prices_today: list, prices_tomorrow: list,
 
 
 # ============================================
+# SCHEDULE PARAMETER HELPERS
+# ============================================
+
+def get_schedule_parameters():
+    """
+    Get and validate schedule parameters from input_number entities.
+
+    Returns validated parameters with fallback to defaults if:
+    - Entity is unavailable or unknown
+    - Value is out of valid range
+    - min_block > max_block (conflict)
+
+    Returns:
+        dict with keys: min_block_minutes, max_block_minutes, total_minutes
+    """
+    params = {
+        'min_block_minutes': DEFAULT_MIN_BLOCK_MINUTES,
+        'max_block_minutes': DEFAULT_MAX_BLOCK_MINUTES,
+        'total_minutes': DEFAULT_TOTAL_HEATING_MINUTES,
+    }
+
+    fallback_used = []
+
+    # Get min block duration
+    try:
+        min_block_val = state.get(PARAM_MIN_BLOCK_DURATION)
+        if min_block_val not in ['unknown', 'unavailable', None]:
+            min_block = int(float(min_block_val))
+            if min_block in VALID_BLOCK_DURATIONS:
+                params['min_block_minutes'] = min_block
+            else:
+                fallback_used.append(f"min_block={min_block} not in {VALID_BLOCK_DURATIONS}")
+        else:
+            fallback_used.append("min_block entity unavailable")
+    except (ValueError, TypeError) as e:
+        fallback_used.append(f"min_block parse error: {e}")
+
+    # Get max block duration
+    try:
+        max_block_val = state.get(PARAM_MAX_BLOCK_DURATION)
+        if max_block_val not in ['unknown', 'unavailable', None]:
+            max_block = int(float(max_block_val))
+            if max_block in VALID_BLOCK_DURATIONS:
+                params['max_block_minutes'] = max_block
+            else:
+                fallback_used.append(f"max_block={max_block} not in {VALID_BLOCK_DURATIONS}")
+        else:
+            fallback_used.append("max_block entity unavailable")
+    except (ValueError, TypeError) as e:
+        fallback_used.append(f"max_block parse error: {e}")
+
+    # Get total heating hours
+    try:
+        total_hours_val = state.get(PARAM_TOTAL_HOURS)
+        if total_hours_val not in ['unknown', 'unavailable', None]:
+            total_hours = float(total_hours_val)
+            # Allow 0 to 6 hours in 0.5 steps
+            if 0 <= total_hours <= 6:
+                # Round to nearest 0.5
+                total_hours = round(total_hours * 2) / 2
+                params['total_minutes'] = int(total_hours * 60)
+            else:
+                fallback_used.append(f"total_hours={total_hours} not in 0-6 range")
+        else:
+            fallback_used.append("total_hours entity unavailable")
+    except (ValueError, TypeError) as e:
+        fallback_used.append(f"total_hours parse error: {e}")
+
+    # Validate min <= max constraint
+    if params['min_block_minutes'] > params['max_block_minutes']:
+        log.warning(f"min_block ({params['min_block_minutes']}) > max_block ({params['max_block_minutes']}), using defaults")
+        params['min_block_minutes'] = DEFAULT_MIN_BLOCK_MINUTES
+        params['max_block_minutes'] = DEFAULT_MAX_BLOCK_MINUTES
+        fallback_used.append("min > max conflict")
+
+    if fallback_used:
+        log.info(f"Parameter fallbacks used: {', '.join(fallback_used)}")
+
+    log.info(f"Schedule parameters: min={params['min_block_minutes']}min, "
+             f"max={params['max_block_minutes']}min, total={params['total_minutes']}min")
+
+    return params
+
+
+# ============================================
 # PYSCRIPT SERVICES
 # ============================================
 
@@ -367,8 +515,8 @@ def calculate_pool_heating_schedule():
     """
     Calculate and set optimal pool heating schedule based on Nordpool prices.
 
-    Uses 15-minute price intervals and schedules heating blocks of 30-45 minutes
-    with equal break periods between them, totaling 2 hours of heating.
+    Uses 15-minute price intervals and schedules heating blocks based on
+    configurable parameters (min/max block duration, total heating time).
 
     Called by automation when tomorrow's prices become available.
     """
@@ -396,15 +544,47 @@ def calculate_pool_heating_schedule():
 
     log.info(f"Price data: {len(prices_today)} today slots, {len(prices_tomorrow)} tomorrow slots")
 
+    # Get schedule parameters (with validation and fallbacks)
+    params = get_schedule_parameters()
+
+    # Handle zero heating time (disabled)
+    if params['total_minutes'] == 0:
+        log.info("Total heating time set to 0, no heating scheduled")
+        # Clear all blocks
+        for block_entity in BLOCK_ENTITIES:
+            past_date = datetime.combine(date.today() - timedelta(days=7), datetime.min.time())
+            service.call("input_datetime", "set_datetime",
+                        entity_id=block_entity["start"], datetime=past_date.isoformat())
+            service.call("input_datetime", "set_datetime",
+                        entity_id=block_entity["end"], datetime=past_date.isoformat())
+            service.call("input_number", "set_value",
+                        entity_id=block_entity["price"], value=0)
+            service.call("input_number", "set_value",
+                        entity_id=block_entity["cost"], value=0)
+            service.call("input_boolean", "turn_off",
+                        entity_id=block_entity["enabled"])
+            service.call("input_boolean", "turn_off",
+                        entity_id=block_entity["cost_exceeded"])
+        # Clear cost totals
+        service.call("input_number", "set_value",
+                    entity_id=PARAM_TOTAL_COST, value=0)
+        service.call("input_boolean", "turn_off",
+                    entity_id=PARAM_COST_LIMIT_APPLIED)
+        service.call("input_text", "set_value",
+                    entity_id=SCHEDULE_INFO, value="Heating disabled (0 hours)")
+        service.call("input_text", "set_value",
+                    entity_id=SCHEDULE_JSON, value="[]")
+        return
+
     # Calculate optimal schedule
     schedule = find_best_heating_schedule(
         prices_today=prices_today,
         prices_tomorrow=prices_tomorrow,
         window_start=HEATING_WINDOW_START,
         window_end=HEATING_WINDOW_END,
-        total_minutes=TOTAL_HEATING_MINUTES,
-        min_block_minutes=MIN_BLOCK_MINUTES,
-        max_block_minutes=MAX_BLOCK_MINUTES,
+        total_minutes=params['total_minutes'],
+        min_block_minutes=params['min_block_minutes'],
+        max_block_minutes=params['max_block_minutes'],
         slot_minutes=SLOT_DURATION_MINUTES
     )
 
@@ -417,6 +597,45 @@ def calculate_pool_heating_schedule():
         total_minutes = total_minutes + b['duration_minutes']
     log.info(f"Found schedule with {len(schedule)} blocks, {total_minutes} total minutes")
 
+    # Calculate cost for each block
+    for b in schedule:
+        duration_hours = b['duration_minutes'] / 60.0
+        energy_kwh = POWER_KW * duration_hours
+        # avg_price is in EUR/kWh, cost_eur is in EUR
+        b['cost_eur'] = energy_kwh * b['avg_price']
+
+    # Get cost constraint parameter
+    max_cost_eur = 0.0
+    try:
+        max_cost_val = state.get(PARAM_MAX_COST_EUR)
+        if max_cost_val not in ['unknown', 'unavailable', None]:
+            max_cost_eur = float(max_cost_val)
+    except (ValueError, TypeError):
+        max_cost_eur = 0.0
+
+    # Apply cost constraint if set (0 = no limit)
+    cost_limit_applied = False
+    if max_cost_eur > 0:
+        # Sort blocks by price to enable cheapest first
+        # Note: Use list comprehension instead of lambda to avoid pyscript closure issues
+        index_prices = [(i, schedule[i]['avg_price']) for i in range(len(schedule))]
+        index_prices.sort(key=lambda x: x[1])
+        sorted_indices = [x[0] for x in index_prices]
+        running_cost = 0.0
+        for idx in sorted_indices:
+            block = schedule[idx]
+            if running_cost + block['cost_eur'] <= max_cost_eur:
+                block['cost_exceeded'] = False
+                running_cost += block['cost_eur']
+            else:
+                block['cost_exceeded'] = True
+                cost_limit_applied = True
+        log.info(f"Cost constraint: max €{max_cost_eur:.2f}, scheduled €{running_cost:.2f}, limit_applied={cost_limit_applied}")
+    else:
+        # No cost limit - all blocks enabled
+        for b in schedule:
+            b['cost_exceeded'] = False
+
     # Reset night complete flag for new schedule (new night session)
     service.call(
         "input_boolean",
@@ -425,16 +644,8 @@ def calculate_pool_heating_schedule():
     )
     log.info("Reset night complete flag for new schedule")
 
-    # Enable all blocks by default for new schedule
-    for block_entity in BLOCK_ENTITIES:
-        service.call(
-            "input_boolean",
-            "turn_on",
-            entity_id=block_entity["enabled"]
-        )
-    log.info("Enabled all heating blocks for new schedule")
-
     # Update block entities
+    total_cost_eur = 0.0
     for i, block_entity in enumerate(BLOCK_ENTITIES):
         if i < len(schedule):
             block = schedule[i]
@@ -452,23 +663,34 @@ def calculate_pool_heating_schedule():
                 entity_id=block_entity["end"],
                 datetime=block['end'].isoformat()
             )
-            # Set price
+            # Set price (in cents)
             service.call(
                 "input_number",
                 "set_value",
                 entity_id=block_entity["price"],
-                value=round(block['avg_price'] * 100, 2)  # Convert to cents
+                value=round(block['avg_price'] * 100, 2)
             )
-            # Enable the block
+            # Set cost (in EUR)
             service.call(
-                "input_boolean",
-                "turn_on",
-                entity_id=block_entity["enabled"]
+                "input_number",
+                "set_value",
+                entity_id=block_entity["cost"],
+                value=round(block['cost_eur'], 3)
             )
+            # Set enabled (not cost_exceeded)
+            if block.get('cost_exceeded', False):
+                service.call("input_boolean", "turn_off",
+                            entity_id=block_entity["enabled"])
+                service.call("input_boolean", "turn_on",
+                            entity_id=block_entity["cost_exceeded"])
+            else:
+                service.call("input_boolean", "turn_on",
+                            entity_id=block_entity["enabled"])
+                service.call("input_boolean", "turn_off",
+                            entity_id=block_entity["cost_exceeded"])
+                total_cost_eur += block['cost_eur']
         else:
             # Clear unused block slots
-            # Set to a date in the past so automations won't trigger
-            # Using start=end signals an invalid/unused block
             past_date = datetime.combine(date.today() - timedelta(days=7), datetime.min.time())
             service.call(
                 "input_datetime",
@@ -480,20 +702,26 @@ def calculate_pool_heating_schedule():
                 "input_datetime",
                 "set_datetime",
                 entity_id=block_entity["end"],
-                datetime=past_date.isoformat()  # Same as start = invalid block
+                datetime=past_date.isoformat()
             )
-            service.call(
-                "input_number",
-                "set_value",
-                entity_id=block_entity["price"],
-                value=0
-            )
-            # Disable unused blocks
-            service.call(
-                "input_boolean",
-                "turn_off",
-                entity_id=block_entity["enabled"]
-            )
+            service.call("input_number", "set_value",
+                        entity_id=block_entity["price"], value=0)
+            service.call("input_number", "set_value",
+                        entity_id=block_entity["cost"], value=0)
+            service.call("input_boolean", "turn_off",
+                        entity_id=block_entity["enabled"])
+            service.call("input_boolean", "turn_off",
+                        entity_id=block_entity["cost_exceeded"])
+
+    # Set total cost and cost limit applied flag
+    service.call("input_number", "set_value",
+                entity_id=PARAM_TOTAL_COST, value=round(total_cost_eur, 3))
+    if cost_limit_applied:
+        service.call("input_boolean", "turn_on",
+                    entity_id=PARAM_COST_LIMIT_APPLIED)
+    else:
+        service.call("input_boolean", "turn_off",
+                    entity_id=PARAM_COST_LIMIT_APPLIED)
 
     # Calculate average price
     total_cost = 0
@@ -504,11 +732,12 @@ def calculate_pool_heating_schedule():
     # Build info text
     block_info = []
     for b in schedule:
+        exceeded_marker = "!" if b.get('cost_exceeded', False) else ""
         block_info.append(
-            f"{b['start'].strftime('%H:%M')}-{b['end'].strftime('%H:%M')} "
-            f"({b['duration_minutes']}min, {b['avg_price']*100:.1f}c)"
+            f"{exceeded_marker}{b['start'].strftime('%H:%M')}-{b['end'].strftime('%H:%M')} "
+            f"({b['duration_minutes']}min, {b['avg_price']*100:.1f}c, €{b['cost_eur']:.2f})"
         )
-    info_text = " | ".join(block_info) + f" | Avg: {avg_price:.1f}c/kWh"
+    info_text = " | ".join(block_info) + f" | Avg: {avg_price:.1f}c/kWh | Total: €{total_cost_eur:.2f}"
 
     service.call(
         "input_text",
@@ -524,7 +753,9 @@ def calculate_pool_heating_schedule():
             'start': b['start'].isoformat(),
             'end': b['end'].isoformat(),
             'duration_minutes': b['duration_minutes'],
-            'avg_price': b['avg_price']
+            'avg_price': b['avg_price'],
+            'cost_eur': round(b['cost_eur'], 3),
+            'cost_exceeded': b.get('cost_exceeded', False)
         })
     schedule_json = json.dumps(schedule_list)
 
@@ -543,6 +774,198 @@ def calculate_pool_heating_schedule():
 def calculate_pool_heating_slots():
     """Legacy alias for calculate_pool_heating_schedule."""
     calculate_pool_heating_schedule()
+
+
+@service
+def debug_constraint_params():
+    """Debug service to log constraint parameters to a file."""
+    import os
+    debug_file = "/config/pyscript_debug.txt"
+
+    lines = ["=== DEBUG: Constraint Parameters ==="]
+
+    # Check max_cost_eur
+    max_cost_val = state.get(PARAM_MAX_COST_EUR)
+    lines.append(f"max_cost_val raw: {max_cost_val}, type: {type(max_cost_val)}")
+    lines.append(f"max_cost_val == 'unknown': {max_cost_val == 'unknown'}")
+    lines.append(f"max_cost_val in list: {max_cost_val in ['unknown', 'unavailable', None]}")
+    lines.append(f"str(max_cost_val): {str(max_cost_val)}")
+
+    try:
+        max_cost_eur = float(max_cost_val)
+        lines.append(f"float(max_cost_val): {max_cost_eur}")
+    except Exception as e:
+        lines.append(f"float() failed: {e}")
+
+    # Check total_hours
+    total_hours_val = state.get(PARAM_TOTAL_HOURS)
+    lines.append(f"total_hours_val raw: {total_hours_val}, type: {type(total_hours_val)}")
+
+    # Check block 1 cost
+    block1_cost = state.get("input_number.pool_heat_block_1_cost")
+    lines.append(f"block1_cost raw: {block1_cost}, type: {type(block1_cost)}")
+
+    # Check str() comparisons
+    lines.append(f"str(max_cost_val) in list: {str(max_cost_val) in ['unknown', 'unavailable', 'None']}")
+
+    lines.append("=== END DEBUG ===")
+
+    # Write to file
+    with open(debug_file, 'w') as f:
+        f.write('\n'.join(lines))
+
+    log.warning(f"Debug output written to {debug_file}")
+
+
+@service
+def apply_cost_constraint():
+    """
+    Apply cost and duration constraints to existing schedule blocks.
+
+    This service can be called anytime to re-apply constraints
+    without requiring tomorrow's prices (unlike calculate_pool_heating_schedule).
+
+    Applies TWO constraints:
+    1. Cost constraint: Enables cheapest blocks first until max_cost_eur is reached
+    2. Duration constraint: Limits total enabled minutes to total_hours setting
+
+    Useful when:
+    - User changes max_cost_eur or total_hours during the day
+    - Schedule is already calculated but constraints need to be updated
+    """
+    log.info("Applying cost and duration constraints to existing schedule...")
+
+    # Get max cost parameter
+    max_cost_eur = 0.0
+    try:
+        max_cost_val = state.get(PARAM_MAX_COST_EUR)
+        if max_cost_val not in ['unknown', 'unavailable', None]:
+            max_cost_eur = float(max_cost_val)
+    except (ValueError, TypeError):
+        max_cost_eur = 0.0
+
+    # Get total hours parameter (duration limit)
+    max_total_minutes = 0
+    try:
+        total_hours_val = state.get(PARAM_TOTAL_HOURS)
+        if total_hours_val not in ['unknown', 'unavailable', None]:
+            total_hours = float(total_hours_val)
+            if 0 <= total_hours <= 6:
+                max_total_minutes = int(total_hours * 60)
+    except (ValueError, TypeError):
+        max_total_minutes = 0
+
+    log.info(f"Constraints: max_cost=€{max_cost_eur:.2f}, max_duration={max_total_minutes}min")
+
+    # Read existing blocks from HA entities
+    blocks = []
+    for i, block_entity in enumerate(BLOCK_ENTITIES):
+        # Read block cost
+        cost_val = state.get(block_entity["cost"])
+        if cost_val in ['unknown', 'unavailable', None]:
+            continue
+        try:
+            cost_eur = float(cost_val)
+        except (ValueError, TypeError):
+            continue
+
+        # Skip blocks with zero cost (inactive/unused blocks)
+        if cost_eur <= 0:
+            continue
+
+        # Read block price
+        price_val = state.get(block_entity["price"])
+        try:
+            avg_price = float(price_val) / 100.0 if price_val else 0  # cents to EUR
+        except (ValueError, TypeError):
+            avg_price = 0
+
+        # Read block duration from start/end times
+        duration_minutes = 30  # Default
+        try:
+            start_val = state.get(block_entity["start"])
+            end_val = state.get(block_entity["end"])
+            if start_val and end_val and start_val not in ['unknown', 'unavailable'] and end_val not in ['unknown', 'unavailable']:
+                start_dt = datetime.fromisoformat(start_val.replace(' ', 'T'))
+                end_dt = datetime.fromisoformat(end_val.replace(' ', 'T'))
+                duration_minutes = int((end_dt - start_dt).total_seconds() / 60)
+        except (ValueError, TypeError):
+            duration_minutes = 30
+
+        blocks.append({
+            'index': i,
+            'cost_eur': cost_eur,
+            'avg_price': avg_price,
+            'duration_minutes': duration_minutes,
+            'entity': block_entity,
+        })
+
+    if not blocks:
+        log.warning("No active blocks found to apply cost constraint")
+        return
+
+    log.warning(f"DEBUG: Found {len(blocks)} active blocks")
+    log.warning(f"DEBUG: max_cost_eur={max_cost_eur}, max_total_minutes={max_total_minutes}")
+    for b in blocks:
+        log.warning(f"DEBUG: Block {b['index']}: cost={b['cost_eur']}, price={b['avg_price']}, dur={b['duration_minutes']}")
+
+    # Apply BOTH cost and duration constraints
+    # Sort blocks by price to enable cheapest first
+    # Note: Use list comprehension instead of lambda to avoid pyscript closure issues
+    index_prices = [(i, blocks[i]['avg_price']) for i in range(len(blocks))]
+    index_prices.sort(key=lambda x: x[1])
+    sorted_indices = [x[0] for x in index_prices]
+
+    running_cost = 0.0
+    running_minutes = 0
+    constraint_applied = False
+
+    # First, mark all as exceeded
+    for block in blocks:
+        block['cost_exceeded'] = True
+
+    # Then enable cheapest blocks within limits
+    for idx in sorted_indices:
+        block = blocks[idx]
+        block_cost = block['cost_eur']
+        block_duration = block.get('duration_minutes', 30)
+
+        # Check cost constraint (0 = no limit)
+        cost_ok = max_cost_eur <= 0 or (running_cost + block_cost <= max_cost_eur)
+        # Check duration constraint (0 = no limit)
+        duration_ok = max_total_minutes <= 0 or (running_minutes + block_duration <= max_total_minutes)
+
+        if cost_ok and duration_ok:
+            block['cost_exceeded'] = False
+            running_cost += block_cost
+            running_minutes += block_duration
+        else:
+            constraint_applied = True
+
+    total_enabled_cost = running_cost
+    log.info(f"Constraints applied: cost €{running_cost:.2f}/{max_cost_eur:.2f}, duration {running_minutes}/{max_total_minutes}min, applied={constraint_applied}")
+
+    # Update block entities
+    for block in blocks:
+        entity = block['entity']
+        if block.get('cost_exceeded', False):
+            service.call("input_boolean", "turn_off", entity_id=entity["enabled"])
+            service.call("input_boolean", "turn_on", entity_id=entity["cost_exceeded"])
+        else:
+            service.call("input_boolean", "turn_on", entity_id=entity["enabled"])
+            service.call("input_boolean", "turn_off", entity_id=entity["cost_exceeded"])
+
+    # Update constraint applied flag
+    if constraint_applied:
+        service.call("input_boolean", "turn_on", entity_id=PARAM_COST_LIMIT_APPLIED)
+    else:
+        service.call("input_boolean", "turn_off", entity_id=PARAM_COST_LIMIT_APPLIED)
+
+    # Update total cost
+    service.call("input_number", "set_value", entity_id=PARAM_TOTAL_COST, value=round(total_enabled_cost, 3))
+
+    enabled_count = len([b for b in blocks if not b.get('cost_exceeded')])
+    log.info(f"Constraints result: {enabled_count} blocks enabled, {running_minutes}min, €{total_enabled_cost:.2f}")
 
 
 # ============================================
@@ -1158,3 +1581,229 @@ def _query_history_for_date(heating_date, night_start, night_end):
     except Exception as e:
         log.warning(f"History query failed: {e}")
         return None
+
+
+# ============================================
+# THERMAL CALIBRATION
+# ============================================
+
+# Pool thermal parameters (calibrated from Dec 5 circulation test)
+POOL_VOLUME_LITERS = 32000
+PIPE_TAU_MINUTES = 7  # Time constant for sensor to reach true temp
+ROOM_TEMP = 20  # Pool room temperature
+
+
+@service
+def record_true_pool_temp(measurement_type="pre_heating"):
+    """
+    Record stabilized pool temperature after circulation.
+
+    Called after 25 min of circulation when sensor = true pool temp.
+    The sensor needs ~21 min (3τ) to reach 95% of true temperature.
+
+    Args:
+        measurement_type: "pre_heating", "post_heating", or "daytime"
+    """
+    now = datetime.now()
+
+    # Get current sensor reading (should be stable after 25 min circulation)
+    sensor_temp = _safe_get_temp(POOL_WATER_TEMP)
+    outdoor_temp = _safe_get_temp(OUTDOOR_TEMP_SENSOR)
+
+    if sensor_temp == 0:
+        log.warning(f"Cannot record true temp - sensor unavailable")
+        return
+
+    # Store in appropriate entity
+    entity_map = {
+        "pre_heating": "input_number.pool_true_temp_pre_heating",
+        "post_heating": "input_number.pool_true_temp_post_heating",
+        "daytime": "input_number.pool_true_temp_daytime"
+    }
+
+    entity_id = entity_map.get(measurement_type)
+    if entity_id:
+        service.call("input_number", "set_value", entity_id=entity_id, value=sensor_temp)
+
+    # Update last calibration timestamp
+    service.call(
+        "input_datetime", "set_datetime",
+        entity_id="input_datetime.pool_last_calibration_time",
+        datetime=now.strftime("%Y-%m-%d %H:%M:%S")
+    )
+
+    # Log thermal data for historical analysis
+    _log_thermal_calibration(measurement_type, sensor_temp, outdoor_temp)
+
+    log.info(f"Recorded true pool temp: {sensor_temp}°C ({measurement_type})")
+
+
+def _log_thermal_calibration(measurement_type, true_temp, outdoor_temp):
+    """
+    Log thermal calibration data for later analysis.
+    """
+    now = datetime.now()
+    heating_date = get_heating_date(now)
+
+    # Get the raw sensor temp for comparison
+    raw_sensor = _safe_get_temp("sensor.pool_return_line_temperature_corrected")
+
+    log_data = {
+        "timestamp": now.isoformat(),
+        "heating_date": heating_date,
+        "measurement_type": measurement_type,
+        "true_temp": true_temp,
+        "raw_sensor_temp": raw_sensor,
+        "outdoor_temp": outdoor_temp,
+        "room_temp": ROOM_TEMP
+    }
+
+    # Fire event for firebase_sync to pick up
+    event.fire("pool_thermal_calibration", data=log_data)
+
+    log.info(f"Thermal calibration logged: {measurement_type} = {true_temp}°C "
+             f"(outdoor: {outdoor_temp}°C)")
+
+
+@service
+def estimate_true_pool_temp():
+    """
+    Estimate current true pool temperature based on last calibration
+    and cooling model.
+
+    Updates sensor.pool_estimated_true_temp with the estimate.
+    """
+    now = datetime.now()
+
+    # Get last calibration data
+    pre_heat = _safe_get_temp("input_number.pool_true_temp_pre_heating")
+    post_heat = _safe_get_temp("input_number.pool_true_temp_post_heating")
+    daytime = _safe_get_temp("input_number.pool_true_temp_daytime")
+
+    # Get last calibration time
+    last_cal_str = state.get("input_datetime.pool_last_calibration_time")
+    if not last_cal_str or last_cal_str in ['unknown', 'unavailable']:
+        log.warning("No calibration data available")
+        return
+
+    try:
+        last_cal_time = datetime.fromisoformat(last_cal_str.replace(' ', 'T'))
+    except (ValueError, TypeError):
+        log.warning(f"Invalid calibration time: {last_cal_str}")
+        return
+
+    hours_since_cal = (now - last_cal_time).total_seconds() / 3600
+
+    # Determine which temp to use as baseline
+    hour = now.hour
+    if 7 <= hour < 14:
+        # Morning after heating - use post_heating
+        baseline_temp = post_heat if post_heat > 0 else pre_heat
+        baseline_type = "post_heating"
+    elif 14 <= hour < 20:
+        # Afternoon - use daytime if available, else post_heating
+        baseline_temp = daytime if daytime > 0 else (post_heat if post_heat > 0 else pre_heat)
+        baseline_type = "daytime" if daytime > 0 else "post_heating"
+    else:
+        # Evening/night - use pre_heating
+        baseline_temp = pre_heat if pre_heat > 0 else post_heat
+        baseline_type = "pre_heating"
+
+    if baseline_temp == 0:
+        log.warning("No valid baseline temperature")
+        return
+
+    # Apply cooling model: T(t) = T_room + (T_0 - T_room) * e^(-t/τ)
+    # τ_cool ≈ 20 hours for covered indoor pool
+    tau_cool_hours = 20
+
+    outdoor_temp = _safe_get_temp(OUTDOOR_TEMP_SENSOR)
+
+    # Estimate current temp using exponential decay toward room temp
+    estimated_temp = ROOM_TEMP + (baseline_temp - ROOM_TEMP) * \
+                     (2.718 ** (-hours_since_cal / tau_cool_hours))
+
+    # Confidence decreases over time
+    confidence = max(0, 1 - hours_since_cal / 12)
+
+    # Update the estimate entity
+    state.set(
+        "sensor.pool_estimated_true_temp",
+        value=round(estimated_temp, 1),
+        new_attributes={
+            "baseline_temp": baseline_temp,
+            "baseline_type": baseline_type,
+            "hours_since_calibration": round(hours_since_cal, 1),
+            "confidence": round(confidence, 2),
+            "outdoor_temp": outdoor_temp,
+            "unit_of_measurement": "°C",
+            "friendly_name": "Pool True Temperature (Estimated)",
+            "icon": "mdi:thermometer-water"
+        }
+    )
+
+    log.info(f"Estimated true pool temp: {estimated_temp:.1f}°C "
+             f"(confidence: {confidence:.0%}, baseline: {baseline_type})")
+
+
+@service
+def predict_temp_after_heating():
+    """
+    Predict pool temperature after tonight's scheduled heating.
+
+    Uses current true temp estimate, scheduled heating hours,
+    and calibrated heating efficiency.
+    """
+    # Get current estimated true temp
+    current_temp = _safe_get_temp("sensor.pool_estimated_true_temp")
+    if current_temp == 0:
+        current_temp = _safe_get_temp("input_number.pool_true_temp_pre_heating")
+
+    if current_temp == 0:
+        log.warning("No temperature estimate available")
+        return
+
+    # Get scheduled heating minutes
+    total_hours = _safe_get_temp("input_number.pool_heating_total_hours")
+
+    # Heating efficiency: °C per hour of heating
+    # This should be calibrated from historical data
+    # Initial estimate based on thermal calculations:
+    # ~18 kW thermal input, 70% mixing efficiency, 32000L pool
+    # → ~0.4°C per hour of heating
+    heating_rate = 0.4  # °C per hour (will calibrate from data)
+
+    # Heat loss during overnight window (10 hours)
+    # Pool loses ~0.3°C per hour at ΔT=5°C from room
+    loss_rate = 0.15  # °C per hour average overnight
+
+    # Calculate predicted temp
+    heating_hours = total_hours
+    idle_hours = 10 - heating_hours  # Heating window is 10 hours
+
+    temp_gain = heating_hours * heating_rate
+    temp_loss = idle_hours * loss_rate
+
+    predicted_temp = current_temp + temp_gain - temp_loss
+
+    # Get target for comparison
+    target_temp = _safe_get_temp("input_number.pool_target_temperature")
+
+    state.set(
+        "sensor.pool_predicted_temp_after_heating",
+        value=round(predicted_temp, 1),
+        new_attributes={
+            "current_estimate": current_temp,
+            "heating_hours": heating_hours,
+            "predicted_gain": round(temp_gain, 2),
+            "predicted_loss": round(temp_loss, 2),
+            "target_temp": target_temp,
+            "will_reach_target": predicted_temp >= target_temp,
+            "unit_of_measurement": "°C",
+            "friendly_name": "Predicted Pool Temp After Heating",
+            "icon": "mdi:thermometer-chevron-up"
+        }
+    )
+
+    log.info(f"Predicted temp after heating: {predicted_temp:.1f}°C "
+             f"(current: {current_temp}°C, +{temp_gain:.1f}°C heating, -{temp_loss:.1f}°C loss)")

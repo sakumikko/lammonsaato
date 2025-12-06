@@ -68,7 +68,30 @@
     "avg": "Ka.",
     "min": "min",
     "nightComplete": "Yläraja saavutettu – loput lohkot ohitetaan",
-    "blockPast": "Tämä lohko on jo suoritettu"
+    "blockPast": "Tämä lohko on jo suoritettu",
+    "cost": "Kustannus",
+    "costLimitReached": "Kustannusraja €{{limit}} saavutettu - {{disabled}} lohkoa poistettu käytöstä",
+    "editor": {
+      "title": "Aikataulun asetukset",
+      "minBlock": "Min lohko",
+      "maxBlock": "Max lohko",
+      "totalHours": "Lämmitysaika",
+      "hours": "t",
+      "disabled": "Pois käytöstä",
+      "saveRecalc": "Tallenna ja laske uudelleen",
+      "saving": "Tallennetaan...",
+      "success": "Aikataulu päivitetty",
+      "minMaxError": "Min ei voi olla suurempi kuin max",
+      "maxCost": "Enimmäiskust.",
+      "noLimit": "Ei rajaa",
+      "warningTitle": "Lämmitysikkuna aktiivinen",
+      "warningDescription": "Lämmitysikkuna (21:00-07:00) on käynnissä. Uudelleenlaskenta korvaa tämän yön jäljellä olevan aikataulun. Käynnissä olevaan lohkoon voi vaikuttaa.",
+      "applyNow": "Ota käyttöön nyt",
+      "costCutting": "Säästöleikkuri ✂️"
+    }
+  },
+  "common": {
+    "cancel": "Peruuta"
   },
   "stats": {
     "dailyEnergy": "Päivän kulutus",

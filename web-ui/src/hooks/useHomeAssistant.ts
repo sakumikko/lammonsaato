@@ -5,6 +5,7 @@ import {
   PoolHeatingState,
   ValveState,
   ScheduleState,
+  ScheduleParameters,
   PriceBlock,
   GearSettings,
   TapWaterState,
@@ -87,6 +88,14 @@ const ENTITIES = {
   nordpoolPrice: 'sensor.nordpool_kwh_fi_eur_3_10_0255',
   scheduleJson: 'input_text.pool_heating_schedule_json',
 
+  // Schedule parameters
+  minBlockDuration: 'input_number.pool_heating_min_block_duration',
+  maxBlockDuration: 'input_number.pool_heating_max_block_duration',
+  totalHours: 'input_number.pool_heating_total_hours',
+  maxCostEur: 'input_number.pool_heating_max_cost_eur',
+  totalCost: 'input_number.pool_heating_total_cost',
+  costLimitApplied: 'input_boolean.pool_heating_cost_limit_applied',
+
   // Gear settings (Thermia Genesis)
   minGearHeating: 'number.minimum_allowed_gear_in_heating',
   maxGearHeating: 'number.maximum_allowed_gear_in_heating',
@@ -117,12 +126,14 @@ const ENTITIES = {
   heatingCurveMin: 'number.heat_curve_min_limitation',
 } as const;
 
-// Block entities (1-4)
+// Block entities (1-10)
 const getBlockEntities = (n: number) => ({
   start: `input_datetime.pool_heat_block_${n}_start`,
   end: `input_datetime.pool_heat_block_${n}_end`,
   price: `input_number.pool_heat_block_${n}_price`,
+  cost: `input_number.pool_heat_block_${n}_cost`,
   enabled: `input_boolean.pool_heat_block_${n}_enabled`,
+  costExceeded: `input_boolean.pool_heat_block_${n}_cost_exceeded`,
 });
 
 // Default state when disconnected or entities unavailable
@@ -167,6 +178,14 @@ const defaultState: SystemState = {
     nordpoolAvailable: false,
     currentPrice: 0,
     scheduledMinutes: 0,
+    totalCost: 0,
+    costLimitApplied: false,
+    parameters: {
+      minBlockDuration: 30,
+      maxBlockDuration: 45,
+      totalHours: 2,
+      maxCostEur: null,
+    },
   },
   gearSettings: {
     heating: { min: 1, max: 10 },
@@ -286,6 +305,10 @@ export interface UseHomeAssistantReturn {
   setTapWaterSetting: (setting: TapWaterSetting, value: number) => Promise<void>;
   setHotGasSetting: (setting: HotGasSetting, value: number) => Promise<void>;
   setHeatingCurveSetting: (setting: HeatingCurveSetting, value: number) => Promise<void>;
+  // Schedule parameter controls
+  setScheduleParameters: (params: Partial<ScheduleParameters>) => Promise<void>;
+  recalculateSchedule: () => Promise<void>;
+  isInHeatingWindow: () => boolean;
 }
 
 export function useHomeAssistant(): UseHomeAssistantReturn {
@@ -350,15 +373,17 @@ export function useHomeAssistant(): UseHomeAssistantReturn {
       transitioning: false,
     };
 
-    // Schedule blocks
+    // Schedule blocks (1-10)
     const blocks: PriceBlock[] = [];
-    for (let n = 1; n <= 4; n++) {
+    for (let n = 1; n <= 10; n++) {
       const blockEntities = getBlockEntities(n);
       const start = parseTime(get(blockEntities.start));
       const end = parseTime(get(blockEntities.end));
       const endDateTime = parseDateTime(get(blockEntities.end));
       const price = parseNumber(get(blockEntities.price));
+      const costEur = parseNumber(get(blockEntities.cost));
       const enabled = parseBoolean(get(blockEntities.enabled));
+      const costExceeded = parseBoolean(get(blockEntities.costExceeded));
       const duration = calculateBlockDuration(start, end);
 
       // Only include blocks with valid times (non-empty start/end and valid duration)
@@ -368,11 +393,22 @@ export function useHomeAssistant(): UseHomeAssistantReturn {
           end,
           endDateTime,
           price,
+          costEur,
           duration,
           enabled,
+          costExceeded,
         });
       }
     }
+
+    // Schedule parameters
+    const maxCostVal = parseNumber(get(ENTITIES.maxCostEur));
+    const parameters: ScheduleParameters = {
+      minBlockDuration: parseNumber(get(ENTITIES.minBlockDuration)) || 30,
+      maxBlockDuration: parseNumber(get(ENTITIES.maxBlockDuration)) || 45,
+      totalHours: parseNumber(get(ENTITIES.totalHours)) || 2,
+      maxCostEur: maxCostVal > 0 ? maxCostVal : null,
+    };
 
     const schedule: ScheduleState = {
       blocks,
@@ -380,6 +416,9 @@ export function useHomeAssistant(): UseHomeAssistantReturn {
       // Nordpool returns EUR/kWh, convert to cents/kWh for display
       currentPrice: parseNumber(get(ENTITIES.nordpoolPrice)) * 100,
       scheduledMinutes: blocks.reduce((sum, b) => sum + b.duration, 0),
+      totalCost: parseNumber(get(ENTITIES.totalCost)),
+      costLimitApplied: parseBoolean(get(ENTITIES.costLimitApplied)),
+      parameters,
     };
 
     // Gear settings from Thermia Genesis
@@ -613,6 +652,73 @@ export function useHomeAssistant(): UseHomeAssistantReturn {
     });
   }, []);
 
+  const setScheduleParameters = useCallback(async (params: Partial<ScheduleParameters>) => {
+    const calls: Promise<void>[] = [];
+
+    if (params.minBlockDuration !== undefined) {
+      calls.push(
+        ws.current.callService('input_number', 'set_value', {
+          entity_id: ENTITIES.minBlockDuration,
+          value: params.minBlockDuration,
+        })
+      );
+    }
+
+    if (params.maxBlockDuration !== undefined) {
+      calls.push(
+        ws.current.callService('input_number', 'set_value', {
+          entity_id: ENTITIES.maxBlockDuration,
+          value: params.maxBlockDuration,
+        })
+      );
+    }
+
+    if (params.totalHours !== undefined) {
+      calls.push(
+        ws.current.callService('input_number', 'set_value', {
+          entity_id: ENTITIES.totalHours,
+          value: params.totalHours,
+        })
+      );
+    }
+
+    // maxCostEur: undefined means "no limit" = set to 0
+    if (params.maxCostEur !== undefined || 'maxCostEur' in params) {
+      calls.push(
+        ws.current.callService('input_number', 'set_value', {
+          entity_id: ENTITIES.maxCostEur,
+          value: params.maxCostEur ?? 0,
+        })
+      );
+    }
+
+    await Promise.all(calls);
+  }, []);
+
+  const recalculateSchedule = useCallback(async () => {
+    // Try to calculate a new schedule (may fail if tomorrow's prices not available)
+    try {
+      await ws.current.callService('pyscript', 'calculate_pool_heating_schedule', {});
+    } catch (e) {
+      console.warn('calculate_pool_heating_schedule failed, applying cost constraint only:', e);
+    }
+
+    // Always apply cost constraint to existing blocks
+    // This ensures cost limit is applied even when full recalculation fails
+    try {
+      await ws.current.callService('pyscript', 'apply_cost_constraint', {});
+    } catch (e) {
+      console.warn('apply_cost_constraint failed:', e);
+    }
+  }, []);
+
+  const isInHeatingWindow = useCallback(() => {
+    const now = new Date();
+    const hour = now.getHours();
+    // Heating window is 21:00-07:00
+    return hour >= 21 || hour < 7;
+  }, []);
+
   return {
     state,
     connected,
@@ -628,5 +734,8 @@ export function useHomeAssistant(): UseHomeAssistantReturn {
     setTapWaterSetting,
     setHotGasSetting,
     setHeatingCurveSetting,
+    setScheduleParameters,
+    recalculateSchedule,
+    isInHeatingWindow,
   };
 }

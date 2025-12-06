@@ -24,6 +24,9 @@ const Index = () => {
     setTapWaterSetting,
     setHotGasSetting,
     setHeatingCurveSetting,
+    setScheduleParameters,
+    recalculateSchedule,
+    isInHeatingWindow,
   } = useHomeAssistant();
 
   const isPoolActive = state.valve.position === 'pool';
@@ -138,6 +141,9 @@ const Index = () => {
               schedule={state.schedule}
               nightComplete={state.poolHeating.nightComplete}
               onBlockEnabledChange={setBlockEnabled}
+              onScheduleParametersChange={setScheduleParameters}
+              onRecalculate={recalculateSchedule}
+              isInHeatingWindow={isInHeatingWindow()}
             />
           </div>
         </div>

@@ -1,13 +1,17 @@
 import { cn } from '@/lib/utils';
-import { ScheduleState } from '@/types/heating';
-import { Clock, Euro, Calendar, CheckCircle, History, AlertCircle } from 'lucide-react';
+import { ScheduleState, ScheduleParameters } from '@/types/heating';
+import { Clock, Euro, Calendar, CheckCircle, History, AlertCircle, AlertTriangle } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 import { useTranslation } from 'react-i18next';
+import { useScheduleEditor } from './ScheduleEditor';
 
 interface SchedulePanelProps {
   schedule: ScheduleState;
   nightComplete?: boolean;
   onBlockEnabledChange?: (blockNumber: number, enabled: boolean) => void;
+  onScheduleParametersChange?: (params: ScheduleParameters) => Promise<void>;
+  onRecalculate?: () => Promise<void>;
+  isInHeatingWindow?: boolean;
   className?: string;
 }
 
@@ -19,21 +23,41 @@ function isBlockInPast(endDateTime: string): boolean {
   return now > blockEnd;
 }
 
-export function SchedulePanel({ schedule, nightComplete, onBlockEnabledChange, className }: SchedulePanelProps) {
+export function SchedulePanel({
+  schedule,
+  nightComplete,
+  onBlockEnabledChange,
+  onScheduleParametersChange,
+  onRecalculate,
+  isInHeatingWindow = false,
+  className,
+}: SchedulePanelProps) {
   const { t } = useTranslation();
   const avgPrice =
     schedule.blocks.length > 0
       ? schedule.blocks.reduce((sum, b) => sum + b.price, 0) / schedule.blocks.length
       : 0;
 
+  // Schedule editor hook
+  const editor = onScheduleParametersChange && onRecalculate
+    ? useScheduleEditor({
+        parameters: schedule.parameters,
+        isInHeatingWindow,
+        onSave: onScheduleParametersChange,
+        onRecalculate,
+      })
+    : null;
+
   return (
-    <div className={cn('p-4 rounded-xl bg-card border border-border', className)}>
+    <div data-testid="schedule-panel" className={cn('p-4 rounded-xl bg-card border border-border', className)}>
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
           <Calendar className="w-4 h-4 text-primary" />
           {t('schedule.title')}
         </h3>
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-2">
+          {/* Schedule editor button */}
+          {editor?.EditorButton}
           {schedule.nordpoolAvailable ? (
             <>
               <CheckCircle className="w-3 h-3 text-success" />
@@ -47,6 +71,28 @@ export function SchedulePanel({ schedule, nightComplete, onBlockEnabledChange, c
           )}
         </div>
       </div>
+
+      {/* Editor panel (expands below header when open) */}
+      {editor?.EditorPanel}
+
+      {/* Warning dialog */}
+      {editor?.WarningDialog}
+
+      {/* Cost limit warning */}
+      {schedule.costLimitApplied && (
+        <div
+          data-testid="cost-limit-warning"
+          className="flex items-center gap-2 mb-4 p-2 rounded-lg bg-warning/20 border border-warning/30"
+        >
+          <AlertTriangle className="w-4 h-4 text-warning flex-shrink-0" />
+          <span className="text-xs text-warning">
+            {t('schedule.costLimitReached', {
+              limit: schedule.parameters.maxCostEur?.toFixed(2) ?? '0',
+              disabled: schedule.blocks.filter(b => b.costExceeded).length,
+            })}
+          </span>
+        </div>
+      )}
 
       {/* Night complete indicator */}
       {nightComplete && (
@@ -66,7 +112,7 @@ export function SchedulePanel({ schedule, nightComplete, onBlockEnabledChange, c
       </div>
 
       {/* Schedule blocks */}
-      <div className="space-y-2">
+      <div data-testid="schedule-blocks" data-block-count={schedule.blocks.length} className="space-y-2">
         {schedule.blocks.map((block, index) => {
           const isPast = isBlockInPast(block.endDateTime);
           const isDisabled = !block.enabled;
@@ -74,6 +120,9 @@ export function SchedulePanel({ schedule, nightComplete, onBlockEnabledChange, c
           return (
             <div
               key={index}
+              data-block-enabled={block.enabled}
+              data-block-price={block.price}
+              data-cost-exceeded={block.costExceeded || false}
               className={cn(
                 'flex items-center justify-between p-2 rounded-lg transition-colors',
                 isPast
@@ -142,6 +191,19 @@ export function SchedulePanel({ schedule, nightComplete, onBlockEnabledChange, c
                 >
                   {block.price.toFixed(2)} c
                 </span>
+                <span
+                  data-testid="block-cost"
+                  className={cn(
+                    'font-mono text-xs',
+                    isPast
+                      ? 'text-muted-foreground/60'
+                      : isDisabled
+                        ? 'text-foreground/50 line-through'
+                        : 'text-muted-foreground'
+                  )}
+                >
+                  €{block.costEur?.toFixed(2) ?? '0.00'}
+                </span>
               </div>
             </div>
           );
@@ -151,10 +213,13 @@ export function SchedulePanel({ schedule, nightComplete, onBlockEnabledChange, c
       {/* Summary */}
       <div className="mt-4 pt-4 border-t border-border flex items-center justify-between text-sm">
         <div className="text-muted-foreground">
-          {t('schedule.total')}: <span className="font-mono text-foreground">{schedule.scheduledMinutes} {t('schedule.min')}</span>
+          {t('schedule.total')}: <span data-testid="total-minutes" className="font-mono text-foreground">{schedule.scheduledMinutes} {t('schedule.min')}</span>
         </div>
         <div className="text-muted-foreground">
-          {t('schedule.avg')}: <span className="font-mono text-success">{avgPrice.toFixed(2)} {t('units.centsPerKwh')}</span>
+          {t('schedule.cost')}: <span data-testid="total-cost" className="font-mono text-foreground">€{schedule.totalCost?.toFixed(2) ?? '0.00'}</span>
+        </div>
+        <div className="text-muted-foreground">
+          {t('schedule.avg')}: <span data-testid="avg-price" className="font-mono text-success">{avgPrice.toFixed(2)} {t('units.centsPerKwh')}</span>
         </div>
       </div>
     </div>

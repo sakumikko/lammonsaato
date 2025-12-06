@@ -13,7 +13,8 @@ HA_USER ?= root
 
 .PHONY: help install test test-unit test-thermia test-nordpool test-firebase \
         test-integration test-ha test-ha-entities test-ha-schedule test-ha-workflow \
-        test-all lint clean deploy status validate-yaml build dist
+        test-all lint clean deploy status validate-yaml build dist \
+        mock-server e2e-test web-dev
 
 # Default target
 help:
@@ -49,6 +50,11 @@ help:
 	@echo "  build            Build distribution package in dist/"
 	@echo "  deploy           Deploy to Home Assistant via SSH"
 	@echo "  validate-yaml    Validate YAML configuration files"
+	@echo ""
+	@echo "E2E Testing:"
+	@echo "  mock-server      Start mock HA server for UI testing"
+	@echo "  web-dev          Start web UI dev server"
+	@echo "  e2e-test         Run Playwright E2E tests"
 	@echo ""
 	@echo "Other:"
 	@echo "  lint             Run linting checks"
@@ -259,3 +265,26 @@ shell:
 # Show documentation
 docs:
 	@cat docs/TECHNICAL_DESIGN.md
+
+# ============================================
+# E2E TESTING
+# ============================================
+
+# Start mock HA server (uses real Python algorithm)
+mock-server:
+	@echo "Starting mock HA server on http://localhost:8765"
+	@echo "Press Ctrl+C to stop"
+	@echo ""
+	$(PYTHON) -m scripts.mock_server
+
+# Start web UI development server
+web-dev:
+	cd web-ui && npm run dev
+
+# Run Playwright E2E tests
+e2e-test:
+	cd web-ui && npx playwright test
+
+# Install Playwright browsers
+e2e-setup:
+	cd web-ui && npx playwright install
