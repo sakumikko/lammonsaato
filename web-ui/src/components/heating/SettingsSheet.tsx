@@ -33,10 +33,10 @@ interface SettingsSheetProps {
     pool?: number;
     tapWater?: number;
   };
-  onGearLimitChange: (circuit: GearCircuit, type: GearLimitType, value: number) => void;
-  onTapWaterChange: (setting: TapWaterSetting, value: number) => void;
-  onHotGasChange: (setting: HotGasSetting, value: number) => void;
-  onHeatingCurveChange: (setting: HeatingCurveSetting, value: number) => void;
+  onGearLimitChange: (circuit: GearCircuit, type: GearLimitType, value: number) => Promise<void>;
+  onTapWaterChange: (setting: TapWaterSetting, value: number) => Promise<void>;
+  onHotGasChange: (setting: HotGasSetting, value: number) => Promise<void>;
+  onHeatingCurveChange: (setting: HeatingCurveSetting, value: number) => Promise<void>;
   className?: string;
 }
 

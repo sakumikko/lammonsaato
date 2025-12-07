@@ -1,5 +1,5 @@
 import { cn } from '@/lib/utils';
-import { Slider } from '@/components/ui/slider';
+import { SliderWithFeedback } from '@/components/ui/slider-with-feedback';
 import { GearRangeIndicator } from './GearRangeIndicator';
 import { LucideIcon } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
@@ -12,8 +12,8 @@ interface GearSettingsCardProps {
   minValue: number;
   maxValue: number;
   currentGear?: number;
-  onMinChange: (value: number) => void;
-  onMaxChange: (value: number) => void;
+  onMinChange: (value: number) => Promise<void>;
+  onMaxChange: (value: number) => Promise<void>;
   minGear?: number;
   maxGear?: number;
   className?: string;
@@ -39,15 +39,15 @@ export function GearSettingsCard({
   const { t } = useTranslation();
 
   // Ensure min doesn't exceed max and vice versa
-  const handleMinChange = (value: number) => {
+  const handleMinChange = async (value: number): Promise<void> => {
     if (value <= maxValue) {
-      onMinChange(value);
+      await onMinChange(value);
     }
   };
 
-  const handleMaxChange = (value: number) => {
+  const handleMaxChange = async (value: number): Promise<void> => {
     if (value >= minValue) {
-      onMaxChange(value);
+      await onMaxChange(value);
     }
   };
 
@@ -69,36 +69,26 @@ export function GearSettingsCard({
       {/* Sliders */}
       <div className="space-y-4">
         {/* Minimum Gear */}
-        <div className="space-y-2">
-          <div className="flex items-center justify-between">
-            <span className="text-sm text-muted-foreground">{t('settings.minimumGear')}</span>
-            <span className="font-mono text-sm text-foreground">{minValue}</span>
-          </div>
-          <Slider
-            value={[minValue]}
-            onValueChange={([value]) => handleMinChange(value)}
-            min={minGear}
-            max={maxGear}
-            step={1}
-            className="w-full"
-          />
-        </div>
+        <SliderWithFeedback
+          label={t('settings.minimumGear')}
+          value={minValue}
+          onChange={handleMinChange}
+          min={minGear}
+          max={maxGear}
+          step={1}
+          unit=""
+        />
 
         {/* Maximum Gear */}
-        <div className="space-y-2">
-          <div className="flex items-center justify-between">
-            <span className="text-sm text-muted-foreground">{t('settings.maximumGear')}</span>
-            <span className="font-mono text-sm text-foreground">{maxValue}</span>
-          </div>
-          <Slider
-            value={[maxValue]}
-            onValueChange={([value]) => handleMaxChange(value)}
-            min={minGear}
-            max={maxGear}
-            step={1}
-            className="w-full"
-          />
-        </div>
+        <SliderWithFeedback
+          label={t('settings.maximumGear')}
+          value={maxValue}
+          onChange={handleMaxChange}
+          min={minGear}
+          max={maxGear}
+          step={1}
+          unit=""
+        />
       </div>
 
       {/* Visual Range Indicator */}

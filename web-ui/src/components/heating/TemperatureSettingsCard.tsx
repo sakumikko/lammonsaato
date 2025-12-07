@@ -1,11 +1,11 @@
 import { cn } from '@/lib/utils';
-import { Slider } from '@/components/ui/slider';
+import { SliderWithFeedback } from '@/components/ui/slider-with-feedback';
 import { LucideIcon } from 'lucide-react';
 
 interface TemperatureSetting {
   label: string;
   value: number;
-  onChange: (value: number) => void;
+  onChange: (value: number) => Promise<void>;
   min: number;
   max: number;
   step?: number;
@@ -54,26 +54,16 @@ export function TemperatureSettingsCard({
       {/* Settings sliders */}
       <div className="space-y-4">
         {settings.map((setting, index) => (
-          <div key={index} className="space-y-2">
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-muted-foreground">{setting.label}</span>
-              <span className="font-mono text-sm text-foreground">
-                {setting.value.toFixed(setting.step && setting.step < 1 ? 1 : 0)}{setting.unit || '°C'}
-              </span>
-            </div>
-            <Slider
-              value={[setting.value]}
-              onValueChange={([value]) => setting.onChange(value)}
-              min={setting.min}
-              max={setting.max}
-              step={setting.step || 1}
-              className="w-full"
-            />
-            <div className="flex justify-between text-[10px] text-muted-foreground">
-              <span>{setting.min}{setting.unit || '°C'}</span>
-              <span>{setting.max}{setting.unit || '°C'}</span>
-            </div>
-          </div>
+          <SliderWithFeedback
+            key={index}
+            label={setting.label}
+            value={setting.value}
+            onChange={setting.onChange}
+            min={setting.min}
+            max={setting.max}
+            step={setting.step || 1}
+            unit={setting.unit || '°C'}
+          />
         ))}
       </div>
     </div>
