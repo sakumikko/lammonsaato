@@ -1,8 +1,14 @@
 #!/bin/bash
 set -e
 
-HA_HOST="192.168.50.11"
-HA_TOKEN="${HA_TOKEN:-"
+HA_HOST="${HA_HOST:-192.168.50.11}"
+
+# HA_TOKEN must be set in environment - never commit tokens!
+if [ -z "$HA_TOKEN" ]; then
+    echo "Error: HA_TOKEN environment variable not set"
+    echo "Set it with: export HA_TOKEN=your_token_here"
+    exit 1
+fi
 
 echo "=== Building distribution ==="
 make dist

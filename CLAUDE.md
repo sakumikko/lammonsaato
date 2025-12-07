@@ -7,6 +7,13 @@
 
 **Entity ID Stability:** Do NOT change identifiers of existing entities (sensors, switches, inputs) without explicit user approval. This breaks dashboards, automations, and history. It is acceptable to add new entities when needed.
 
+**⛔ NEVER Include Secrets in Code:**
+- NEVER hardcode API tokens, passwords, or secrets in source files
+- Always use environment variables: `os.environ.get("HA_TOKEN", "")` with empty default
+- Scripts must fail gracefully if required env vars are missing
+- Secrets belong ONLY in: `.env`, `.env.local`, `secrets/`, or `secrets.yaml` (all gitignored)
+- If you see a hardcoded token, remove it immediately and require env var instead
+
 ## Project Overview
 
 Home Assistant automation system that:
@@ -144,9 +151,247 @@ python scripts/standalone/test_templates.py
 # Build distribution package
 make build             # Creates dist/ folder
 
+# E2E Testing (web-ui)
+make mock-server       # Start mock HA server (uses real Python algorithm)
+make web-dev           # Start web UI dev server
+make e2e-test          # Run Playwright E2E tests
+
 # Deploy to Home Assistant (via Samba)
 # Copy dist/ contents to HA /config/ folder
 ```
+
+## Bug Fix Workflow (MANDATORY TDD)
+
+### ⛔ STOP - READ THIS BEFORE FIXING ANY BUG ⛔
+
+**You MUST NOT apply a fix until you have:**
+1. Written a test that reproduces the bug
+2. Run the test and confirmed it FAILS
+3. Only THEN apply the fix
+4. Run full regression suite before giving deployment instructions
+
+### Mandatory Bug Fix Checklist
+
+**DO NOT SKIP ANY STEP. DO NOT PROCEED TO NEXT STEP UNTIL CURRENT STEP IS COMPLETE.**
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│ STEP 1: REPRODUCE & UNDERSTAND                                  │
+├─────────────────────────────────────────────────────────────────┤
+│ □ Query live system to understand actual vs expected behavior   │
+│ □ Identify which component is broken (pyscript? UI? HA config?) │
+│ □ Document: "Expected X, got Y, because Z"                      │
+└─────────────────────────────────────────────────────────────────┘
+                              ↓
+┌─────────────────────────────────────────────────────────────────┐
+│ STEP 2: WRITE FAILING TEST (before ANY code changes!)           │
+├─────────────────────────────────────────────────────────────────┤
+│ □ Write test in appropriate file:                               │
+│   - Python logic: tests/test_*.py                               │
+│   - E2E/UI: web-ui/e2e/*.spec.ts                               │
+│ □ Test name should include "regression" or describe the bug     │
+│ □ Test asserts the CORRECT behavior (what SHOULD happen)        │
+└─────────────────────────────────────────────────────────────────┘
+                              ↓
+┌─────────────────────────────────────────────────────────────────┐
+│ ⛔ STEP 3: VERIFY TEST FAILS (MANDATORY CHECKPOINT)             │
+├─────────────────────────────────────────────────────────────────┤
+│ □ Run: pytest tests/ -v  OR  npx playwright test <file>         │
+│ □ Confirm NEW test FAILS with current (buggy) code              │
+│ □ If test passes → test is wrong, rewrite it                    │
+│ □ Screenshot/copy the FAILURE output as proof                   │
+└─────────────────────────────────────────────────────────────────┘
+                              ↓
+┌─────────────────────────────────────────────────────────────────┐
+│ STEP 4: APPLY THE FIX                                           │
+├─────────────────────────────────────────────────────────────────┤
+│ □ Now (and ONLY now) modify the code to fix the bug             │
+│ □ Keep changes minimal - fix only what's broken                 │
+└─────────────────────────────────────────────────────────────────┘
+                              ↓
+┌─────────────────────────────────────────────────────────────────┐
+│ STEP 5: VERIFY TEST PASSES                                      │
+├─────────────────────────────────────────────────────────────────┤
+│ □ Run the same test again                                       │
+│ □ Confirm it now PASSES                                         │
+│ □ If still fails → fix is incomplete, iterate                   │
+└─────────────────────────────────────────────────────────────────┘
+                              ↓
+┌─────────────────────────────────────────────────────────────────┐
+│ ⛔ STEP 6: RUN FULL REGRESSION SUITE (BEFORE DEPLOYMENT)        │
+├─────────────────────────────────────────────────────────────────┤
+│ □ Run: make test          (all Python tests)                    │
+│ □ Run: make e2e-test      (all Playwright tests)                │
+│ □ ALL tests must pass before giving deployment instructions     │
+│ □ If any test fails → fix it before proceeding                  │
+└─────────────────────────────────────────────────────────────────┘
+                              ↓
+┌─────────────────────────────────────────────────────────────────┐
+│ STEP 7: DEPLOYMENT INSTRUCTIONS                                 │
+├─────────────────────────────────────────────────────────────────┤
+│ □ Only after ALL above steps are complete                       │
+│ □ Provide specific scp/deploy commands                          │
+│ □ Include verification steps for live system                    │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### Why This Is Non-Negotiable
+
+**Problems when skipping TDD:**
+1. Test written after fix always passes → proves nothing
+2. No evidence the fix actually fixed the bug
+3. May have fixed wrong thing or introduced new bugs
+4. User wastes time deploying broken code
+
+**Example of what went wrong (2025-12-06):**
+```
+Bug: UI shows 2h instead of 2.5h, costs show €0.00
+What I did WRONG:
+  1. Queried HA → found pyscript working correctly
+  2. Searched code → found useHomeAssistant.ts bug
+  3. FIXED THE BUG ← should have written test first!
+  4. Wrote test (always passes, proves nothing)
+  5. Gave deployment instructions
+
+What I SHOULD have done:
+  1. Queried HA → found pyscript working correctly
+  2. Wrote test: "should display >4 blocks when scheduled"
+  3. Ran test → FAILED (proved test catches bug)
+  4. Fixed useHomeAssistant.ts
+  5. Ran test → PASSED (proved fix works)
+  6. Ran full suite → all pass
+  7. Gave deployment instructions
+```
+
+### Quick Reference Commands
+
+```bash
+# Python unit tests
+./env/bin/python -m pytest tests/ -v
+
+# Single Python test file
+./env/bin/python -m pytest tests/test_cost_constraint.py -v
+
+# E2E tests (requires mock-server and web-dev running)
+cd web-ui && npx playwright test
+
+# Single E2E test file
+cd web-ui && npx playwright test e2e/block-count-regression.spec.ts
+
+# Full regression before deployment
+make test && cd web-ui && npx playwright test
+```
+
+## Full-Stack Integration Testing
+
+**CRITICAL:** When adding features that span multiple components, you MUST verify the entire data flow works end-to-end. A common failure mode is adding entities to YAML and UI without updating pyscript to SET those values.
+
+### Data Flow Architecture
+
+```
+┌─────────────┐    reads     ┌─────────────────┐    sets      ┌─────────────┐
+│   Web UI    │ ◄─────────── │  HA Entities    │ ◄─────────── │  Pyscript   │
+│ (React)     │              │  (YAML config)  │              │  (Python)   │
+└─────────────┘              └─────────────────┘              └─────────────┘
+     │                              │                               │
+     │  Displays values             │  Stores state                 │  Calculates
+     │  from entities               │  (input_number,               │  & writes
+     │                              │   input_boolean, etc)         │  values
+     └──────────────────────────────┴───────────────────────────────┘
+```
+
+### Integration Test Checklist (MANDATORY)
+
+When adding a new feature, verify ALL of these:
+
+**1. Pyscript → HA Entity:**
+```bash
+# After pyscript service call, check entity has correct value
+curl -s -H "Authorization: Bearer $HA_TOKEN" \
+  "$HA_URL/api/states/input_number.pool_heat_block_1_cost" | jq '.state'
+# Must NOT be "0" or "unknown" if pyscript should set it
+```
+
+**2. HA Entity → Web UI:**
+```bash
+# Mock server should return entity values correctly
+curl -s http://localhost:8765/api/states | jq '.[] | select(.entity_id | contains("cost"))'
+```
+
+**3. End-to-End via E2E Test:**
+```typescript
+// Test that UI displays values from HA entities
+test('should display block costs from HA entities', async ({ page }) => {
+  // Trigger schedule calculation
+  await page.getByTestId('schedule-editor-save').click();
+  // Wait for response
+  await page.waitForResponse(resp => resp.url().includes('/api/calculate'));
+  // Verify costs are displayed (not €0.00)
+  const costElement = page.getByTestId('block-cost').first();
+  await expect(costElement).not.toContainText('€0.00');
+});
+```
+
+### Feature Addition Workflow
+
+```
+1. Define feature requirements
+         ↓
+2. Add HA entities to pool_heating.yaml
+   - input_number, input_boolean, etc.
+         ↓
+3. Update pyscript to CALCULATE and SET values
+   - Add service.call() to write to new entities
+   - Write unit test for calculation logic
+         ↓
+4. Update mock server to return new entity values
+   - scripts/mock_server/server.py
+         ↓
+5. Update Web UI to display values
+   - Add to TypeScript types
+   - Add UI components
+         ↓
+6. Write E2E test that verifies full flow
+   - Test must FAIL if pyscript doesn't set values
+         ↓
+7. Test against LIVE HA server
+   - Developer Tools → Services → call pyscript service
+   - Developer Tools → States → verify entity values
+   - Web UI → verify display
+```
+
+### Example: Cost Constraint Feature (2025-12 Bug)
+
+**What went wrong:**
+- ✅ Added `input_number.pool_heat_block_X_cost` to YAML
+- ✅ Added cost display to Web UI
+- ❌ FORGOT to update pyscript to set cost values
+- Result: UI showed €0.00 for all blocks
+
+**What should have been done:**
+```bash
+# After implementing, verify pyscript sets the values:
+ssh root@192.168.50.11 "ha service call pyscript.calculate_pool_heating_schedule"
+ssh root@192.168.50.11 "ha state get input_number.pool_heat_block_1_cost"
+# If this returns 0, pyscript is NOT setting it!
+```
+
+## E2E Testing Best Practices
+
+**Use stable locators (in order of preference):**
+1. `data-testid` attributes: `page.getByTestId('schedule-editor-save')`
+2. Accessible roles: `page.getByRole('button', { name: /save/i })`
+3. Text content: `page.getByText(/mock server connected/i)`
+4. **AVOID:** CSS selectors, class names, DOM structure (brittle)
+
+**Added `data-testid` attributes:**
+- `schedule-panel` - Main schedule panel
+- `schedule-blocks` - Blocks container (has `data-block-count` attribute)
+- `total-minutes` - Total scheduled minutes
+- `schedule-editor-toggle` - Settings button
+- `schedule-editor-panel` - Editor panel
+- `select-min-block`, `select-max-block`, `select-total-hours` - Selectors
+- `schedule-editor-save` - Save button
 
 ## Template Testing Guidelines
 
@@ -187,8 +432,17 @@ You can also test templates manually in Home Assistant at **Developer Tools → 
 - [Troubleshooting](docs/TROUBLESHOOTING.md) - Common issues and solutions
 - [Thermia Registers](docs/THERMIA_REGISTERS.md) - Modbus register reference
 
-## Recent Changes (2025-11-30)
+## Recent Changes (2025-12-06)
 
+### Cost Constraint Feature (2025-12-06)
+1. Added cost calculation: `cost = POWER_KW × duration_hours × price_eur` (5kW assumed)
+2. Extended BLOCK_ENTITIES from 4 to 10 blocks with cost and cost_exceeded fields
+3. Added cost constraint: enables cheapest blocks first up to EUR limit
+4. Fixed €0.00 bug: pyscript now sets `input_number.pool_heat_block_X_cost`
+5. Added `tests/test_cost_constraint.py` with 15 tests including regression test
+6. **Lesson learned:** Added "Full-Stack Integration Testing" section to CLAUDE.md
+
+### Previous Changes (2025-11-30)
 1. Fixed pyscript NameError for missing pool temperature sensor
 2. Added energy/cost calculation (delta-T × flow × COP)
 3. Added Thermia auto-reload automations for stability

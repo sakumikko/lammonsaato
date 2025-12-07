@@ -105,6 +105,41 @@ def fetch_history(entity_id: str, start_time: datetime, end_time: datetime) -> l
         return []
 
 
+def fetch_temperature_stats(
+    entity_id: str, start_time: datetime, end_time: datetime
+) -> tuple[Optional[float], Optional[float]]:
+    """Fetch temperature statistics from history.
+
+    Args:
+        entity_id: Temperature sensor entity
+        start_time: Start of window
+        end_time: End of window
+
+    Returns:
+        (average, final) temperature values, or (None, None) if unavailable
+    """
+    history = fetch_history(entity_id, start_time, end_time)
+    if not history:
+        return None, None
+
+    temps = []
+    final_temp = None
+
+    for record in history:
+        state = record.get("state", "")
+        if state in ["unknown", "unavailable", None, ""]:
+            continue
+        try:
+            temp = float(state)
+            temps.append(temp)
+            final_temp = temp  # Last valid reading
+        except (ValueError, TypeError):
+            continue
+
+    avg_temp = sum(temps) / len(temps) if temps else None
+    return avg_temp, final_temp
+
+
 def calculate_cycle_totals(heating_date: str) -> dict:
     """Calculate cycle totals from 15-minute sensor history.
 
@@ -112,6 +147,8 @@ def calculate_cycle_totals(heating_date: str) -> dict:
     - Total energy (kWh) from sensor state values
     - Total cost (EUR) from period_cost_eur attributes
     - Count of 15-min periods with heating
+    - Outdoor temperature average during the cycle
+    - Final pool temperature at end of cycle
 
     Args:
         heating_date: YYYY-MM-DD string for the cycle start
@@ -211,12 +248,26 @@ def calculate_cycle_totals(heating_date: str) -> dict:
     savings = baseline_cost - total_cost
     avg_price = avg_heating_price
 
+    # Duration = periods * 15 minutes (each period is 15 min)
+    duration_minutes = periods_with_energy * 15
+
+    # Fetch temperature data
+    print("  Fetching temperature data...")
+    outdoor_avg, _ = fetch_temperature_stats(
+        "sensor.outdoor_temperature", cycle_start, cycle_end
+    )
+    _, pool_final = fetch_temperature_stats(
+        "sensor.pool_return_line_temperature_corrected", cycle_start, cycle_end
+    )
+
     print(f"  Total energy: {total_energy:.3f} kWh")
     print(f"  Total cost: {total_cost:.4f} EUR")
-    print(f"  Periods with energy: {periods_with_energy}")
+    print(f"  Duration: {duration_minutes} min ({periods_with_energy} periods)")
     print(f"  Average price: {avg_price:.4f} EUR/kWh")
     print(f"  Baseline cost: {baseline_cost:.4f} EUR")
     print(f"  Savings: {savings:.4f} EUR")
+    print(f"  Outdoor temp avg: {outdoor_avg:.1f}°C" if outdoor_avg else "  Outdoor temp avg: N/A")
+    print(f"  Pool temp final: {pool_final:.1f}°C" if pool_final else "  Pool temp final: N/A")
 
     return {
         "date": heating_date,
@@ -224,8 +275,11 @@ def calculate_cycle_totals(heating_date: str) -> dict:
         "cost": round(total_cost, 4),
         "baseline": round(baseline_cost, 4),
         "savings": round(savings, 4),
-        "periods": periods_with_energy,
-        "avg_price": round(avg_price, 4)
+        "duration": duration_minutes,
+        "blocks": periods_with_energy,  # Count of 15-min periods with heating
+        "avg_price": round(avg_price, 4),
+        "outdoor_avg": round(outdoor_avg, 1) if outdoor_avg is not None else 0,
+        "pool_final": round(pool_final, 1) if pool_final is not None else 0,
     }
 
 

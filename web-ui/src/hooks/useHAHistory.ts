@@ -20,17 +20,15 @@ export const ANALYTICS_ENTITIES = {
 
 export interface NightSummaryData {
   heating_date: string;
-  total_energy: number;
-  total_cost: number;
-  total_duration: number;
-  blocks_count: number;
-  pool_temp_final: number;
-  outdoor_temp_avg: number;
-  avg_price: number;
-  avg_window_price: number;
-  baseline_cost: number;
-  savings: number;
-  savings_percent: number;
+  energy: number;        // state value (kWh)
+  cost: number;          // EUR
+  baseline: number;      // EUR (baseline cost for comparison)
+  savings: number;       // EUR (baseline - cost)
+  duration: number;      // minutes
+  blocks: number;        // count of heating blocks
+  pool_temp: number;     // °C
+  outdoor_temp: number;  // °C
+  avg_price: number;     // EUR/kWh
 }
 
 export interface DailyHistoryData {
@@ -67,30 +65,46 @@ function getDateRange(timeRange: TimeRange): { start: Date; end: Date } {
 
 /**
  * Parse night summary history into daily data
+ *
+ * Sensor attributes use clean names without redundant prefixes:
+ * - energy: from state value (kWh)
+ * - cost, baseline, savings, duration, blocks, pool_temp, outdoor_temp, avg_price
  */
 function parseNightSummaryHistory(
   history: HAEntityState[]
 ): Map<string, NightSummaryData> {
   const result = new Map<string, NightSummaryData>();
 
-  for (const state of history) {
-    const attrs = state.attributes as Record<string, unknown>;
+  for (const stateRaw of history) {
+    // Handle both full and minimal response formats
+    // Full: { state: "...", attributes: {...} }
+    // Minimal: { s: "...", a: {...} }
+    const state = stateRaw as Record<string, unknown>;
+    const stateValue = (state.state ?? state.s) as string | undefined;
+    const attrs = (state.attributes ?? state.a) as Record<string, unknown> | undefined;
+
+    // Skip invalid states
+    if (!stateValue || !attrs) {
+      continue;
+    }
+
     const heatingDate = attrs.heating_date as string;
 
     if (heatingDate) {
+      // Energy comes from state value, not attribute
+      const energy = parseFloat(stateValue) || 0;
+
       result.set(heatingDate, {
         heating_date: heatingDate,
-        total_energy: (attrs.total_energy as number) ?? 0,
-        total_cost: (attrs.total_cost as number) ?? 0,
-        total_duration: (attrs.total_duration as number) ?? 0,
-        blocks_count: (attrs.blocks_count as number) ?? 0,
-        pool_temp_final: (attrs.pool_temp_final as number) ?? 0,
-        outdoor_temp_avg: (attrs.outdoor_temp_avg as number) ?? 0,
-        avg_price: (attrs.avg_price as number) ?? 0,
-        avg_window_price: (attrs.avg_window_price as number) ?? 0,
-        baseline_cost: (attrs.baseline_cost as number) ?? 0,
+        energy: energy,
+        cost: (attrs.cost as number) ?? 0,
+        baseline: (attrs.baseline as number) ?? 0,
         savings: (attrs.savings as number) ?? 0,
-        savings_percent: (attrs.savings_percent as number) ?? 0,
+        duration: (attrs.duration as number) ?? 0,
+        blocks: (attrs.blocks as number) ?? 0,
+        pool_temp: (attrs.pool_temp as number) ?? 0,
+        outdoor_temp: (attrs.outdoor_temp as number) ?? 0,
+        avg_price: (attrs.avg_price as number) ?? 0,
       });
     }
   }
@@ -155,8 +169,22 @@ export function useHAHistory(timeRange: TimeRange): HAHistoryState {
       );
 
       // Parse night summary data
-      const nightSummaries = summaryHistory[0]
-        ? parseNightSummaryHistory(summaryHistory[0])
+      // WebSocket returns object with entity_id as key: {entity_id: [...states...]}
+      // Handle both object and array formats
+      let summaryStates: HAEntityState[] = [];
+      if (summaryHistory && typeof summaryHistory === 'object') {
+        if (Array.isArray(summaryHistory)) {
+          // Array format (REST API style): [[...states...]]
+          summaryStates = summaryHistory[0] || [];
+        } else {
+          // Object format (WebSocket style): {entity_id: [...states...]}
+          const historyObj = summaryHistory as Record<string, HAEntityState[]>;
+          summaryStates = historyObj[ANALYTICS_ENTITIES.nightSummary] || [];
+        }
+      }
+
+      const nightSummaries = summaryStates.length > 0
+        ? parseNightSummaryHistory(summaryStates)
         : new Map<string, NightSummaryData>();
 
       // Parse fallback statistics
@@ -176,15 +204,15 @@ export function useHAHistory(timeRange: TimeRange): HAHistoryState {
           // Use night summary data (preferred)
           dailyData.push({
             date: dateStr,
-            electricEnergy: summary.total_energy,
-            dailyCost: summary.total_cost,
-            avgOutdoorTemp: summary.outdoor_temp_avg,
-            poolTemp: summary.pool_temp_final,
+            electricEnergy: summary.energy,
+            dailyCost: summary.cost,
+            avgOutdoorTemp: summary.outdoor_temp,
+            poolTemp: summary.pool_temp,
             avgSpotPrice: summary.avg_price,
-            baselineCost: summary.baseline_cost,
+            baselineCost: summary.baseline,
             savings: summary.savings,
-            blocksCount: summary.blocks_count,
-            duration: summary.total_duration,
+            blocksCount: summary.blocks,
+            duration: summary.duration,
           });
         } else {
           // Fallback to raw statistics

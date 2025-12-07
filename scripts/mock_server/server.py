@@ -508,6 +508,86 @@ async def reset_state():
 
 
 # ============================================
+# ANALYTICS / HISTORY ENDPOINTS
+# ============================================
+
+@app.get("/api/states")
+async def get_all_states():
+    """Get all entity states - used by analytics page."""
+    # Return mock night summary sensor state
+    return [
+        {
+            "entity_id": "sensor.pool_heating_night_summary",
+            "state": "11.919",
+            "attributes": {
+                "heating_date": "2025-12-05",
+                "cost": 0.4837,
+                "baseline": 0.6462,
+                "savings": 0.1625,
+                "duration": 180,
+                "blocks": 12,
+                "outdoor_temp": 6.0,
+                "pool_temp": 25.2,
+                "avg_price": 0.0406,
+                "unit_of_measurement": "kWh",
+                "device_class": "energy",
+                "state_class": "measurement",
+                "friendly_name": "Pool Heating Night Summary"
+            },
+            "last_changed": "2025-12-06T07:00:00+00:00",
+            "last_updated": "2025-12-06T07:00:00+00:00"
+        },
+        {
+            "entity_id": "sensor.outdoor_temperature",
+            "state": "5.5",
+            "attributes": {
+                "unit_of_measurement": "°C",
+                "friendly_name": "Outdoor Temperature"
+            }
+        },
+        {
+            "entity_id": "sensor.pool_return_line_temperature_corrected",
+            "state": "25.2",
+            "attributes": {
+                "unit_of_measurement": "°C",
+                "friendly_name": "Pool Water Temperature"
+            }
+        }
+    ]
+
+
+@app.get("/api/history/period/{start_time}")
+async def get_history(start_time: str, filter_entity_id: str = None, end_time: str = None):
+    """Get entity history - used by analytics page."""
+    # Return mock history for the night summary sensor
+    if filter_entity_id == "sensor.pool_heating_night_summary":
+        return [[
+            {
+                "entity_id": "sensor.pool_heating_night_summary",
+                "state": "11.919",
+                "attributes": {
+                    "heating_date": "2025-12-05",
+                    "cost": 0.4837,
+                    "baseline": 0.6462,
+                    "savings": 0.1625,
+                    "duration": 180,
+                    "blocks": 12,
+                    "outdoor_temp": 6.0,
+                    "pool_temp": 25.2,
+                    "avg_price": 0.0406,
+                    "unit_of_measurement": "kWh",
+                    "device_class": "energy",
+                    "state_class": "measurement",
+                    "friendly_name": "Pool Heating Night Summary"
+                },
+                "last_changed": "2025-12-06T07:00:00+00:00",
+                "last_updated": "2025-12-06T07:00:00+00:00"
+            }
+        ]]
+    return [[]]
+
+
+# ============================================
 # WEBSOCKET ENDPOINT
 # ============================================
 

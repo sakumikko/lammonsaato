@@ -28,11 +28,13 @@ import urllib.error
 from datetime import datetime, timedelta
 
 HA_HOST = os.environ.get("HA_HOST", "192.168.50.11")
-HA_TOKEN = os.environ.get(
-    "HA_TOKEN",
-    "",
-)
+HA_TOKEN = os.environ.get("HA_TOKEN", "")
 HA_URL = f"http://{HA_HOST}:8123"
+
+if not HA_TOKEN:
+    print("Error: HA_TOKEN environment variable not set", file=sys.stderr)
+    print("Set it with: export HA_TOKEN=your_token_here", file=sys.stderr)
+    sys.exit(1)
 
 
 def fetch_state(entity_id: str) -> dict | None:

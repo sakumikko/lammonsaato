@@ -110,3 +110,35 @@ This ensures energy calculations use actual heating duration, while pool tempera
 | `pyscript.log_session_final_temp` | Update final pool temp after mixing |
 | `pyscript.calculate_night_summary` | Aggregate night's heating data (runs at 07:00) |
 | `pyscript.backfill_night_summaries` | Backfill historical data (one-time) |
+
+
+⏺ Bash(./env/bin/python scripts/standalone/backfill_night_summaries.py findings/home-assistant_v2.db)
+  ⎿  Opening database: findings/home-assistant_v2.db
+     Found 5 days with data
+     States metadata_id for sensor.pool_heating_night_summary: 101
+     … +53 lines (ctrl+o to expand)
+
+⏺ Bash(sqlite3 findings/home-assistant_v2.db "
+      SELECT…)
+  ⎿  2025-12-02 07:00:00|2.504|2025-12-01|0.1357|0.1147
+     2025-12-03 07:00:00|6.849|2025-12-02|0.4422|0.2427
+     2025-12-04 07:00:00|9.795|2025-12-03|0.0875|0.892
+     … +2 lines (ctrl+o to expand)
+
+⏺ Data inserted successfully. Deployment steps:
+
+  # 1. Stop Home Assistant first (required - DB is locked while running)
+  ssh root@192.168.50.11 "ha core stop"
+
+  # 2. Backup original DB (just in case)
+  ssh root@192.168.50.11 "cp /config/home-assistant_v2.db /config/home-assistant_v2.db.backup"
+
+  # 3. Copy modified DB
+  scp findings/home-assistant_v2.db root@192.168.50.11:/config/
+
+  # 4. Start Home Assistant
+  ssh root@192.168.50.11 "ha core start"
+
+  Then verify in HA: Developer Tools → States → search night_summary
+
+  You should see 5 historical entries with heating dates Dec 1-5.

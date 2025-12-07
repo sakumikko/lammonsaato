@@ -34,6 +34,9 @@ Pool heating is expensive and typically runs at fixed times regardless of electr
 | FR-3 | System SHALL split total heating time into blocks with mandatory breaks between them |
 | FR-4 | System SHALL select the cheapest price combination across all valid block configurations |
 | FR-5 | System SHALL store the calculated schedule in Home Assistant entities |
+| FR-5a | System SHALL support up to 10 heating blocks per night |
+| FR-5b | System SHALL apply cost constraint when configured, enabling only cheapest blocks up to the EUR limit |
+| FR-5c | System SHALL calculate energy cost per block based on 5kW power consumption and block duration |
 
 ### 4.2 Heating Control
 
@@ -75,6 +78,12 @@ Pool heating is expensive and typically runs at fixed times regardless of electr
 | FR-24 | Web UI SHALL allow user to set pool target temperature |
 | FR-25 | Web UI SHALL allow user to enable/disable individual heating blocks |
 | FR-26 | Web UI SHALL allow user to toggle master heating enabled state |
+| FR-27 | Web UI SHALL allow user to configure schedule parameters (min/max block duration, total hours) |
+| FR-28 | Web UI SHALL allow user to set max cost per night (EUR), with empty = no limit |
+| FR-29 | Web UI SHALL display cost per block in EUR |
+| FR-30 | Web UI SHALL display total scheduled cost in EUR |
+| FR-31 | Web UI SHALL show warning when cost limit causes blocks to be disabled |
+| FR-32 | Web UI SHALL allow user to manually override cost-exceeded blocks (re-enable them) |
 
 ## 5. Non-Functional Requirements
 
@@ -110,10 +119,11 @@ Pool heating is expensive and typically runs at fixed times regardless of electr
 - **Rationale:** Overnight hours typically have lowest prices; avoids peak evening demand
 
 ### 6.2 Block Parameters
-- **Total Duration:** 2 hours (120 minutes)
-- **Block Size:** 30-45 minutes each
+- **Total Duration:** 0-5 hours (configurable via UI)
+- **Block Size:** 30-60 minutes each (configurable min/max)
+- **Max Blocks:** 10 per night
 - **Break Duration:** Equal to preceding block (allows space heating between pool heating)
-- **Rationale:** Shorter blocks with breaks prevent overwhelming heat pump capacity
+- **Rationale:** Shorter blocks with breaks prevent overwhelming heat pump capacity; 5-hour maximum ensures adequate break time within 10-hour window
 
 ### 6.3 Energy Calculation Assumptions
 - **Flow Rate:** 45 liters per minute
@@ -121,7 +131,13 @@ Pool heating is expensive and typically runs at fixed times regardless of electr
 - **Specific Heat:** 4.186 kJ/(kg·K)
 - **Rationale:** Based on typical Thermia Mega operating parameters
 
-### 6.4 Hardware Constraints
+### 6.4 Cost Constraint Assumptions
+- **Power Consumption:** 5 kW (heat pump electrical draw during pool heating)
+- **Energy per Block:** power × duration (e.g., 30 min block = 2.5 kWh)
+- **Cost per Block:** energy × spot price (c/kWh)
+- **Rationale:** 5 kW is approximate based on typical compressor power at full load
+
+### 6.5 Hardware Constraints
 - Pool water temperature sensor not available (uses condenser temps instead)
 - Thermia integration occasionally freezes (requires periodic reload)
 - No direct heat pump control (uses relay to enable/disable circuit)

@@ -726,30 +726,30 @@ template:
           heating_date: >
             {% set data = states('input_text.pool_heating_night_summary_data') %}
             {{ (data | from_json).date | default('') if data and data not in ['unknown', 'unavailable', ''] else '' }}
-          total_cost: >
+          cost: >
             {% set data = states('input_text.pool_heating_night_summary_data') %}
             {{ (data | from_json).cost | default(0) if data and data not in ['unknown', 'unavailable', ''] else 0 }}
-          baseline_cost: >
+          baseline: >
             {% set data = states('input_text.pool_heating_night_summary_data') %}
             {{ (data | from_json).baseline | default(0) if data and data not in ['unknown', 'unavailable', ''] else 0 }}
           savings: >
             {% set data = states('input_text.pool_heating_night_summary_data') %}
             {{ (data | from_json).savings | default(0) if data and data not in ['unknown', 'unavailable', ''] else 0 }}
-          duration_minutes: >
+          duration: >
             {% set data = states('input_text.pool_heating_night_summary_data') %}
             {{ (data | from_json).duration | default(0) if data and data not in ['unknown', 'unavailable', ''] else 0 }}
-          blocks_count: >
+          blocks: >
             {% set data = states('input_text.pool_heating_night_summary_data') %}
             {{ (data | from_json).blocks | default(0) if data and data not in ['unknown', 'unavailable', ''] else 0 }}
-          outdoor_temp_avg: >
+          outdoor_temp: >
             {% set data = states('input_text.pool_heating_night_summary_data') %}
             {{ (data | from_json).outdoor_avg | default(0) if data and data not in ['unknown', 'unavailable', ''] else 0 }}
-          pool_temp_final: >
+          pool_temp: >
             {% set data = states('input_text.pool_heating_night_summary_data') %}
             {{ (data | from_json).pool_final | default(0) if data and data not in ['unknown', 'unavailable', ''] else 0 }}
-          avg_price_cents: >
+          avg_price: >
             {% set data = states('input_text.pool_heating_night_summary_data') %}
-            {{ ((data | from_json).avg_price | default(0) * 100) | round(2) if data and data not in ['unknown', 'unavailable', ''] else 0 }}
+            {{ (data | from_json).avg_price | default(0) if data and data not in ['unknown', 'unavailable', ''] else 0 }}
 
   - binary_sensor:
       # Is currently within a scheduled heating block
