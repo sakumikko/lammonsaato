@@ -1,6 +1,6 @@
 # Claude Context - Pool Heating Automation Project
 
-**Last Updated:** 2025-11-30
+**Last Updated:** 2025-12-09
 **Project:** lammonsaato (Pool Heating Optimizer for Home Assistant)
 
 ## Important Development Rules
@@ -158,6 +158,109 @@ make e2e-test          # Run Playwright E2E tests
 
 # Deploy to Home Assistant (via Samba)
 # Copy dist/ contents to HA /config/ folder
+```
+
+## Feature Development Workflow (MANDATORY TDD)
+
+### ⛔ STOP - READ THIS BEFORE IMPLEMENTING ANY FEATURE ⛔
+
+**Test-Driven Development applies to ALL development, not just bug fixes.**
+
+You MUST follow this workflow for every new feature:
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│ STEP 1: WRITE ACCEPTANCE TESTS FIRST                            │
+├─────────────────────────────────────────────────────────────────┤
+│ □ Define expected behavior in plain language                    │
+│ □ Write E2E test(s) describing what the feature should do       │
+│ □ Write unit tests for core logic (if applicable)               │
+│ □ Tests should be specific and verifiable                       │
+└─────────────────────────────────────────────────────────────────┘
+                              ↓
+┌─────────────────────────────────────────────────────────────────┐
+│ ⛔ STEP 2: RUN TESTS - VERIFY THEY FAIL (MANDATORY)             │
+├─────────────────────────────────────────────────────────────────┤
+│ □ Run: npx playwright test <your-test-file>                     │
+│ □ Confirm tests FAIL because feature doesn't exist yet          │
+│ □ If tests pass → tests are wrong, they don't test the feature  │
+│ □ This proves your tests actually test something meaningful     │
+└─────────────────────────────────────────────────────────────────┘
+                              ↓
+┌─────────────────────────────────────────────────────────────────┐
+│ STEP 3: IMPLEMENT THE FEATURE                                   │
+├─────────────────────────────────────────────────────────────────┤
+│ □ Now (and ONLY now) write the implementation code              │
+│ □ Add routes, components, hooks, backend logic as needed        │
+│ □ Keep implementation focused on passing the tests              │
+└─────────────────────────────────────────────────────────────────┘
+                              ↓
+┌─────────────────────────────────────────────────────────────────┐
+│ STEP 4: RUN TESTS - VERIFY THEY PASS                            │
+├─────────────────────────────────────────────────────────────────┤
+│ □ Run your feature tests again                                  │
+│ □ Confirm they now PASS                                         │
+│ □ If still failing → implementation is incomplete, iterate      │
+└─────────────────────────────────────────────────────────────────┘
+                              ↓
+┌─────────────────────────────────────────────────────────────────┐
+│ ⛔ STEP 5: RUN FULL REGRESSION SUITE (BEFORE COMMIT)            │
+├─────────────────────────────────────────────────────────────────┤
+│ □ Run: ./env/bin/python -m pytest tests/ -v                     │
+│ □ Run: cd web-ui && npx playwright test                         │
+│ □ ALL tests must pass before committing                         │
+│ □ If any test fails → fix before proceeding                     │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### Why Tests Must Fail First
+
+**The failing test proves:**
+1. Your test actually tests the new feature (not something that already exists)
+2. The test is correctly written to detect the absence of the feature
+3. When it passes later, you have evidence the implementation works
+
+**Example of what went wrong (2025-12-09 Entity Browser):**
+```
+What I did WRONG:
+  1. Created useEntityBrowser.ts hook
+  2. Created EntityBrowser.tsx page
+  3. Added route to App.tsx
+  4. Committed the feature
+  5. THEN wrote tests ← TOO LATE!
+  Result: Tests always pass, prove nothing
+
+What I SHOULD have done:
+  1. Wrote E2E test: "should display entities with search filter"
+  2. Ran test → FAILED (page doesn't exist)
+  3. Created hook, page, route
+  4. Ran test → PASSED (proves feature works)
+  5. Ran full suite → all pass
+  6. Committed
+```
+
+### Quick Reference for Feature TDD
+
+```bash
+# 1. Write test first
+cat > web-ui/e2e/my-feature.spec.ts << 'EOF'
+import { test, expect } from '@playwright/test';
+test('should do the thing', async ({ page }) => {
+  await page.goto('/my-feature');
+  await expect(page.getByText('Expected Content')).toBeVisible();
+});
+EOF
+
+# 2. Run test - should FAIL
+cd web-ui && npx playwright test e2e/my-feature.spec.ts
+
+# 3. Implement feature...
+
+# 4. Run test - should PASS
+cd web-ui && npx playwright test e2e/my-feature.spec.ts
+
+# 5. Full regression
+./env/bin/python -m pytest tests/ -v && cd web-ui && npx playwright test
 ```
 
 ## Bug Fix Workflow (MANDATORY TDD)
