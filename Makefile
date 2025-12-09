@@ -13,7 +13,7 @@ HA_USER ?= root
 
 .PHONY: help install test test-unit test-thermia test-nordpool test-firebase \
         test-integration test-ha test-ha-entities test-ha-schedule test-ha-workflow \
-        test-all lint clean deploy status validate-yaml build dist \
+        test-all lint clean deploy status validate-yaml build build-web build-all dist \
         mock-server e2e-test web-dev web-dev-test ci
 
 # Default target
@@ -47,7 +47,9 @@ help:
 	@echo "  test-all         Run all tests (unit + integration + HA)"
 	@echo ""
 	@echo "Build & Deployment:"
-	@echo "  build            Build distribution package in dist/"
+	@echo "  build            Build HA backend (packages, pyscript, docs)"
+	@echo "  build-web        Build web UI addon"
+	@echo "  build-all        Build everything (backend + web UI)"
 	@echo "  deploy           Deploy to Home Assistant via SSH"
 	@echo "  validate-yaml    Validate YAML configuration files"
 	@echo ""
@@ -221,8 +223,17 @@ print('  pool_heating.yaml: OK')" || echo "  pool_heating.yaml: FAILED"
 # BUILD
 # ============================================
 
+# Build HA backend only (packages, pyscript, docs)
 build:
 	@$(PYTHON) scripts/build.py
+
+# Build web UI only
+build-web:
+	cd web-ui && npm run build
+	cd web-ui && rm -rf addon/dist && cp -r dist addon/dist
+
+# Build everything (backend + web UI)
+build-all: build build-web
 
 dist: build
 
