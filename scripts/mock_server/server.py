@@ -9,6 +9,7 @@ Features:
 - Controllable price scenarios
 - Simulated HA state management
 - WebSocket-like state updates
+- HA-compatible WebSocket API at /api/websocket
 
 Usage:
     python -m scripts.mock_server.server
@@ -18,6 +19,7 @@ Usage:
 
 import asyncio
 import json
+import logging
 from datetime import datetime, date, timedelta
 from typing import Dict, List, Any, Optional
 from dataclasses import dataclass, field, asdict
@@ -28,6 +30,10 @@ from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import uvicorn
+
+# Set up logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 # Import the real algorithm
 import sys
@@ -45,6 +51,10 @@ from scripts.lib.schedule_optimizer import (
     DEFAULT_TOTAL_HEATING_MINUTES,
     ENERGY_PER_SLOT_KWH,
 )
+
+# Import HA WebSocket support
+from .state_manager import MockStateManager
+from .ha_websocket import HAWebSocketHandler
 
 
 # ============================================
@@ -210,6 +220,10 @@ class MockState:
 # Global state
 state = MockState()
 connected_clients: List[WebSocket] = []
+
+# HA WebSocket state manager and clients
+ha_state_manager = MockStateManager()
+ha_connected_clients: Dict[WebSocket, HAWebSocketHandler] = {}
 
 
 # ============================================
@@ -513,47 +527,9 @@ async def reset_state():
 
 @app.get("/api/states")
 async def get_all_states():
-    """Get all entity states - used by analytics page."""
-    # Return mock night summary sensor state
-    return [
-        {
-            "entity_id": "sensor.pool_heating_night_summary",
-            "state": "11.919",
-            "attributes": {
-                "heating_date": "2025-12-05",
-                "cost": 0.4837,
-                "baseline": 0.6462,
-                "savings": 0.1625,
-                "duration": 180,
-                "blocks": 12,
-                "outdoor_temp": 6.0,
-                "pool_temp": 25.2,
-                "avg_price": 0.0406,
-                "unit_of_measurement": "kWh",
-                "device_class": "energy",
-                "state_class": "measurement",
-                "friendly_name": "Pool Heating Night Summary"
-            },
-            "last_changed": "2025-12-06T07:00:00+00:00",
-            "last_updated": "2025-12-06T07:00:00+00:00"
-        },
-        {
-            "entity_id": "sensor.outdoor_temperature",
-            "state": "5.5",
-            "attributes": {
-                "unit_of_measurement": "°C",
-                "friendly_name": "Outdoor Temperature"
-            }
-        },
-        {
-            "entity_id": "sensor.pool_return_line_temperature_corrected",
-            "state": "25.2",
-            "attributes": {
-                "unit_of_measurement": "°C",
-                "friendly_name": "Pool Water Temperature"
-            }
-        }
-    ]
+    """Get all entity states - returns all entities from HA state manager."""
+    # Return all entities from the HA state manager
+    return ha_state_manager.get_all_entity_states()
 
 
 @app.get("/api/history/period/{start_time}")
@@ -588,7 +564,7 @@ async def get_history(start_time: str, filter_entity_id: str = None, end_time: s
 
 
 # ============================================
-# WEBSOCKET ENDPOINT
+# WEBSOCKET ENDPOINT (Original - for useMockServer.ts)
 # ============================================
 
 @app.websocket("/ws")
@@ -654,6 +630,63 @@ async def websocket_endpoint(websocket: WebSocket):
 
 
 # ============================================
+# HA WEBSOCKET API ENDPOINT (for useHomeAssistant.ts)
+# ============================================
+
+async def broadcast_ha_state_change(entity_id: str, old_state: dict, new_state: dict):
+    """Broadcast state changes to all HA WebSocket clients."""
+    for ws, handler in list(ha_connected_clients.items()):
+        try:
+            events = handler.create_state_changed_event(entity_id, old_state, new_state)
+            for event in events:
+                await ws.send_json(event)
+        except Exception as e:
+            logger.error(f"Error broadcasting to HA client: {e}")
+            # Remove disconnected client
+            ha_connected_clients.pop(ws, None)
+
+
+# Register broadcaster with state manager
+ha_state_manager.add_change_listener(broadcast_ha_state_change)
+
+
+@app.websocket("/api/websocket")
+async def ha_websocket_endpoint(websocket: WebSocket):
+    """
+    Home Assistant compatible WebSocket endpoint.
+
+    Allows useHomeAssistant.ts to connect to the mock server using
+    the same protocol as real HA.
+    """
+    await websocket.accept()
+
+    # Create handler for this connection
+    handler = HAWebSocketHandler(ha_state_manager)
+    ha_connected_clients[websocket] = handler
+
+    logger.info("HA WebSocket client connected")
+
+    try:
+        # Send auth_required immediately
+        await websocket.send_json(HAWebSocketHandler.auth_required_message())
+
+        # Process messages
+        while True:
+            raw = await websocket.receive_text()
+            responses = await handler.handle_message(raw)
+
+            for response in responses:
+                await websocket.send_json(response)
+
+    except WebSocketDisconnect:
+        logger.info("HA WebSocket client disconnected")
+    except Exception as e:
+        logger.error(f"HA WebSocket error: {e}")
+    finally:
+        ha_connected_clients.pop(websocket, None)
+
+
+# ============================================
 # MAIN
 # ============================================
 
@@ -663,9 +696,10 @@ def main():
     print("Pool Heating Mock Server")
     print("=" * 60)
     print()
-    print("Endpoints:")
+    print("REST Endpoints:")
     print("  GET  /              - Health check")
     print("  GET  /api/state     - Get current state")
+    print("  GET  /api/states    - Get all HA entity states")
     print("  POST /api/parameters - Set schedule parameters")
     print("  POST /api/calculate  - Calculate optimal schedule")
     print("  POST /api/scenario   - Set price scenario")
@@ -674,7 +708,12 @@ def main():
     print("  POST /api/simulate-time - Simulate time for testing")
     print("  POST /api/block-enabled - Enable/disable block")
     print("  POST /api/reset      - Reset to defaults")
-    print("  WS   /ws            - WebSocket for real-time updates")
+    print()
+    print("WebSocket Endpoints:")
+    print("  WS   /ws            - Custom protocol (useMockServer.ts)")
+    print("  WS   /api/websocket - HA protocol (useHomeAssistant.ts)")
+    print()
+    print(f"HA State Manager: {len(ha_state_manager.entities)} entities loaded")
     print()
     print("Starting server on http://localhost:8765")
     print()

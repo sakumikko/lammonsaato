@@ -10,6 +10,20 @@ export default defineConfig(({ mode }) => ({
   server: {
     host: "::",
     port: 8080,
+    // In test mode, proxy HA API requests to mock server
+    proxy: mode === "test" ? {
+      // WebSocket proxy for HA protocol
+      "/api/websocket": {
+        target: "ws://localhost:8765",
+        ws: true,
+        changeOrigin: true,
+      },
+      // REST API proxy
+      "/api": {
+        target: "http://localhost:8765",
+        changeOrigin: true,
+      },
+    } : undefined,
   },
   plugins: [react(), mode === "development" && componentTagger()].filter(Boolean),
   resolve: {

@@ -1,0 +1,1910 @@
+{
+  "version": 1,
+  "last_verified": "2025-12-08T06:42:23.277909+00:00",
+  "ha_version": "unknown",
+  "entity_count": 116,
+  "entities": [
+    {
+      "entity_id": "binary_sensor.nordpool_tomorrow_available",
+      "domain": "binary_sensor",
+      "state_type": "boolean",
+      "deployed": true,
+      "attributes": [
+        "friendly_name"
+      ]
+    },
+    {
+      "entity_id": "binary_sensor.pool_heating_active",
+      "domain": "binary_sensor",
+      "state_type": "boolean",
+      "deployed": true,
+      "attributes": [
+        "device_class",
+        "friendly_name"
+      ]
+    },
+    {
+      "entity_id": "binary_sensor.pool_heating_cost_limit_active",
+      "domain": "binary_sensor",
+      "state_type": "boolean",
+      "deployed": true,
+      "attributes": [
+        "device_class",
+        "friendly_name"
+      ]
+    },
+    {
+      "entity_id": "binary_sensor.pool_in_heating_window",
+      "domain": "binary_sensor",
+      "state_type": "boolean",
+      "deployed": true,
+      "attributes": [
+        "friendly_name"
+      ]
+    },
+    {
+      "entity_id": "input_boolean.pool_heat_block_10_cost_exceeded",
+      "domain": "input_boolean",
+      "state_type": "boolean",
+      "deployed": true,
+      "attributes": [
+        "editable",
+        "friendly_name",
+        "icon"
+      ]
+    },
+    {
+      "entity_id": "input_boolean.pool_heat_block_10_enabled",
+      "domain": "input_boolean",
+      "state_type": "boolean",
+      "deployed": true,
+      "attributes": [
+        "editable",
+        "friendly_name",
+        "icon"
+      ]
+    },
+    {
+      "entity_id": "input_boolean.pool_heat_block_1_cost_exceeded",
+      "domain": "input_boolean",
+      "state_type": "boolean",
+      "deployed": true,
+      "attributes": [
+        "editable",
+        "friendly_name",
+        "icon"
+      ]
+    },
+    {
+      "entity_id": "input_boolean.pool_heat_block_1_enabled",
+      "domain": "input_boolean",
+      "state_type": "boolean",
+      "deployed": true,
+      "attributes": [
+        "editable",
+        "friendly_name",
+        "icon"
+      ]
+    },
+    {
+      "entity_id": "input_boolean.pool_heat_block_2_cost_exceeded",
+      "domain": "input_boolean",
+      "state_type": "boolean",
+      "deployed": true,
+      "attributes": [
+        "editable",
+        "friendly_name",
+        "icon"
+      ]
+    },
+    {
+      "entity_id": "input_boolean.pool_heat_block_2_enabled",
+      "domain": "input_boolean",
+      "state_type": "boolean",
+      "deployed": true,
+      "attributes": [
+        "editable",
+        "friendly_name",
+        "icon"
+      ]
+    },
+    {
+      "entity_id": "input_boolean.pool_heat_block_3_cost_exceeded",
+      "domain": "input_boolean",
+      "state_type": "boolean",
+      "deployed": true,
+      "attributes": [
+        "editable",
+        "friendly_name",
+        "icon"
+      ]
+    },
+    {
+      "entity_id": "input_boolean.pool_heat_block_3_enabled",
+      "domain": "input_boolean",
+      "state_type": "boolean",
+      "deployed": true,
+      "attributes": [
+        "editable",
+        "friendly_name",
+        "icon"
+      ]
+    },
+    {
+      "entity_id": "input_boolean.pool_heat_block_4_cost_exceeded",
+      "domain": "input_boolean",
+      "state_type": "boolean",
+      "deployed": true,
+      "attributes": [
+        "editable",
+        "friendly_name",
+        "icon"
+      ]
+    },
+    {
+      "entity_id": "input_boolean.pool_heat_block_4_enabled",
+      "domain": "input_boolean",
+      "state_type": "boolean",
+      "deployed": true,
+      "attributes": [
+        "editable",
+        "friendly_name",
+        "icon"
+      ]
+    },
+    {
+      "entity_id": "input_boolean.pool_heat_block_5_cost_exceeded",
+      "domain": "input_boolean",
+      "state_type": "boolean",
+      "deployed": true,
+      "attributes": [
+        "editable",
+        "friendly_name",
+        "icon"
+      ]
+    },
+    {
+      "entity_id": "input_boolean.pool_heat_block_5_enabled",
+      "domain": "input_boolean",
+      "state_type": "boolean",
+      "deployed": true,
+      "attributes": [
+        "editable",
+        "friendly_name",
+        "icon"
+      ]
+    },
+    {
+      "entity_id": "input_boolean.pool_heat_block_6_cost_exceeded",
+      "domain": "input_boolean",
+      "state_type": "boolean",
+      "deployed": true,
+      "attributes": [
+        "editable",
+        "friendly_name",
+        "icon"
+      ]
+    },
+    {
+      "entity_id": "input_boolean.pool_heat_block_6_enabled",
+      "domain": "input_boolean",
+      "state_type": "boolean",
+      "deployed": true,
+      "attributes": [
+        "editable",
+        "friendly_name",
+        "icon"
+      ]
+    },
+    {
+      "entity_id": "input_boolean.pool_heat_block_7_cost_exceeded",
+      "domain": "input_boolean",
+      "state_type": "boolean",
+      "deployed": true,
+      "attributes": [
+        "editable",
+        "friendly_name",
+        "icon"
+      ]
+    },
+    {
+      "entity_id": "input_boolean.pool_heat_block_7_enabled",
+      "domain": "input_boolean",
+      "state_type": "boolean",
+      "deployed": true,
+      "attributes": [
+        "editable",
+        "friendly_name",
+        "icon"
+      ]
+    },
+    {
+      "entity_id": "input_boolean.pool_heat_block_8_cost_exceeded",
+      "domain": "input_boolean",
+      "state_type": "boolean",
+      "deployed": true,
+      "attributes": [
+        "editable",
+        "friendly_name",
+        "icon"
+      ]
+    },
+    {
+      "entity_id": "input_boolean.pool_heat_block_8_enabled",
+      "domain": "input_boolean",
+      "state_type": "boolean",
+      "deployed": true,
+      "attributes": [
+        "editable",
+        "friendly_name",
+        "icon"
+      ]
+    },
+    {
+      "entity_id": "input_boolean.pool_heat_block_9_cost_exceeded",
+      "domain": "input_boolean",
+      "state_type": "boolean",
+      "deployed": true,
+      "attributes": [
+        "editable",
+        "friendly_name",
+        "icon"
+      ]
+    },
+    {
+      "entity_id": "input_boolean.pool_heat_block_9_enabled",
+      "domain": "input_boolean",
+      "state_type": "boolean",
+      "deployed": true,
+      "attributes": [
+        "editable",
+        "friendly_name",
+        "icon"
+      ]
+    },
+    {
+      "entity_id": "input_boolean.pool_heating_cost_limit_applied",
+      "domain": "input_boolean",
+      "state_type": "boolean",
+      "deployed": true,
+      "attributes": [
+        "editable",
+        "friendly_name",
+        "icon"
+      ]
+    },
+    {
+      "entity_id": "input_boolean.pool_heating_enabled",
+      "domain": "input_boolean",
+      "state_type": "boolean",
+      "deployed": true,
+      "attributes": [
+        "editable",
+        "friendly_name",
+        "icon"
+      ]
+    },
+    {
+      "entity_id": "input_boolean.pool_heating_night_complete",
+      "domain": "input_boolean",
+      "state_type": "boolean",
+      "deployed": true,
+      "attributes": [
+        "editable",
+        "friendly_name",
+        "icon"
+      ]
+    },
+    {
+      "entity_id": "input_datetime.pool_heat_block_10_end",
+      "domain": "input_datetime",
+      "state_type": "datetime",
+      "deployed": true,
+      "attributes": [
+        "day",
+        "editable",
+        "friendly_name",
+        "has_date",
+        "has_time",
+        "hour",
+        "icon",
+        "minute",
+        "month",
+        "second",
+        "timestamp",
+        "year"
+      ]
+    },
+    {
+      "entity_id": "input_datetime.pool_heat_block_10_start",
+      "domain": "input_datetime",
+      "state_type": "datetime",
+      "deployed": true,
+      "attributes": [
+        "day",
+        "editable",
+        "friendly_name",
+        "has_date",
+        "has_time",
+        "hour",
+        "icon",
+        "minute",
+        "month",
+        "second",
+        "timestamp",
+        "year"
+      ]
+    },
+    {
+      "entity_id": "input_datetime.pool_heat_block_1_end",
+      "domain": "input_datetime",
+      "state_type": "datetime",
+      "deployed": true,
+      "attributes": [
+        "day",
+        "editable",
+        "friendly_name",
+        "has_date",
+        "has_time",
+        "hour",
+        "icon",
+        "minute",
+        "month",
+        "second",
+        "timestamp",
+        "year"
+      ]
+    },
+    {
+      "entity_id": "input_datetime.pool_heat_block_1_start",
+      "domain": "input_datetime",
+      "state_type": "datetime",
+      "deployed": true,
+      "attributes": [
+        "day",
+        "editable",
+        "friendly_name",
+        "has_date",
+        "has_time",
+        "hour",
+        "icon",
+        "minute",
+        "month",
+        "second",
+        "timestamp",
+        "year"
+      ]
+    },
+    {
+      "entity_id": "input_datetime.pool_heat_block_2_end",
+      "domain": "input_datetime",
+      "state_type": "datetime",
+      "deployed": true,
+      "attributes": [
+        "day",
+        "editable",
+        "friendly_name",
+        "has_date",
+        "has_time",
+        "hour",
+        "icon",
+        "minute",
+        "month",
+        "second",
+        "timestamp",
+        "year"
+      ]
+    },
+    {
+      "entity_id": "input_datetime.pool_heat_block_2_start",
+      "domain": "input_datetime",
+      "state_type": "datetime",
+      "deployed": true,
+      "attributes": [
+        "day",
+        "editable",
+        "friendly_name",
+        "has_date",
+        "has_time",
+        "hour",
+        "icon",
+        "minute",
+        "month",
+        "second",
+        "timestamp",
+        "year"
+      ]
+    },
+    {
+      "entity_id": "input_datetime.pool_heat_block_3_end",
+      "domain": "input_datetime",
+      "state_type": "datetime",
+      "deployed": true,
+      "attributes": [
+        "day",
+        "editable",
+        "friendly_name",
+        "has_date",
+        "has_time",
+        "hour",
+        "icon",
+        "minute",
+        "month",
+        "second",
+        "timestamp",
+        "year"
+      ]
+    },
+    {
+      "entity_id": "input_datetime.pool_heat_block_3_start",
+      "domain": "input_datetime",
+      "state_type": "datetime",
+      "deployed": true,
+      "attributes": [
+        "day",
+        "editable",
+        "friendly_name",
+        "has_date",
+        "has_time",
+        "hour",
+        "icon",
+        "minute",
+        "month",
+        "second",
+        "timestamp",
+        "year"
+      ]
+    },
+    {
+      "entity_id": "input_datetime.pool_heat_block_4_end",
+      "domain": "input_datetime",
+      "state_type": "datetime",
+      "deployed": true,
+      "attributes": [
+        "day",
+        "editable",
+        "friendly_name",
+        "has_date",
+        "has_time",
+        "hour",
+        "icon",
+        "minute",
+        "month",
+        "second",
+        "timestamp",
+        "year"
+      ]
+    },
+    {
+      "entity_id": "input_datetime.pool_heat_block_4_start",
+      "domain": "input_datetime",
+      "state_type": "datetime",
+      "deployed": true,
+      "attributes": [
+        "day",
+        "editable",
+        "friendly_name",
+        "has_date",
+        "has_time",
+        "hour",
+        "icon",
+        "minute",
+        "month",
+        "second",
+        "timestamp",
+        "year"
+      ]
+    },
+    {
+      "entity_id": "input_datetime.pool_heat_block_5_end",
+      "domain": "input_datetime",
+      "state_type": "datetime",
+      "deployed": true,
+      "attributes": [
+        "day",
+        "editable",
+        "friendly_name",
+        "has_date",
+        "has_time",
+        "hour",
+        "icon",
+        "minute",
+        "month",
+        "second",
+        "timestamp",
+        "year"
+      ]
+    },
+    {
+      "entity_id": "input_datetime.pool_heat_block_5_start",
+      "domain": "input_datetime",
+      "state_type": "datetime",
+      "deployed": true,
+      "attributes": [
+        "day",
+        "editable",
+        "friendly_name",
+        "has_date",
+        "has_time",
+        "hour",
+        "icon",
+        "minute",
+        "month",
+        "second",
+        "timestamp",
+        "year"
+      ]
+    },
+    {
+      "entity_id": "input_datetime.pool_heat_block_6_end",
+      "domain": "input_datetime",
+      "state_type": "datetime",
+      "deployed": true,
+      "attributes": [
+        "day",
+        "editable",
+        "friendly_name",
+        "has_date",
+        "has_time",
+        "hour",
+        "icon",
+        "minute",
+        "month",
+        "second",
+        "timestamp",
+        "year"
+      ]
+    },
+    {
+      "entity_id": "input_datetime.pool_heat_block_6_start",
+      "domain": "input_datetime",
+      "state_type": "datetime",
+      "deployed": true,
+      "attributes": [
+        "day",
+        "editable",
+        "friendly_name",
+        "has_date",
+        "has_time",
+        "hour",
+        "icon",
+        "minute",
+        "month",
+        "second",
+        "timestamp",
+        "year"
+      ]
+    },
+    {
+      "entity_id": "input_datetime.pool_heat_block_7_end",
+      "domain": "input_datetime",
+      "state_type": "datetime",
+      "deployed": true,
+      "attributes": [
+        "day",
+        "editable",
+        "friendly_name",
+        "has_date",
+        "has_time",
+        "hour",
+        "icon",
+        "minute",
+        "month",
+        "second",
+        "timestamp",
+        "year"
+      ]
+    },
+    {
+      "entity_id": "input_datetime.pool_heat_block_7_start",
+      "domain": "input_datetime",
+      "state_type": "datetime",
+      "deployed": true,
+      "attributes": [
+        "day",
+        "editable",
+        "friendly_name",
+        "has_date",
+        "has_time",
+        "hour",
+        "icon",
+        "minute",
+        "month",
+        "second",
+        "timestamp",
+        "year"
+      ]
+    },
+    {
+      "entity_id": "input_datetime.pool_heat_block_8_end",
+      "domain": "input_datetime",
+      "state_type": "datetime",
+      "deployed": true,
+      "attributes": [
+        "day",
+        "editable",
+        "friendly_name",
+        "has_date",
+        "has_time",
+        "hour",
+        "icon",
+        "minute",
+        "month",
+        "second",
+        "timestamp",
+        "year"
+      ]
+    },
+    {
+      "entity_id": "input_datetime.pool_heat_block_8_start",
+      "domain": "input_datetime",
+      "state_type": "datetime",
+      "deployed": true,
+      "attributes": [
+        "day",
+        "editable",
+        "friendly_name",
+        "has_date",
+        "has_time",
+        "hour",
+        "icon",
+        "minute",
+        "month",
+        "second",
+        "timestamp",
+        "year"
+      ]
+    },
+    {
+      "entity_id": "input_datetime.pool_heat_block_9_end",
+      "domain": "input_datetime",
+      "state_type": "datetime",
+      "deployed": true,
+      "attributes": [
+        "day",
+        "editable",
+        "friendly_name",
+        "has_date",
+        "has_time",
+        "hour",
+        "icon",
+        "minute",
+        "month",
+        "second",
+        "timestamp",
+        "year"
+      ]
+    },
+    {
+      "entity_id": "input_datetime.pool_heat_block_9_start",
+      "domain": "input_datetime",
+      "state_type": "datetime",
+      "deployed": true,
+      "attributes": [
+        "day",
+        "editable",
+        "friendly_name",
+        "has_date",
+        "has_time",
+        "hour",
+        "icon",
+        "minute",
+        "month",
+        "second",
+        "timestamp",
+        "year"
+      ]
+    },
+    {
+      "entity_id": "input_number.pool_heat_block_10_cost",
+      "domain": "input_number",
+      "state_type": "numeric",
+      "deployed": true,
+      "attributes": [
+        "editable",
+        "friendly_name",
+        "icon",
+        "initial",
+        "max",
+        "min",
+        "mode",
+        "step",
+        "unit_of_measurement"
+      ],
+      "unit_of_measurement": "\u20ac",
+      "min_value": 0.0,
+      "max_value": 10.0,
+      "step": 0.001
+    },
+    {
+      "entity_id": "input_number.pool_heat_block_10_price",
+      "domain": "input_number",
+      "state_type": "numeric",
+      "deployed": true,
+      "attributes": [
+        "editable",
+        "friendly_name",
+        "icon",
+        "initial",
+        "max",
+        "min",
+        "mode",
+        "step",
+        "unit_of_measurement"
+      ],
+      "unit_of_measurement": "c/kWh",
+      "min_value": -50.0,
+      "max_value": 500.0,
+      "step": 0.01
+    },
+    {
+      "entity_id": "input_number.pool_heat_block_1_cost",
+      "domain": "input_number",
+      "state_type": "numeric",
+      "deployed": true,
+      "attributes": [
+        "editable",
+        "friendly_name",
+        "icon",
+        "initial",
+        "max",
+        "min",
+        "mode",
+        "step",
+        "unit_of_measurement"
+      ],
+      "unit_of_measurement": "\u20ac",
+      "min_value": 0.0,
+      "max_value": 10.0,
+      "step": 0.001
+    },
+    {
+      "entity_id": "input_number.pool_heat_block_1_price",
+      "domain": "input_number",
+      "state_type": "numeric",
+      "deployed": true,
+      "attributes": [
+        "editable",
+        "friendly_name",
+        "icon",
+        "initial",
+        "max",
+        "min",
+        "mode",
+        "step",
+        "unit_of_measurement"
+      ],
+      "unit_of_measurement": "c/kWh",
+      "min_value": -50.0,
+      "max_value": 500.0,
+      "step": 0.01
+    },
+    {
+      "entity_id": "input_number.pool_heat_block_2_cost",
+      "domain": "input_number",
+      "state_type": "numeric",
+      "deployed": true,
+      "attributes": [
+        "editable",
+        "friendly_name",
+        "icon",
+        "initial",
+        "max",
+        "min",
+        "mode",
+        "step",
+        "unit_of_measurement"
+      ],
+      "unit_of_measurement": "\u20ac",
+      "min_value": 0.0,
+      "max_value": 10.0,
+      "step": 0.001
+    },
+    {
+      "entity_id": "input_number.pool_heat_block_2_price",
+      "domain": "input_number",
+      "state_type": "numeric",
+      "deployed": true,
+      "attributes": [
+        "editable",
+        "friendly_name",
+        "icon",
+        "initial",
+        "max",
+        "min",
+        "mode",
+        "step",
+        "unit_of_measurement"
+      ],
+      "unit_of_measurement": "c/kWh",
+      "min_value": -50.0,
+      "max_value": 500.0,
+      "step": 0.01
+    },
+    {
+      "entity_id": "input_number.pool_heat_block_3_cost",
+      "domain": "input_number",
+      "state_type": "numeric",
+      "deployed": true,
+      "attributes": [
+        "editable",
+        "friendly_name",
+        "icon",
+        "initial",
+        "max",
+        "min",
+        "mode",
+        "step",
+        "unit_of_measurement"
+      ],
+      "unit_of_measurement": "\u20ac",
+      "min_value": 0.0,
+      "max_value": 10.0,
+      "step": 0.001
+    },
+    {
+      "entity_id": "input_number.pool_heat_block_3_price",
+      "domain": "input_number",
+      "state_type": "numeric",
+      "deployed": true,
+      "attributes": [
+        "editable",
+        "friendly_name",
+        "icon",
+        "initial",
+        "max",
+        "min",
+        "mode",
+        "step",
+        "unit_of_measurement"
+      ],
+      "unit_of_measurement": "c/kWh",
+      "min_value": -50.0,
+      "max_value": 500.0,
+      "step": 0.01
+    },
+    {
+      "entity_id": "input_number.pool_heat_block_4_cost",
+      "domain": "input_number",
+      "state_type": "numeric",
+      "deployed": true,
+      "attributes": [
+        "editable",
+        "friendly_name",
+        "icon",
+        "initial",
+        "max",
+        "min",
+        "mode",
+        "step",
+        "unit_of_measurement"
+      ],
+      "unit_of_measurement": "\u20ac",
+      "min_value": 0.0,
+      "max_value": 10.0,
+      "step": 0.001
+    },
+    {
+      "entity_id": "input_number.pool_heat_block_4_price",
+      "domain": "input_number",
+      "state_type": "numeric",
+      "deployed": true,
+      "attributes": [
+        "editable",
+        "friendly_name",
+        "icon",
+        "initial",
+        "max",
+        "min",
+        "mode",
+        "step",
+        "unit_of_measurement"
+      ],
+      "unit_of_measurement": "c/kWh",
+      "min_value": -50.0,
+      "max_value": 500.0,
+      "step": 0.01
+    },
+    {
+      "entity_id": "input_number.pool_heat_block_5_cost",
+      "domain": "input_number",
+      "state_type": "numeric",
+      "deployed": true,
+      "attributes": [
+        "editable",
+        "friendly_name",
+        "icon",
+        "initial",
+        "max",
+        "min",
+        "mode",
+        "step",
+        "unit_of_measurement"
+      ],
+      "unit_of_measurement": "\u20ac",
+      "min_value": 0.0,
+      "max_value": 10.0,
+      "step": 0.001
+    },
+    {
+      "entity_id": "input_number.pool_heat_block_5_price",
+      "domain": "input_number",
+      "state_type": "numeric",
+      "deployed": true,
+      "attributes": [
+        "editable",
+        "friendly_name",
+        "icon",
+        "initial",
+        "max",
+        "min",
+        "mode",
+        "step",
+        "unit_of_measurement"
+      ],
+      "unit_of_measurement": "c/kWh",
+      "min_value": -50.0,
+      "max_value": 500.0,
+      "step": 0.01
+    },
+    {
+      "entity_id": "input_number.pool_heat_block_6_cost",
+      "domain": "input_number",
+      "state_type": "numeric",
+      "deployed": true,
+      "attributes": [
+        "editable",
+        "friendly_name",
+        "icon",
+        "initial",
+        "max",
+        "min",
+        "mode",
+        "step",
+        "unit_of_measurement"
+      ],
+      "unit_of_measurement": "\u20ac",
+      "min_value": 0.0,
+      "max_value": 10.0,
+      "step": 0.001
+    },
+    {
+      "entity_id": "input_number.pool_heat_block_6_price",
+      "domain": "input_number",
+      "state_type": "numeric",
+      "deployed": true,
+      "attributes": [
+        "editable",
+        "friendly_name",
+        "icon",
+        "initial",
+        "max",
+        "min",
+        "mode",
+        "step",
+        "unit_of_measurement"
+      ],
+      "unit_of_measurement": "c/kWh",
+      "min_value": -50.0,
+      "max_value": 500.0,
+      "step": 0.01
+    },
+    {
+      "entity_id": "input_number.pool_heat_block_7_cost",
+      "domain": "input_number",
+      "state_type": "numeric",
+      "deployed": true,
+      "attributes": [
+        "editable",
+        "friendly_name",
+        "icon",
+        "initial",
+        "max",
+        "min",
+        "mode",
+        "step",
+        "unit_of_measurement"
+      ],
+      "unit_of_measurement": "\u20ac",
+      "min_value": 0.0,
+      "max_value": 10.0,
+      "step": 0.001
+    },
+    {
+      "entity_id": "input_number.pool_heat_block_7_price",
+      "domain": "input_number",
+      "state_type": "numeric",
+      "deployed": true,
+      "attributes": [
+        "editable",
+        "friendly_name",
+        "icon",
+        "initial",
+        "max",
+        "min",
+        "mode",
+        "step",
+        "unit_of_measurement"
+      ],
+      "unit_of_measurement": "c/kWh",
+      "min_value": -50.0,
+      "max_value": 500.0,
+      "step": 0.01
+    },
+    {
+      "entity_id": "input_number.pool_heat_block_8_cost",
+      "domain": "input_number",
+      "state_type": "numeric",
+      "deployed": true,
+      "attributes": [
+        "editable",
+        "friendly_name",
+        "icon",
+        "initial",
+        "max",
+        "min",
+        "mode",
+        "step",
+        "unit_of_measurement"
+      ],
+      "unit_of_measurement": "\u20ac",
+      "min_value": 0.0,
+      "max_value": 10.0,
+      "step": 0.001
+    },
+    {
+      "entity_id": "input_number.pool_heat_block_8_price",
+      "domain": "input_number",
+      "state_type": "numeric",
+      "deployed": true,
+      "attributes": [
+        "editable",
+        "friendly_name",
+        "icon",
+        "initial",
+        "max",
+        "min",
+        "mode",
+        "step",
+        "unit_of_measurement"
+      ],
+      "unit_of_measurement": "c/kWh",
+      "min_value": -50.0,
+      "max_value": 500.0,
+      "step": 0.01
+    },
+    {
+      "entity_id": "input_number.pool_heat_block_9_cost",
+      "domain": "input_number",
+      "state_type": "numeric",
+      "deployed": true,
+      "attributes": [
+        "editable",
+        "friendly_name",
+        "icon",
+        "initial",
+        "max",
+        "min",
+        "mode",
+        "step",
+        "unit_of_measurement"
+      ],
+      "unit_of_measurement": "\u20ac",
+      "min_value": 0.0,
+      "max_value": 10.0,
+      "step": 0.001
+    },
+    {
+      "entity_id": "input_number.pool_heat_block_9_price",
+      "domain": "input_number",
+      "state_type": "numeric",
+      "deployed": true,
+      "attributes": [
+        "editable",
+        "friendly_name",
+        "icon",
+        "initial",
+        "max",
+        "min",
+        "mode",
+        "step",
+        "unit_of_measurement"
+      ],
+      "unit_of_measurement": "c/kWh",
+      "min_value": -50.0,
+      "max_value": 500.0,
+      "step": 0.01
+    },
+    {
+      "entity_id": "input_number.pool_heating_max_block_duration",
+      "domain": "input_number",
+      "state_type": "numeric",
+      "deployed": true,
+      "attributes": [
+        "editable",
+        "friendly_name",
+        "icon",
+        "initial",
+        "max",
+        "min",
+        "mode",
+        "step",
+        "unit_of_measurement"
+      ],
+      "unit_of_measurement": "min",
+      "min_value": 30.0,
+      "max_value": 60.0,
+      "step": 15.0
+    },
+    {
+      "entity_id": "input_number.pool_heating_max_cost_eur",
+      "domain": "input_number",
+      "state_type": "numeric",
+      "deployed": true,
+      "attributes": [
+        "editable",
+        "friendly_name",
+        "icon",
+        "initial",
+        "max",
+        "min",
+        "mode",
+        "step",
+        "unit_of_measurement"
+      ],
+      "unit_of_measurement": "\u20ac",
+      "min_value": 0.0,
+      "max_value": 10.0,
+      "step": 0.01
+    },
+    {
+      "entity_id": "input_number.pool_heating_min_block_duration",
+      "domain": "input_number",
+      "state_type": "numeric",
+      "deployed": true,
+      "attributes": [
+        "editable",
+        "friendly_name",
+        "icon",
+        "initial",
+        "max",
+        "min",
+        "mode",
+        "step",
+        "unit_of_measurement"
+      ],
+      "unit_of_measurement": "min",
+      "min_value": 30.0,
+      "max_value": 60.0,
+      "step": 15.0
+    },
+    {
+      "entity_id": "input_number.pool_heating_total_cost",
+      "domain": "input_number",
+      "state_type": "numeric",
+      "deployed": true,
+      "attributes": [
+        "editable",
+        "friendly_name",
+        "icon",
+        "initial",
+        "max",
+        "min",
+        "mode",
+        "step",
+        "unit_of_measurement"
+      ],
+      "unit_of_measurement": "\u20ac",
+      "min_value": 0.0,
+      "max_value": 50.0,
+      "step": 0.001
+    },
+    {
+      "entity_id": "input_number.pool_heating_total_hours",
+      "domain": "input_number",
+      "state_type": "numeric",
+      "deployed": true,
+      "attributes": [
+        "editable",
+        "friendly_name",
+        "icon",
+        "initial",
+        "max",
+        "min",
+        "mode",
+        "step",
+        "unit_of_measurement"
+      ],
+      "unit_of_measurement": "h",
+      "min_value": 0.0,
+      "max_value": 5.0,
+      "step": 0.5
+    },
+    {
+      "entity_id": "input_number.pool_target_temperature",
+      "domain": "input_number",
+      "state_type": "numeric",
+      "deployed": true,
+      "attributes": [
+        "editable",
+        "friendly_name",
+        "icon",
+        "initial",
+        "max",
+        "min",
+        "mode",
+        "step",
+        "unit_of_measurement"
+      ],
+      "unit_of_measurement": "\u00b0C",
+      "min_value": 20.0,
+      "max_value": 35.0,
+      "step": 0.5
+    },
+    {
+      "entity_id": "input_number.pool_true_temp",
+      "domain": "input_number",
+      "state_type": "numeric",
+      "deployed": true,
+      "attributes": [
+        "editable",
+        "friendly_name",
+        "icon",
+        "initial",
+        "max",
+        "min",
+        "mode",
+        "step",
+        "unit_of_measurement"
+      ],
+      "unit_of_measurement": "\u00b0C",
+      "min_value": 10.0,
+      "max_value": 40.0,
+      "step": 0.01
+    },
+    {
+      "entity_id": "input_number.pool_true_temp_daytime",
+      "domain": "input_number",
+      "state_type": "numeric",
+      "deployed": true,
+      "attributes": [
+        "editable",
+        "friendly_name",
+        "icon",
+        "initial",
+        "max",
+        "min",
+        "mode",
+        "step",
+        "unit_of_measurement"
+      ],
+      "unit_of_measurement": "\u00b0C",
+      "min_value": 10.0,
+      "max_value": 40.0,
+      "step": 0.1
+    },
+    {
+      "entity_id": "input_number.pool_true_temp_post_heating",
+      "domain": "input_number",
+      "state_type": "numeric",
+      "deployed": true,
+      "attributes": [
+        "editable",
+        "friendly_name",
+        "icon",
+        "initial",
+        "max",
+        "min",
+        "mode",
+        "step",
+        "unit_of_measurement"
+      ],
+      "unit_of_measurement": "\u00b0C",
+      "min_value": 10.0,
+      "max_value": 40.0,
+      "step": 0.1
+    },
+    {
+      "entity_id": "input_number.pool_true_temp_pre_heating",
+      "domain": "input_number",
+      "state_type": "numeric",
+      "deployed": true,
+      "attributes": [
+        "editable",
+        "friendly_name",
+        "icon",
+        "initial",
+        "max",
+        "min",
+        "mode",
+        "step",
+        "unit_of_measurement"
+      ],
+      "unit_of_measurement": "\u00b0C",
+      "min_value": 10.0,
+      "max_value": 40.0,
+      "step": 0.1
+    },
+    {
+      "entity_id": "input_text.pool_heating_night_summary_data",
+      "domain": "input_text",
+      "state_type": "string",
+      "deployed": true,
+      "attributes": [
+        "editable",
+        "friendly_name",
+        "icon",
+        "max",
+        "min",
+        "mode",
+        "pattern"
+      ],
+      "min_value": 0,
+      "max_value": 255
+    },
+    {
+      "entity_id": "input_text.pool_heating_schedule_info",
+      "domain": "input_text",
+      "state_type": "string",
+      "deployed": true,
+      "attributes": [
+        "editable",
+        "friendly_name",
+        "icon",
+        "max",
+        "min",
+        "mode",
+        "pattern"
+      ],
+      "min_value": 0,
+      "max_value": 255
+    },
+    {
+      "entity_id": "input_text.pool_heating_schedule_json",
+      "domain": "input_text",
+      "state_type": "string",
+      "deployed": true,
+      "attributes": [
+        "editable",
+        "friendly_name",
+        "icon",
+        "max",
+        "min",
+        "mode",
+        "pattern"
+      ],
+      "min_value": 0,
+      "max_value": 255
+    },
+    {
+      "entity_id": "number.maximum_allowed_gear_in_heating",
+      "domain": "number",
+      "state_type": "numeric",
+      "deployed": true,
+      "attributes": [
+        "friendly_name",
+        "icon",
+        "max",
+        "min",
+        "mode",
+        "step"
+      ],
+      "min_value": 1,
+      "max_value": 9,
+      "step": 1
+    },
+    {
+      "entity_id": "number.maximum_allowed_gear_in_pool",
+      "domain": "number",
+      "state_type": "numeric",
+      "deployed": true,
+      "attributes": [
+        "friendly_name",
+        "icon",
+        "max",
+        "min",
+        "mode",
+        "step"
+      ],
+      "min_value": 1,
+      "max_value": 9,
+      "step": 1
+    },
+    {
+      "entity_id": "number.maximum_allowed_gear_in_tap_water",
+      "domain": "number",
+      "state_type": "numeric",
+      "deployed": true,
+      "attributes": [
+        "friendly_name",
+        "icon",
+        "max",
+        "min",
+        "mode",
+        "step"
+      ],
+      "min_value": 1,
+      "max_value": 9,
+      "step": 1
+    },
+    {
+      "entity_id": "number.minimum_allowed_gear_in_heating",
+      "domain": "number",
+      "state_type": "numeric",
+      "deployed": true,
+      "attributes": [
+        "friendly_name",
+        "icon",
+        "max",
+        "min",
+        "mode",
+        "step"
+      ],
+      "min_value": 1,
+      "max_value": 9,
+      "step": 1
+    },
+    {
+      "entity_id": "number.minimum_allowed_gear_in_pool",
+      "domain": "number",
+      "state_type": "numeric",
+      "deployed": true,
+      "attributes": [
+        "friendly_name",
+        "icon",
+        "max",
+        "min",
+        "mode",
+        "step"
+      ],
+      "min_value": 1,
+      "max_value": 9,
+      "step": 1
+    },
+    {
+      "entity_id": "number.minimum_allowed_gear_in_tap_water",
+      "domain": "number",
+      "state_type": "numeric",
+      "deployed": true,
+      "attributes": [
+        "friendly_name",
+        "icon",
+        "max",
+        "min",
+        "mode",
+        "step"
+      ],
+      "min_value": 1,
+      "max_value": 9,
+      "step": 1
+    },
+    {
+      "entity_id": "sensor.compressor_speed_rpm",
+      "domain": "sensor",
+      "state_type": "numeric",
+      "deployed": true,
+      "attributes": [
+        "friendly_name",
+        "icon",
+        "unit_of_measurement"
+      ],
+      "unit_of_measurement": "rpm"
+    },
+    {
+      "entity_id": "sensor.condenser_in_temperature",
+      "domain": "sensor",
+      "state_type": "numeric",
+      "deployed": true,
+      "attributes": [
+        "friendly_name",
+        "icon",
+        "unit_of_measurement"
+      ],
+      "unit_of_measurement": "\u00b0C"
+    },
+    {
+      "entity_id": "sensor.condenser_out_temperature",
+      "domain": "sensor",
+      "state_type": "numeric",
+      "deployed": true,
+      "attributes": [
+        "friendly_name",
+        "icon",
+        "unit_of_measurement"
+      ],
+      "unit_of_measurement": "\u00b0C"
+    },
+    {
+      "entity_id": "sensor.current_nordpool_price",
+      "domain": "sensor",
+      "state_type": "numeric",
+      "deployed": true,
+      "attributes": [
+        "friendly_name",
+        "unit_of_measurement"
+      ],
+      "unit_of_measurement": "c/kWh"
+    },
+    {
+      "entity_id": "sensor.discharge_pipe_temperature",
+      "domain": "sensor",
+      "state_type": "numeric",
+      "deployed": true,
+      "attributes": [
+        "friendly_name",
+        "icon",
+        "unit_of_measurement"
+      ],
+      "unit_of_measurement": "\u00b0C"
+    },
+    {
+      "entity_id": "sensor.nordpool_kwh_fi_eur_3_10_0255",
+      "domain": "sensor",
+      "state_type": "numeric",
+      "deployed": true,
+      "attributes": [
+        "additional_costs_current_hour",
+        "average",
+        "country",
+        "currency",
+        "current_price",
+        "device_class",
+        "friendly_name",
+        "icon",
+        "low_price",
+        "max",
+        "mean",
+        "min",
+        "off_peak_1",
+        "off_peak_2",
+        "peak",
+        "price_in_cents",
+        "price_percent_to_average",
+        "raw_today",
+        "raw_tomorrow",
+        "region",
+        "state_class",
+        "today",
+        "tomorrow",
+        "tomorrow_valid",
+        "unit",
+        "unit_of_measurement"
+      ],
+      "unit_of_measurement": "EUR/kWh",
+      "min_value": 0.008,
+      "max_value": 0.088
+    },
+    {
+      "entity_id": "sensor.outdoor_temperature",
+      "domain": "sensor",
+      "state_type": "numeric",
+      "deployed": true,
+      "attributes": [
+        "friendly_name",
+        "icon",
+        "unit_of_measurement"
+      ],
+      "unit_of_measurement": "\u00b0C"
+    },
+    {
+      "entity_id": "sensor.pool_heat_exchanger_delta_t",
+      "domain": "sensor",
+      "state_type": "numeric",
+      "deployed": true,
+      "attributes": [
+        "device_class",
+        "friendly_name",
+        "unit_of_measurement"
+      ],
+      "unit_of_measurement": "\u00b0C"
+    },
+    {
+      "entity_id": "sensor.pool_heating_15min_energy",
+      "domain": "sensor",
+      "state_type": "numeric",
+      "deployed": true,
+      "attributes": [
+        "cumulative_at_period_start",
+        "device_class",
+        "friendly_name",
+        "heating_date",
+        "period_cost_eur",
+        "period_price_eur",
+        "period_start",
+        "state_class",
+        "unit_of_measurement"
+      ],
+      "unit_of_measurement": "kWh"
+    },
+    {
+      "entity_id": "sensor.pool_heating_average_price",
+      "domain": "sensor",
+      "state_type": "numeric",
+      "deployed": true,
+      "attributes": [
+        "friendly_name",
+        "unit_of_measurement"
+      ],
+      "unit_of_measurement": "c/kWh"
+    },
+    {
+      "entity_id": "sensor.pool_heating_block_count",
+      "domain": "sensor",
+      "state_type": "numeric",
+      "deployed": true,
+      "attributes": [
+        "friendly_name"
+      ]
+    },
+    {
+      "entity_id": "sensor.pool_heating_cost_daily",
+      "domain": "sensor",
+      "state_type": "numeric",
+      "deployed": true,
+      "attributes": [
+        "friendly_name",
+        "last_period",
+        "last_reset",
+        "last_valid_state",
+        "next_reset",
+        "state_class",
+        "status",
+        "unit_of_measurement"
+      ],
+      "unit_of_measurement": "\u20ac"
+    },
+    {
+      "entity_id": "sensor.pool_heating_cost_monthly",
+      "domain": "sensor",
+      "state_type": "numeric",
+      "deployed": true,
+      "attributes": [
+        "friendly_name",
+        "last_period",
+        "last_reset",
+        "last_valid_state",
+        "next_reset",
+        "state_class",
+        "status",
+        "unit_of_measurement"
+      ],
+      "unit_of_measurement": "\u20ac"
+    },
+    {
+      "entity_id": "sensor.pool_heating_cost_rate",
+      "domain": "sensor",
+      "state_type": "numeric",
+      "deployed": true,
+      "attributes": [
+        "friendly_name",
+        "unit_of_measurement"
+      ],
+      "unit_of_measurement": "\u20ac/h"
+    },
+    {
+      "entity_id": "sensor.pool_heating_cumulative_cost",
+      "domain": "sensor",
+      "state_type": "numeric",
+      "deployed": true,
+      "attributes": [
+        "friendly_name",
+        "icon",
+        "source",
+        "state_class",
+        "unit_of_measurement"
+      ],
+      "unit_of_measurement": "\u20ac"
+    },
+    {
+      "entity_id": "sensor.pool_heating_electrical_energy",
+      "domain": "sensor",
+      "state_type": "string",
+      "deployed": true,
+      "attributes": [
+        "friendly_name",
+        "icon",
+        "restored",
+        "state_class",
+        "supported_features"
+      ]
+    },
+    {
+      "entity_id": "sensor.pool_heating_electrical_power",
+      "domain": "sensor",
+      "state_type": "numeric",
+      "deployed": true,
+      "attributes": [
+        "device_class",
+        "friendly_name",
+        "unit_of_measurement"
+      ],
+      "unit_of_measurement": "kW"
+    },
+    {
+      "entity_id": "sensor.pool_heating_electricity",
+      "domain": "sensor",
+      "state_type": "numeric",
+      "deployed": true,
+      "attributes": [
+        "device_class",
+        "friendly_name",
+        "source",
+        "state_class",
+        "unit_of_measurement"
+      ],
+      "unit_of_measurement": "kWh"
+    },
+    {
+      "entity_id": "sensor.pool_heating_electricity_daily",
+      "domain": "sensor",
+      "state_type": "numeric",
+      "deployed": true,
+      "attributes": [
+        "device_class",
+        "friendly_name",
+        "last_period",
+        "last_reset",
+        "last_valid_state",
+        "next_reset",
+        "state_class",
+        "status",
+        "unit_of_measurement"
+      ],
+      "unit_of_measurement": "kWh"
+    },
+    {
+      "entity_id": "sensor.pool_heating_electricity_monthly",
+      "domain": "sensor",
+      "state_type": "numeric",
+      "deployed": true,
+      "attributes": [
+        "device_class",
+        "friendly_name",
+        "last_period",
+        "last_reset",
+        "last_valid_state",
+        "next_reset",
+        "state_class",
+        "status",
+        "unit_of_measurement"
+      ],
+      "unit_of_measurement": "kWh"
+    },
+    {
+      "entity_id": "sensor.pool_heating_enabled_block_count",
+      "domain": "sensor",
+      "state_type": "numeric",
+      "deployed": true,
+      "attributes": [
+        "friendly_name"
+      ]
+    },
+    {
+      "entity_id": "sensor.pool_heating_night_summary",
+      "domain": "sensor",
+      "state_type": "numeric",
+      "deployed": true,
+      "attributes": [
+        "avg_price",
+        "baseline",
+        "blocks",
+        "cost",
+        "device_class",
+        "duration",
+        "friendly_name",
+        "heating_date",
+        "icon",
+        "outdoor_temp",
+        "pool_temp",
+        "savings",
+        "state_class",
+        "unit_of_measurement"
+      ],
+      "unit_of_measurement": "kWh"
+    },
+    {
+      "entity_id": "sensor.pool_heating_session",
+      "domain": "sensor",
+      "state_type": "numeric",
+      "deployed": true,
+      "attributes": [
+        "avg_delta_t",
+        "block_number",
+        "cost_eur",
+        "device_class",
+        "duration_minutes",
+        "end_time",
+        "energy_kwh",
+        "friendly_name",
+        "heating_date",
+        "outdoor_temp",
+        "pool_temp_end",
+        "pool_temp_mixed",
+        "pool_temp_start",
+        "price_eur_kwh",
+        "start_time",
+        "state_class",
+        "thermal_kwh",
+        "unit_of_measurement"
+      ],
+      "unit_of_measurement": "kWh"
+    },
+    {
+      "entity_id": "sensor.pool_next_heating",
+      "domain": "sensor",
+      "state_type": "string",
+      "deployed": true,
+      "attributes": [
+        "device_class",
+        "friendly_name"
+      ]
+    },
+    {
+      "entity_id": "sensor.pool_return_line_temperature",
+      "domain": "sensor",
+      "state_type": "numeric",
+      "deployed": true,
+      "attributes": [
+        "friendly_name",
+        "icon",
+        "unit_of_measurement"
+      ],
+      "unit_of_measurement": "\u00b0C"
+    },
+    {
+      "entity_id": "sensor.pool_return_line_temperature_corrected",
+      "domain": "sensor",
+      "state_type": "numeric",
+      "deployed": true,
+      "attributes": [
+        "device_class",
+        "friendly_name",
+        "state_class",
+        "unit_of_measurement"
+      ],
+      "unit_of_measurement": "\u00b0C"
+    },
+    {
+      "entity_id": "sensor.pool_thermal_power",
+      "domain": "sensor",
+      "state_type": "numeric",
+      "deployed": true,
+      "attributes": [
+        "device_class",
+        "friendly_name",
+        "unit_of_measurement"
+      ],
+      "unit_of_measurement": "kW"
+    },
+    {
+      "entity_id": "sensor.tap_water_weighted_temperature",
+      "domain": "sensor",
+      "state_type": "numeric",
+      "deployed": true,
+      "attributes": [
+        "friendly_name",
+        "icon",
+        "unit_of_measurement"
+      ],
+      "unit_of_measurement": "\u00b0C"
+    },
+    {
+      "entity_id": "switch.altaan_kiertovesipumppu",
+      "domain": "switch",
+      "state_type": "boolean",
+      "deployed": true,
+      "attributes": [
+        "friendly_name"
+      ]
+    },
+    {
+      "entity_id": "switch.altaan_lammityksen_esto",
+      "domain": "switch",
+      "state_type": "boolean",
+      "deployed": true,
+      "attributes": [
+        "friendly_name"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,152 @@
+name: E2E Tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Validate entity signatures
+        run: |
+          python -c "
+          from scripts.mock_server.entity_validator import validate_mock_entities, ValidationMode
+          from scripts.mock_server.state_manager import MockStateManager
+
+          mgr = MockStateManager()
+          entities = {e['entity_id']: e for e in mgr.get_all_entity_states()}
+          result = validate_mock_entities(entities, ValidationMode.WARN)
+
+          print(f'Validated {len(entities)} entities')
+          print(f'Errors: {len(result.errors)}')
+          print(f'Warnings: {len(result.warnings)}')
+          print(f'Dev entities: {len(result.dev_entities)}')
+
+          # In CI, only fail on errors (deployed entity mismatches)
+          if result.errors:
+              for e in result.errors:
+                  print(f'ERROR: {e}')
+              exit(1)
+          print('Entity validation passed')
+          "
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: web-ui/package-lock.json
+
+      - name: Install web-ui dependencies
+        working-directory: web-ui
+        run: npm ci
+
+      - name: Install Playwright browsers
+        working-directory: web-ui
+        run: npx playwright install chromium --with-deps
+
+      - name: Start mock server
+        run: |
+          python -m scripts.mock_server &
+          sleep 5
+          # Verify mock server is running
+          curl -s http://localhost:8765/ | grep -q "pool-heating-mock" || exit 1
+          echo "Mock server started successfully"
+
+      - name: Start web UI (test mode)
+        working-directory: web-ui
+        run: |
+          npm run dev:test &
+          sleep 10
+          # Verify web server is running
+          curl -s http://localhost:8080/ | head -1 || exit 1
+          echo "Web UI started successfully"
+
+      - name: Run E2E tests
+        working-directory: web-ui
+        run: npm run e2e:mock
+
+      - name: Upload Playwright report
+        uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-report
+          path: web-ui/playwright-report/
+          retention-days: 7
+
+      - name: Upload test results
+        uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: test-results
+          path: web-ui/test-results/
+          retention-days: 7
+
+  # Unit tests for Python code
+  python-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pytest pytest-asyncio
+
+      - name: Run Python tests
+        run: python -m pytest tests/ -v
+
+  # Optional: Verify signatures against live HA (manual trigger only)
+  verify-signatures:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install aiohttp
+
+      - name: Verify signatures against live HA
+        env:
+          HA_URL: ${{ secrets.HA_URL }}
+          HA_TOKEN: ${{ secrets.HA_TOKEN }}
+        run: |
+          if [ -n "$HA_TOKEN" ]; then
+            python -m scripts.tools.discover_entities --verify
+          else
+            echo "HA_TOKEN not set - skipping live verification"
+          fi
