@@ -123,7 +123,7 @@ automation:
     trigger:
       - platform: numeric_state
         entity_id: sensor.outdoor_temperature
-        below: -15
+        below: -10
     condition:
       - condition: numeric_state
         entity_id: sensor.discharge_pipe_temperature
@@ -154,7 +154,7 @@ automation:
     trigger:
       - platform: numeric_state
         entity_id: sensor.outdoor_temperature
-        above: -10
+        above: -7
         for:
           minutes: 30
     condition:
