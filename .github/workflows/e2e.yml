@@ -76,8 +76,8 @@ jobs:
         run: |
           npm run dev:test &
           sleep 10
-          # Verify web server is running
-          curl -s http://localhost:8080/ | head -1 || exit 1
+          # Verify web server is running (test mode uses port 8081)
+          curl -s http://localhost:8081/ | head -1 || exit 1
           echo "Web UI started successfully"
 
       - name: Run E2E tests

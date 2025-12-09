@@ -9,7 +9,9 @@ export default defineConfig(({ mode }) => ({
   base: "./",
   server: {
     host: "::",
-    port: 8080,
+    // Different ports for different modes so both can run simultaneously
+    // dev (real HA): 8080, dev:test (mock): 8081
+    port: mode === "test" ? 8081 : 8080,
     // In test mode, proxy HA API requests to mock server
     proxy: mode === "test" ? {
       // WebSocket proxy for HA protocol
