@@ -472,6 +472,10 @@ input_text:
     name: "Pool Heating Night Summary Data"
     max: 255
     icon: mdi:chart-line
+  pool_heating_cycle_running_totals:
+    name: "Pool Heating Cycle Running Totals"
+    max: 255
+    icon: mdi:counter
 
 # ============================================
 # THERMIA SENSOR MAPPING
@@ -1305,10 +1309,12 @@ automation:
       - service: pyscript.log_pool_temperatures
         continue_on_error: true  # Don't fail if Thermia sensors unavailable
 
-  # Calculate nightly summary at end of heating window
+  # Finalize nightly summary (safe to call - idempotent)
+  # Makes summary available at 07:00 (14 hours earlier than 21:00 schedule)
+  # If already finalized at 21:00 schedule time, this is a no-op
   - id: pool_night_summary
     alias: "Pool: Calculate Night Summary"
-    description: "Calculate summary stats at end of heating window (07:00)"
+    description: "Finalize night summary at 07:00 (safe to call multiple times)"
     trigger:
       - platform: time
         at: "07:00:00"

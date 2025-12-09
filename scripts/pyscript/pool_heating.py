@@ -139,6 +139,10 @@ SESSION_ENTITY = "sensor.pool_heating_session"
 NIGHT_SUMMARY_ENTITY = "sensor.pool_heating_night_summary"
 NIGHT_SUMMARY_DATA_ENTITY = "input_text.pool_heating_night_summary_data"
 
+# Running totals for current cycle (accumulated as blocks complete)
+# This is separate from NIGHT_SUMMARY_DATA_ENTITY which holds finalized data
+CYCLE_RUNNING_TOTALS_ENTITY = "input_text.pool_heating_cycle_running_totals"
+
 # Outdoor temperature sensor
 OUTDOOR_TEMP_SENSOR = "sensor.outdoor_temperature"
 
@@ -645,6 +649,34 @@ def calculate_pool_heating_schedule():
     )
     log.info("Reset night complete flag for new schedule")
 
+    # Calculate window average price for baseline savings calculation
+    # This needs to be captured NOW before Nordpool prices roll over
+    all_window_prices = []
+    if len(prices_today) >= 96:
+        # 15-minute intervals: 84-95 (21:00-23:45 today) + 0-27 (00:00-06:45 tomorrow)
+        for p in prices_today[84:96]:
+            all_window_prices.append(p)
+        for p in prices_tomorrow[0:28]:
+            all_window_prices.append(p)
+    elif len(prices_today) >= 24:
+        # Hourly prices: 21-23 today + 0-6 tomorrow
+        for p in prices_today[21:24]:
+            all_window_prices.append(p)
+        for p in prices_tomorrow[0:7]:
+            all_window_prices.append(p)
+
+    if all_window_prices:
+        window_avg_price = sum(all_window_prices) / len(all_window_prices)
+    else:
+        # Fallback: use average of schedule block prices
+        schedule_prices = [b['avg_price'] for b in schedule]
+        window_avg_price = sum(schedule_prices) / len(schedule_prices) if schedule_prices else 0.05
+
+    # Initialize new cycle tracking with captured window price
+    # This also finalizes any previous cycle data
+    heating_date = get_heating_date(datetime.now())
+    _init_cycle_with_window_price(heating_date, window_avg_price)
+
     # Update block entities
     total_cost_eur = 0.0
     for i, block_entity in enumerate(BLOCK_ENTITIES):
@@ -1035,6 +1067,15 @@ def log_heating_end():
     )
     log.info(f"Updated session entity: {SESSION_ENTITY}")
 
+    # Update cycle running totals (incremental aggregation for daily summary)
+    _update_cycle_running_totals(
+        energy_kwh=electrical_kwh,
+        cost_eur=estimated_cost_eur,
+        duration_minutes=duration_minutes,
+        price_eur_kwh=electricity_price_eur,
+        heating_date=heating_date
+    )
+
     # Keep session data for final temp update after mixing
     _current_session['logged'] = True
     _current_session['session_entity_heating_date'] = heating_date
@@ -1074,6 +1115,234 @@ def log_session_final_temp():
 
     # Clear the session now
     _current_session = {}
+
+
+# ============================================
+# CYCLE RUNNING TOTALS (Incremental Aggregation)
+# ============================================
+
+def _update_cycle_running_totals(energy_kwh, cost_eur, duration_minutes, price_eur_kwh, heating_date):
+    """
+    Update running totals for the current heating cycle.
+
+    Called after each heating block completes to accumulate totals.
+    Data is stored in input_text for persistence across HA restarts.
+
+    Args:
+        energy_kwh: Electrical energy consumed by this block
+        cost_eur: Cost of this block (energy × price)
+        duration_minutes: Duration of this block in minutes
+        price_eur_kwh: Electricity price during this block
+        heating_date: Heating cycle date (YYYY-MM-DD)
+    """
+    # Read current running totals
+    current_json = state.get(CYCLE_RUNNING_TOTALS_ENTITY)
+
+    if current_json in ['unknown', 'unavailable', '', None]:
+        # Initialize new running totals
+        running = {
+            "heating_date": heating_date,
+            "energy": 0.0,
+            "cost": 0.0,
+            "blocks": 0,
+            "duration": 0,
+            "prices": [],
+            "window_avg_price": None,  # Captured at cycle start
+            "last_updated": None,
+        }
+    else:
+        try:
+            running = json.loads(current_json)
+        except (json.JSONDecodeError, TypeError):
+            log.warning(f"Invalid running totals JSON, reinitializing: {current_json}")
+            running = {
+                "heating_date": heating_date,
+                "energy": 0.0,
+                "cost": 0.0,
+                "blocks": 0,
+                "duration": 0,
+                "prices": [],
+                "window_avg_price": None,
+                "last_updated": None,
+            }
+
+    # Check if this is a new cycle (different heating_date)
+    if running.get("heating_date") != heating_date:
+        log.info(f"New heating cycle detected: {heating_date} (was {running.get('heating_date')})")
+        running = {
+            "heating_date": heating_date,
+            "energy": 0.0,
+            "cost": 0.0,
+            "blocks": 0,
+            "duration": 0,
+            "prices": [],
+            "window_avg_price": None,
+            "last_updated": None,
+        }
+
+    # Add this block's data
+    running["energy"] = running.get("energy", 0) + energy_kwh
+    running["cost"] = running.get("cost", 0) + cost_eur
+    running["blocks"] = running.get("blocks", 0) + 1
+    running["duration"] = running.get("duration", 0) + duration_minutes
+    if "prices" not in running:
+        running["prices"] = []
+    running["prices"].append(price_eur_kwh)
+    running["last_updated"] = datetime.now().isoformat()
+
+    # Store updated running totals
+    service.call(
+        "input_text",
+        "set_value",
+        entity_id=CYCLE_RUNNING_TOTALS_ENTITY,
+        value=json.dumps(running)
+    )
+
+    log.info(f"Cycle running totals updated: {running['blocks']} blocks, "
+             f"{running['energy']:.3f} kWh, €{running['cost']:.4f}")
+
+
+def _init_cycle_with_window_price(heating_date, window_avg_price):
+    """
+    Initialize a new cycle's running totals with the window average price.
+
+    Called when a new schedule is calculated (at ~21:00). This captures the
+    window average price BEFORE the Nordpool prices roll over to the new day,
+    so we can calculate accurate baseline/savings at cycle end.
+
+    Args:
+        heating_date: The heating cycle date (YYYY-MM-DD)
+        window_avg_price: Average Nordpool price for the heating window (EUR/kWh)
+    """
+    # Read current running totals to check if we need to finalize previous cycle
+    current_json = state.get(CYCLE_RUNNING_TOTALS_ENTITY)
+
+    if current_json and current_json not in ['unknown', 'unavailable', '']:
+        try:
+            running = json.loads(current_json)
+            # If there's data from a previous cycle, finalize it first
+            if running.get("heating_date") and running.get("heating_date") != heating_date:
+                if running.get("blocks", 0) > 0:
+                    log.info(f"Finalizing previous cycle ({running.get('heating_date')}) before starting new one")
+                    _finalize_and_reset_cycle(window_avg_price_eur=running.get("window_avg_price"))
+        except (json.JSONDecodeError, TypeError):
+            pass
+
+    # Initialize new cycle with window price captured NOW (before Nordpool rolls over)
+    new_running = {
+        "heating_date": heating_date,
+        "energy": 0.0,
+        "cost": 0.0,
+        "blocks": 0,
+        "duration": 0,
+        "prices": [],
+        "window_avg_price": window_avg_price,  # Captured at schedule time!
+        "last_updated": datetime.now().isoformat(),
+    }
+
+    service.call(
+        "input_text",
+        "set_value",
+        entity_id=CYCLE_RUNNING_TOTALS_ENTITY,
+        value=json.dumps(new_running)
+    )
+
+    log.info(f"Initialized new cycle {heating_date} with window avg price: {window_avg_price*100:.2f} c/kWh")
+
+
+def _finalize_and_reset_cycle(window_avg_price_eur=None):
+    """
+    Finalize the current cycle's running totals and reset for new cycle.
+
+    Called when a new cycle starts (via _init_cycle_with_window_price) or
+    manually via calculate_night_summary. Takes the running totals,
+    calculates baseline/savings, and stores as finalized summary.
+
+    Args:
+        window_avg_price_eur: Average Nordpool price in the heating window.
+                             If None, uses the stored window_avg_price from
+                             running totals (captured at schedule time).
+    """
+    # Read current running totals
+    current_json = state.get(CYCLE_RUNNING_TOTALS_ENTITY)
+
+    if current_json in ['unknown', 'unavailable', '', None]:
+        log.info("No running totals to finalize")
+        return None
+
+    try:
+        running = json.loads(current_json)
+    except (json.JSONDecodeError, TypeError):
+        log.warning(f"Invalid running totals JSON, cannot finalize: {current_json}")
+        return None
+
+    # Skip if no blocks were recorded
+    if running.get("blocks", 0) == 0:
+        log.info("No heating blocks in this cycle, skipping finalization")
+        return None
+
+    # Calculate average of prices we actually paid
+    prices = running.get("prices", [])
+    avg_heating_price = sum(prices) / len(prices) if prices else 0
+
+    # Use stored window average price (captured at schedule time)
+    # Fall back to provided value or heating average if not available
+    if window_avg_price_eur is None or window_avg_price_eur <= 0:
+        window_avg_price_eur = running.get("window_avg_price")
+
+    if window_avg_price_eur is None or window_avg_price_eur <= 0:
+        # Last resort: use average of prices we paid
+        window_avg_price_eur = avg_heating_price
+        log.warning("No window average price available, using heating average for baseline")
+
+    # Calculate baseline and savings
+    energy = running.get("energy", 0)
+    cost = running.get("cost", 0)
+    baseline = energy * window_avg_price_eur
+    savings = baseline - cost
+
+    # Get current conditions
+    pool_temp = _safe_get_temp(POOL_WATER_TEMP)
+    outdoor_temp = _safe_get_temp(OUTDOOR_TEMP_SENSOR)
+
+    # Build finalized summary
+    finalized = {
+        "date": running.get("heating_date", ""),
+        "energy": round(energy, 3),
+        "cost": round(cost, 4),
+        "baseline": round(baseline, 4),
+        "savings": round(savings, 4),
+        "duration": running.get("duration", 0),
+        "blocks": running.get("blocks", 0),
+        "avg_price": round(avg_heating_price, 4),
+        "outdoor_avg": round(outdoor_temp, 1),
+        "pool_final": round(pool_temp, 1),
+    }
+
+    # Store finalized summary
+    service.call(
+        "input_text",
+        "set_value",
+        entity_id=NIGHT_SUMMARY_DATA_ENTITY,
+        value=json.dumps(finalized)
+    )
+
+    log.info(f"Cycle finalized for {finalized['date']}: "
+             f"{finalized['energy']:.2f} kWh, €{finalized['cost']:.3f}, "
+             f"savings €{finalized['savings']:.3f}")
+
+    # Reset running totals for new cycle
+    # Don't clear completely - new cycle will reinitialize when schedule is calculated
+    service.call(
+        "input_text",
+        "set_value",
+        entity_id=CYCLE_RUNNING_TOTALS_ENTITY,
+        value=""
+    )
+
+    log.info("Running totals reset for new cycle")
+
+    return finalized
 
 
 # ============================================
@@ -1137,53 +1406,33 @@ def get_heating_window_prices():
 @service
 def calculate_night_summary(heating_date=None):
     """
-    Calculate cycle summary by calling the standalone aggregation script.
+    Finalize and store the cycle summary.
 
-    Aggregation hierarchy: raw → 15min → block → cycle
-    The standalone script queries HA history for sensor.pool_heating_15min_energy
-    and calculates totals for the 21:00→21:00 cycle window.
+    This service finalizes the running totals accumulated during the heating
+    cycle and stores them as the night summary.
+
+    Normally called automatically when a new schedule is calculated
+    (via _init_cycle_with_window_price which finalizes the previous cycle).
+    Can also be called manually to force finalization.
+
+    Note: The actual energy/cost data is accumulated incrementally by
+    log_heating_end() after each heating block completes.
 
     Args:
-        heating_date: Optional YYYY-MM-DD string. If not specified,
-                     calculates for the cycle that just ended.
+        heating_date: Optional - for API compatibility only, not used.
+                     Finalization always uses the running totals' heating_date.
     """
-    import subprocess
-    import os
+    log.info("Finalizing cycle summary (manual call)...")
 
-    log.info("Calling cycle summary script...")
+    # Finalize current running totals
+    # The stored window_avg_price from cycle initialization will be used
+    result = _finalize_and_reset_cycle()
 
-    # Build command
-    script_path = "/config/scripts/standalone/calculate_cycle_summary.py"
-    cmd = ["python3", script_path]
-
-    if heating_date:
-        cmd.append(heating_date)
-
-    # Set environment variables
-    env = os.environ.copy()
-    env["HA_HOST"] = "localhost"
-    env["HA_PORT"] = "8123"
-    # HA_TOKEN should be set in pyscript config or environment
-
-    try:
-        # Run the script (this is a blocking call but should complete quickly)
-        result = subprocess.run(
-            cmd,
-            capture_output=True,
-            text=True,
-            timeout=60,
-            env=env
-        )
-
-        if result.returncode == 0:
-            log.info(f"Cycle summary complete: {result.stdout}")
-        else:
-            log.error(f"Cycle summary failed: {result.stderr}")
-
-    except subprocess.TimeoutExpired:
-        log.error("Cycle summary script timed out")
-    except Exception as e:
-        log.error(f"Failed to run cycle summary script: {e}")
+    if result:
+        log.info(f"Cycle summary stored: {result['date']}, {result['energy']:.2f} kWh, "
+                 f"€{result['cost']:.3f}, savings €{result['savings']:.3f}")
+    else:
+        log.info("No cycle data to finalize (no heating occurred or already finalized)")
 
 
 @service
