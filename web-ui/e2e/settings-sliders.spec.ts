@@ -20,8 +20,7 @@ import { test, expect } from '@playwright/test';
  */
 
 // Skip all tests by default - these modify live HA data
-test.skip(true, 'Settings slider tests modify live HA data - run manually for verification');
-test.describe('Settings Sheet Sliders', () => {
+test.describe.skip('Settings Sheet Sliders', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/');
     // Wait for page to load
