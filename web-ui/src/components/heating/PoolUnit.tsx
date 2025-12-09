@@ -1,7 +1,9 @@
+import { useState } from 'react';
 import { cn } from '@/lib/utils';
 import { PoolHeatingState } from '@/types/heating';
 import { Waves, Euro } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { PoolTempModal } from './PoolTempModal';
 
 interface PoolUnitProps {
   state: PoolHeatingState;
@@ -11,6 +13,7 @@ interface PoolUnitProps {
 
 export function PoolUnit({ state, isActive, className }: PoolUnitProps) {
   const { t } = useTranslation();
+  const [showTempModal, setShowTempModal] = useState(false);
 
   // Get pool status text
   const getStatusText = () => {
@@ -54,8 +57,15 @@ export function PoolUnit({ state, isActive, className }: PoolUnitProps) {
         </span>
       </div>
 
-      {/* Pool visualization */}
-      <div className="relative h-10 md:h-16 mb-1.5 md:mb-3 rounded-lg bg-cold/10 border border-cold/30 overflow-hidden">
+      {/* Pool visualization - clickable for temp history */}
+      <div
+        className="relative h-10 md:h-16 mb-1.5 md:mb-3 rounded-lg bg-cold/10 border border-cold/30 overflow-hidden cursor-pointer hover:border-cold/50 hover:bg-cold/15 transition-colors"
+        onClick={() => setShowTempModal(true)}
+        role="button"
+        tabIndex={0}
+        onKeyDown={(e) => e.key === 'Enter' && setShowTempModal(true)}
+        title={t('pool.clickForHistory', 'Click for temperature history')}
+      >
         <div
           className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-cold/40 to-cold/20 transition-all duration-500"
           style={{ height: '70%' }}
@@ -79,6 +89,15 @@ export function PoolUnit({ state, isActive, className }: PoolUnitProps) {
         <span className="text-muted-foreground">{t('pool.avgPrice')}:</span>
         <span className="font-mono text-foreground">{state.averagePrice.toFixed(2)} {t('units.centsPerKwh')}</span>
       </div>
+
+      {/* Temperature history modal - only render when open to avoid WebSocket calls */}
+      {showTempModal && (
+        <PoolTempModal
+          open={showTempModal}
+          onOpenChange={setShowTempModal}
+          targetTemp={state.targetTemp}
+        />
+      )}
     </div>
   );
 }
