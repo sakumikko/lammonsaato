@@ -41,8 +41,12 @@ echo ""
 echo "=== Building web-ui ==="
 cd web-ui && npm run build
 
+echo "=== Cleaning old addon files on server ==="
+ssh root@${HA_HOST} "rm -rf /addons/lammonsaato-ui/dist"
+
 echo "=== Copying addon to HA ==="
-cp -r dist/* addon/dist/
+rm -rf addon/dist
+cp -r dist addon/dist
 scp -r addon/* root@${HA_HOST}:/addons/lammonsaato-ui/
 
 echo ""
