@@ -1276,6 +1276,11 @@ def record_true_pool_temp(measurement_type="pre_heating"):
     if entity_id:
         service.call("input_number", "set_value", entity_id=entity_id, value=sensor_temp)
 
+    # Also update the unified true temp sensor for history tracking
+    service.call("input_number", "set_value",
+                 entity_id="input_number.pool_true_temp",
+                 value=sensor_temp)
+
     # Update last calibration timestamp
     service.call(
         "input_datetime", "set_datetime",

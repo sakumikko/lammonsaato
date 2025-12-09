@@ -448,6 +448,17 @@ input_number:
     unit_of_measurement: "°C"
     icon: mdi:thermometer-lines
 
+  # Unified true pool temperature - updated at:
+  # 1. End of each heating block (circulation just stopped, sensor = true temp)
+  # 2. Each calibration event (after 25 min circulation)
+  pool_true_temp:
+    name: "Pool True Temperature"
+    min: 10
+    max: 40
+    step: 0.01
+    unit_of_measurement: "°C"
+    icon: mdi:pool-thermometer
+
 input_text:
   pool_heating_schedule_info:
     name: "Schedule Info"
@@ -1323,10 +1334,7 @@ automation:
         entity_id: input_boolean.pool_heating_enabled
         state: "on"
     action:
-      # Start circulation only (block heating)
-      - service: switch.turn_on
-        target:
-          entity_id: switch.altaan_lammityksen_esto
+      # Start circulation only for calibration (don't touch prevention switch)
       - service: switch.turn_on
         target:
           entity_id: switch.altaan_kiertovesipumppu
@@ -1345,13 +1353,10 @@ automation:
       # Continue circulation for 5 more min
       - delay:
           minutes: 5
-      # Stop circulation, allow heating for upcoming window
+      # Stop circulation
       - service: switch.turn_off
         target:
           entity_id: switch.altaan_kiertovesipumppu
-      - service: switch.turn_off
-        target:
-          entity_id: switch.altaan_lammityksen_esto
       - service: logbook.log
         data:
           name: "Pool Thermal"
@@ -1366,10 +1371,7 @@ automation:
       - platform: time
         at: "07:30:00"
     action:
-      # Start circulation only (block heating)
-      - service: switch.turn_on
-        target:
-          entity_id: switch.altaan_lammityksen_esto
+      # Start circulation only for calibration (don't touch prevention switch)
       - service: switch.turn_on
         target:
           entity_id: switch.altaan_kiertovesipumppu
@@ -1392,9 +1394,6 @@ automation:
       - service: switch.turn_off
         target:
           entity_id: switch.altaan_kiertovesipumppu
-      - service: switch.turn_off
-        target:
-          entity_id: switch.altaan_lammityksen_esto
       - service: logbook.log
         data:
           name: "Pool Thermal"
@@ -1409,10 +1408,7 @@ automation:
       - platform: time
         at: "14:00:00"
     action:
-      # Start circulation only (block heating)
-      - service: switch.turn_on
-        target:
-          entity_id: switch.altaan_lammityksen_esto
+      # Start circulation only for calibration (don't touch prevention switch)
       - service: switch.turn_on
         target:
           entity_id: switch.altaan_kiertovesipumppu
@@ -1435,9 +1431,6 @@ automation:
       - service: switch.turn_off
         target:
           entity_id: switch.altaan_kiertovesipumppu
-      - service: switch.turn_off
-        target:
-          entity_id: switch.altaan_lammityksen_esto
       - service: logbook.log
         data:
           name: "Pool Thermal"
@@ -1453,6 +1446,31 @@ automation:
     action:
       - service: pyscript.estimate_true_pool_temp
         continue_on_error: true
+
+  # Capture true pool temp at end of heating blocks
+  # When heating ends, circulation just stopped and sensor = true pool temp
+  - id: pool_capture_true_temp_after_heating
+    alias: "Pool: Capture True Temp After Heating"
+    description: "Record true pool temp when heating block ends"
+    trigger:
+      - platform: state
+        entity_id: binary_sensor.pool_heating_active
+        from: "on"
+        to: "off"
+    action:
+      # Wait a few seconds for sensor reading to stabilize
+      - delay:
+          seconds: 10
+      # Capture the return line temp as true pool temp
+      - service: input_number.set_value
+        target:
+          entity_id: input_number.pool_true_temp
+        data:
+          value: "{{ states('sensor.pool_return_line_temperature_corrected') | float(0) }}"
+      - service: logbook.log
+        data:
+          name: "Pool Thermal"
+          message: "Captured true pool temp after heating: {{ states('sensor.pool_return_line_temperature_corrected') }}°C"
 
 # ============================================
 # SCRIPTS
