@@ -14,7 +14,7 @@ HA_USER ?= root
 .PHONY: help install test test-unit test-thermia test-nordpool test-firebase \
         test-integration test-ha test-ha-entities test-ha-schedule test-ha-workflow \
         test-all lint clean deploy status validate-yaml build dist \
-        mock-server e2e-test web-dev
+        mock-server e2e-test web-dev web-dev-test ci
 
 # Default target
 help:
@@ -53,8 +53,12 @@ help:
 	@echo ""
 	@echo "E2E Testing:"
 	@echo "  mock-server      Start mock HA server for UI testing"
-	@echo "  web-dev          Start web UI dev server"
+	@echo "  web-dev          Start web UI dev server (port 8080, real HA)"
+	@echo "  web-dev-test     Start web UI dev server (port 8081, mock server)"
 	@echo "  e2e-test         Run Playwright E2E tests"
+	@echo ""
+	@echo "Full Test Cycle:"
+	@echo "  ci               Run all tests (Python + E2E) - use after rebasing"
 	@echo ""
 	@echo "Other:"
 	@echo "  lint             Run linting checks"
@@ -277,9 +281,12 @@ mock-server:
 	@echo ""
 	$(PYTHON) -m scripts.mock_server
 
-# Start web UI development server
+# Start web UI development server (port 8080 for real HA, 8081 for mock)
 web-dev:
 	cd web-ui && npm run dev
+
+web-dev-test:
+	cd web-ui && npm run dev:test
 
 # Run Playwright E2E tests
 e2e-test:
@@ -288,3 +295,27 @@ e2e-test:
 # Install Playwright browsers
 e2e-setup:
 	cd web-ui && npx playwright install
+
+# ============================================
+# FULL CI TEST CYCLE
+# ============================================
+
+# Run full test cycle (Python unit tests + E2E tests)
+# Use this after rebasing or before pushing
+ci:
+	@echo "=== Running Python Unit Tests ==="
+	$(PYTHON) -m pytest tests/ -v
+	@echo ""
+	@echo "=== Starting Mock Server ==="
+	@$(PYTHON) -m scripts.mock_server & sleep 3
+	@echo ""
+	@echo "=== Starting Web UI (test mode) ==="
+	@cd web-ui && npm run dev:test & sleep 8
+	@echo ""
+	@echo "=== Running E2E Tests ==="
+	@cd web-ui && npx playwright test; EXIT_CODE=$$?; \
+		pkill -f "scripts.mock_server" 2>/dev/null || true; \
+		pkill -f "vite.*--mode.*test" 2>/dev/null || true; \
+		exit $$EXIT_CODE
+	@echo ""
+	@echo "=== All Tests Passed ==="
