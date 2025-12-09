@@ -1759,3 +1759,10 @@ recorder:
       - input_number.pool_heating_total_cost
       - binary_sensor.pool_heating_cost_limit_active
       - sensor.pool_heating_enabled_block_count
+      # Thermal calibration
+      - input_number.pool_true_temp_pre_heating
+      - input_number.pool_true_temp_post_heating
+      - input_number.pool_true_temp_daytime
+      - input_datetime.pool_last_calibration_time
+      - sensor.pool_estimated_true_temp
+      - sensor.pool_predicted_temp_after_heating
