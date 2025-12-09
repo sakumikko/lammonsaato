@@ -197,51 +197,45 @@ automation:
     mode: single
 
 # ============================================================================
-# SENSORS FOR MONITORING
+# TEMPLATE SENSORS AND BINARY SENSORS (Modern Syntax)
 # ============================================================================
 
-sensor:
-  # Delta between discharge and outdoor temp (indicates compressor load)
-  - platform: template
-    sensors:
-      thermia_discharge_outdoor_delta:
-        friendly_name: "Discharge-Outdoor Delta"
+template:
+  # Sensors for monitoring
+  - sensor:
+      - name: "Discharge-Outdoor Delta"
+        unique_id: thermia_discharge_outdoor_delta
         unit_of_measurement: "°C"
         device_class: temperature
-        value_template: >
+        state: >
           {% set discharge = states('sensor.discharge_pipe_temperature') | float(0) %}
           {% set outdoor = states('sensor.outdoor_temperature') | float(0) %}
           {{ (discharge - outdoor) | round(1) }}
-        availability_template: >
+        availability: >
           {{ states('sensor.discharge_pipe_temperature') not in ['unknown', 'unavailable']
              and states('sensor.outdoor_temperature') not in ['unknown', 'unavailable'] }}
 
-# ============================================================================
-# BINARY SENSORS FOR STATUS
-# ============================================================================
-
-binary_sensor:
-  - platform: template
-    sensors:
-      thermia_discharge_temp_warning:
-        friendly_name: "Discharge Temperature Warning"
+  # Binary sensors for status
+  - binary_sensor:
+      - name: "Discharge Temperature Warning"
+        unique_id: thermia_discharge_temp_warning
         device_class: problem
-        value_template: >
+        state: >
           {{ states('sensor.discharge_pipe_temperature') | float(0) > 100 }}
-        availability_template: >
+        availability: >
           {{ states('sensor.discharge_pipe_temperature') not in ['unknown', 'unavailable'] }}
 
-      thermia_discharge_temp_critical:
-        friendly_name: "Discharge Temperature Critical"
+      - name: "Discharge Temperature Critical"
+        unique_id: thermia_discharge_temp_critical
         device_class: problem
-        value_template: >
+        state: >
           {{ states('sensor.discharge_pipe_temperature') | float(0) > 110 }}
-        availability_template: >
+        availability: >
           {{ states('sensor.discharge_pipe_temperature') not in ['unknown', 'unavailable'] }}
 
-      thermia_cold_weather_mode:
-        friendly_name: "Cold Weather Mode Active"
-        value_template: >
+      - name: "Cold Weather Mode Active"
+        unique_id: thermia_cold_weather_mode
+        state: >
           {{ states('sensor.outdoor_temperature') | float(0) < -15 }}
-        availability_template: >
+        availability: >
           {{ states('sensor.outdoor_temperature') not in ['unknown', 'unavailable'] }}
