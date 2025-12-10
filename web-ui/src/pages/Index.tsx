@@ -27,6 +27,8 @@ const Index = () => {
     setScheduleParameters,
     recalculateSchedule,
     isInHeatingWindow,
+    setPeakPowerSetting,
+    setPeakPowerTime,
   } = useHomeAssistant();
 
   const isPoolActive = state.valve.position === 'pool';
@@ -62,11 +64,14 @@ const Index = () => {
                 tapWater={state.tapWater}
                 hotGasSettings={state.hotGasSettings}
                 heatingCurve={state.heatingCurve}
+                peakPower={state.peakPower}
                 heatPump={state.heatPump}
                 onGearLimitChange={setGearLimit}
                 onTapWaterChange={setTapWaterSetting}
                 onHotGasChange={setHotGasSetting}
                 onHeatingCurveChange={setHeatingCurveSetting}
+                onPeakPowerSettingChange={setPeakPowerSetting}
+                onPeakPowerTimeChange={setPeakPowerTime}
                 currentGears={{
                   heating: state.heatPump.compressorGear,
                 }}

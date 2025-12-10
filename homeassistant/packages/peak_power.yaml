@@ -1,0 +1,148 @@
+# Peak Power Avoidance Package
+#
+# Adjusts Thermia heat pump additional heater settings based on time of day
+# to avoid peak power costs from Helen electricity pricing.
+#
+# Helen charges additional costs for peak power during 7:00-21:00.
+# By adjusting the external additional heater thresholds, we can avoid
+# power spikes during peak hours.
+#
+# Default Settings:
+# - Daytime (6:40-21:00): start=-10°C, stop=0°C (effectively disables additional heater)
+# - Nighttime (21:00-6:40): start=-6°C, stop=4°C (normal operation)
+#
+# The daytime settings are applied at 6:40 (20 minutes buffer before 7:00)
+# to ensure the system has time to adjust before peak hours begin.
+#
+# All settings are configurable via input entities and the web UI.
+
+# =============================================================================
+# INPUT ENTITIES - Configurable Settings
+# =============================================================================
+
+input_number:
+  # Daytime settings (peak hours) - effectively disable additional heater
+  peak_power_daytime_heater_start:
+    name: "Peak Power: Daytime Heater Start"
+    min: -15
+    max: 0
+    step: 1
+    unit_of_measurement: "°C"
+    icon: mdi:thermometer-low
+    initial: -10
+
+  peak_power_daytime_heater_stop:
+    name: "Peak Power: Daytime Heater Stop"
+    min: -10
+    max: 10
+    step: 1
+    unit_of_measurement: "°C"
+    icon: mdi:thermometer-high
+    initial: 0
+
+  # Nighttime settings (off-peak hours) - normal operation
+  peak_power_nighttime_heater_start:
+    name: "Peak Power: Nighttime Heater Start"
+    min: -15
+    max: 0
+    step: 1
+    unit_of_measurement: "°C"
+    icon: mdi:thermometer-low
+    initial: -6
+
+  peak_power_nighttime_heater_stop:
+    name: "Peak Power: Nighttime Heater Stop"
+    min: -10
+    max: 10
+    step: 1
+    unit_of_measurement: "°C"
+    icon: mdi:thermometer-high
+    initial: 4
+
+input_datetime:
+  # Time boundaries for peak/off-peak periods
+  peak_power_daytime_start:
+    name: "Peak Power: Daytime Start Time"
+    has_date: false
+    has_time: true
+    icon: mdi:weather-sunny
+
+  peak_power_nighttime_start:
+    name: "Peak Power: Nighttime Start Time"
+    has_date: false
+    has_time: true
+    icon: mdi:weather-night
+
+# =============================================================================
+# AUTOMATIONS - Apply settings at configured times
+# =============================================================================
+
+automation:
+  # Initialize default times on HA start (input_datetime doesn't support 'initial')
+  - id: peak_power_init_times
+    alias: "Peak Power: Initialize Default Times"
+    description: >-
+      Set default times for peak power settings on Home Assistant start.
+      Daytime starts at 6:40 (before 7:00 peak), nighttime at 21:00.
+    mode: single
+    trigger:
+      - platform: homeassistant
+        event: start
+    condition:
+      # Only set if time is at midnight (uninitialized)
+      - condition: template
+        value_template: >-
+          {{ states('input_datetime.peak_power_daytime_start') == '00:00:00' }}
+    action:
+      - service: input_datetime.set_datetime
+        target:
+          entity_id: input_datetime.peak_power_daytime_start
+        data:
+          time: "06:40:00"
+      - service: input_datetime.set_datetime
+        target:
+          entity_id: input_datetime.peak_power_nighttime_start
+        data:
+          time: "21:00:00"
+
+  - id: peak_power_daytime_settings
+    alias: "Peak Power: Apply Daytime Settings"
+    description: >-
+      At configured daytime start, set additional heater thresholds to avoid
+      peak power costs during Helen peak hours (7:00-21:00).
+    mode: single
+    trigger:
+      - platform: time
+        at: input_datetime.peak_power_daytime_start
+    action:
+      - service: number.set_value
+        target:
+          entity_id: number.external_additional_heater_start
+        data:
+          value: "{{ states('input_number.peak_power_daytime_heater_start') | int(-10) }}"
+      - service: number.set_value
+        target:
+          entity_id: number.external_additional_heater_stop
+        data:
+          value: "{{ states('input_number.peak_power_daytime_heater_stop') | int(0) }}"
+
+  - id: peak_power_nighttime_settings
+    alias: "Peak Power: Apply Nighttime Settings"
+    description: >-
+      At configured nighttime start, restore normal additional heater thresholds
+      for off-peak hours.
+    mode: single
+    trigger:
+      - platform: time
+        at: input_datetime.peak_power_nighttime_start
+    action:
+      - service: number.set_value
+        target:
+          entity_id: number.external_additional_heater_start
+        data:
+          value: "{{ states('input_number.peak_power_nighttime_heater_start') | int(-6) }}"
+      - service: number.set_value
+        target:
+          entity_id: number.external_additional_heater_stop
+        data:
+          value: "{{ states('input_number.peak_power_nighttime_heater_stop') | int(4) }}"

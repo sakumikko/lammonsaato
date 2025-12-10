@@ -95,6 +95,15 @@ export interface HeatingCurveSettings {
   minLimitation: number;
 }
 
+export interface PeakPowerSettings {
+  daytimeHeaterStart: number;   // Default: -10°C
+  daytimeHeaterStop: number;    // Default: 0°C
+  nighttimeHeaterStart: number; // Default: -6°C
+  nighttimeHeaterStop: number;  // Default: 4°C
+  daytimeStartTime: string;     // Default: "06:40"
+  nighttimeStartTime: string;   // Default: "21:00"
+}
+
 export interface SystemState {
   heatPump: HeatPumpState;
   poolHeating: PoolHeatingState;
@@ -104,4 +113,5 @@ export interface SystemState {
   tapWater: TapWaterState;
   hotGasSettings: HotGasSettings;
   heatingCurve: HeatingCurveSettings;
+  peakPower: PeakPowerSettings;
 }

@@ -11,6 +11,7 @@ import {
   TapWaterState,
   HotGasSettings,
   HeatingCurveSettings,
+  PeakPowerSettings,
 } from '@/types/heating';
 import { getHAWebSocket, HAEntityState } from '@/lib/ha-websocket';
 
@@ -124,6 +125,14 @@ const ENTITIES = {
   // Heating curve settings (Thermia Genesis)
   heatingCurveMax: 'number.heat_curve_max_limitation',
   heatingCurveMin: 'number.heat_curve_min_limitation',
+
+  // Peak power avoidance settings
+  peakPowerDaytimeHeaterStart: 'input_number.peak_power_daytime_heater_start',
+  peakPowerDaytimeHeaterStop: 'input_number.peak_power_daytime_heater_stop',
+  peakPowerNighttimeHeaterStart: 'input_number.peak_power_nighttime_heater_start',
+  peakPowerNighttimeHeaterStop: 'input_number.peak_power_nighttime_heater_stop',
+  peakPowerDaytimeStart: 'input_datetime.peak_power_daytime_start',
+  peakPowerNighttimeStart: 'input_datetime.peak_power_nighttime_start',
 } as const;
 
 // Block entities (1-10)
@@ -208,6 +217,14 @@ const defaultState: SystemState = {
     maxLimitation: 55,
     minLimitation: 20,
   },
+  peakPower: {
+    daytimeHeaterStart: -10,
+    daytimeHeaterStop: 0,
+    nighttimeHeaterStart: -6,
+    nighttimeHeaterStop: 4,
+    daytimeStartTime: '06:40',
+    nighttimeStartTime: '21:00',
+  },
 };
 
 // Helper to parse numeric state
@@ -289,6 +306,8 @@ export type GearLimitType = 'min' | 'max';
 export type TapWaterSetting = 'startTemp' | 'stopTemp';
 export type HotGasSetting = 'pumpStartTemp' | 'lowerStopLimit' | 'upperStopLimit';
 export type HeatingCurveSetting = 'maxLimitation' | 'minLimitation';
+export type PeakPowerSetting = 'daytimeHeaterStart' | 'daytimeHeaterStop' | 'nighttimeHeaterStart' | 'nighttimeHeaterStop';
+export type PeakPowerTime = 'daytimeStart' | 'nighttimeStart';
 
 export interface UseHomeAssistantReturn {
   state: SystemState;
@@ -309,6 +328,9 @@ export interface UseHomeAssistantReturn {
   setScheduleParameters: (params: Partial<ScheduleParameters>) => Promise<void>;
   recalculateSchedule: () => Promise<boolean>;
   isInHeatingWindow: () => boolean;
+  // Peak power avoidance controls
+  setPeakPowerSetting: (setting: PeakPowerSetting, value: number) => Promise<void>;
+  setPeakPowerTime: (setting: PeakPowerTime, time: string) => Promise<void>;
 }
 
 export function useHomeAssistant(): UseHomeAssistantReturn {
@@ -459,7 +481,17 @@ export function useHomeAssistant(): UseHomeAssistantReturn {
       minLimitation: parseNumber(get(ENTITIES.heatingCurveMin)) || 20,
     };
 
-    return { heatPump, poolHeating, valve, schedule, gearSettings, tapWater, hotGasSettings, heatingCurve };
+    // Peak power avoidance settings
+    const peakPower: PeakPowerSettings = {
+      daytimeHeaterStart: parseNumber(get(ENTITIES.peakPowerDaytimeHeaterStart)) || -10,
+      daytimeHeaterStop: parseNumber(get(ENTITIES.peakPowerDaytimeHeaterStop)) || 0,
+      nighttimeHeaterStart: parseNumber(get(ENTITIES.peakPowerNighttimeHeaterStart)) || -6,
+      nighttimeHeaterStop: parseNumber(get(ENTITIES.peakPowerNighttimeHeaterStop)) || 4,
+      daytimeStartTime: parseTime(get(ENTITIES.peakPowerDaytimeStart)) || '06:40',
+      nighttimeStartTime: parseTime(get(ENTITIES.peakPowerNighttimeStart)) || '21:00',
+    };
+
+    return { heatPump, poolHeating, valve, schedule, gearSettings, tapWater, hotGasSettings, heatingCurve, peakPower };
   }, []);
 
   // Initial connection and state fetch
@@ -715,6 +747,30 @@ export function useHomeAssistant(): UseHomeAssistantReturn {
     return hour >= 21 || hour < 7;
   }, []);
 
+  const setPeakPowerSetting = useCallback(async (setting: PeakPowerSetting, value: number) => {
+    const entityMap: Record<PeakPowerSetting, string> = {
+      daytimeHeaterStart: ENTITIES.peakPowerDaytimeHeaterStart,
+      daytimeHeaterStop: ENTITIES.peakPowerDaytimeHeaterStop,
+      nighttimeHeaterStart: ENTITIES.peakPowerNighttimeHeaterStart,
+      nighttimeHeaterStop: ENTITIES.peakPowerNighttimeHeaterStop,
+    };
+    await ws.current.callService('input_number', 'set_value', {
+      entity_id: entityMap[setting],
+      value: value,
+    });
+  }, []);
+
+  const setPeakPowerTime = useCallback(async (setting: PeakPowerTime, time: string) => {
+    const entityMap: Record<PeakPowerTime, string> = {
+      daytimeStart: ENTITIES.peakPowerDaytimeStart,
+      nighttimeStart: ENTITIES.peakPowerNighttimeStart,
+    };
+    await ws.current.callService('input_datetime', 'set_datetime', {
+      entity_id: entityMap[setting],
+      time: time + ':00', // Add seconds for HA format
+    });
+  }, []);
+
   return {
     state,
     connected,
@@ -733,5 +789,7 @@ export function useHomeAssistant(): UseHomeAssistantReturn {
     setScheduleParameters,
     recalculateSchedule,
     isInHeatingWindow,
+    setPeakPowerSetting,
+    setPeakPowerTime,
   };
 }

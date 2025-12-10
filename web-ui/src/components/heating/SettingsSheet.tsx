@@ -9,17 +9,20 @@ import {
 } from '@/components/ui/sheet';
 import { GearSettingsCard } from './GearSettingsCard';
 import { TemperatureSettingsCard } from './TemperatureSettingsCard';
+import { PeakPowerSettingsCard } from './PeakPowerSettingsCard';
 import { TemperatureChart } from './TemperatureChart';
 import { Settings, Home, Waves, Droplet, Flame, TrendingUp } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { cn } from '@/lib/utils';
-import { GearSettings, TapWaterState, HotGasSettings, HeatingCurveSettings, HeatPumpState } from '@/types/heating';
+import { GearSettings, TapWaterState, HotGasSettings, HeatingCurveSettings, HeatPumpState, PeakPowerSettings } from '@/types/heating';
 import {
   GearCircuit,
   GearLimitType,
   TapWaterSetting,
   HotGasSetting,
   HeatingCurveSetting,
+  PeakPowerSetting,
+  PeakPowerTime,
 } from '@/hooks/useHomeAssistant';
 
 interface SettingsSheetProps {
@@ -27,6 +30,7 @@ interface SettingsSheetProps {
   tapWater: TapWaterState;
   hotGasSettings: HotGasSettings;
   heatingCurve: HeatingCurveSettings;
+  peakPower: PeakPowerSettings;
   heatPump: HeatPumpState;
   currentGears?: {
     heating?: number;
@@ -37,6 +41,8 @@ interface SettingsSheetProps {
   onTapWaterChange: (setting: TapWaterSetting, value: number) => Promise<void>;
   onHotGasChange: (setting: HotGasSetting, value: number) => Promise<void>;
   onHeatingCurveChange: (setting: HeatingCurveSetting, value: number) => Promise<void>;
+  onPeakPowerSettingChange: (setting: PeakPowerSetting, value: number) => Promise<void>;
+  onPeakPowerTimeChange: (setting: PeakPowerTime, time: string) => Promise<void>;
   className?: string;
 }
 
@@ -54,12 +60,15 @@ export function SettingsSheet({
   tapWater,
   hotGasSettings,
   heatingCurve,
+  peakPower,
   heatPump,
   currentGears,
   onGearLimitChange,
   onTapWaterChange,
   onHotGasChange,
   onHeatingCurveChange,
+  onPeakPowerSettingChange,
+  onPeakPowerTimeChange,
   className,
 }: SettingsSheetProps) {
   const { t } = useTranslation();
@@ -205,6 +214,13 @@ export function SettingsSheet({
                 max: 40,
               },
             ]}
+          />
+
+          {/* Peak Power Avoidance */}
+          <PeakPowerSettingsCard
+            settings={peakPower}
+            onSettingChange={onPeakPowerSettingChange}
+            onTimeChange={onPeakPowerTimeChange}
           />
 
           {/* Section divider */}
