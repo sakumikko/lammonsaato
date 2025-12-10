@@ -137,7 +137,16 @@
     "tapWaterStop": "Lopetuslämpötila",
     "heatingCurveLimits": "Lämmityskäyrän rajat",
     "curveMaxLimit": "Maksimi menolämpötila",
-    "curveMinLimit": "Minimi menolämpötila"
+    "curveMinLimit": "Minimi menolämpötila",
+    "peakPower": {
+      "title": "Tehohuippujen välttäminen",
+      "description": "Säädä lämmittimen raja-arvoja Helenin tehomaksujen välttämiseksi (7-21)",
+      "daytime": "Päiväaika (huipputunnit)",
+      "nighttime": "Yöaika (edullinen)",
+      "startTime": "Alkamisaika",
+      "heaterStart": "Lämmittimen käynnistysraja",
+      "heaterStop": "Lämmittimen pysäytysraja"
+    }
   },
   "entityBrowser": {
     "title": "Entiteettien selain"

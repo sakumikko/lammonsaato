@@ -67,7 +67,19 @@ Pool heating is expensive and typically runs at fixed times regardless of electr
 | FR-18 | System SHALL log session end with energy/cost summary |
 | FR-19 | System SHALL store session data locally in JSON format |
 
-### 4.5 Dashboard & UI
+### 4.5 Peak Power Avoidance
+
+| ID | Requirement |
+|----|-------------|
+| FR-33 | System SHALL adjust heat pump additional heater settings based on time of day to avoid peak power costs |
+| FR-34 | System SHALL set external_additional_heater_start to -10°C during daytime (6:40-21:00) |
+| FR-35 | System SHALL set external_additional_heater_stop to 0°C during daytime (6:40-21:00) |
+| FR-36 | System SHALL set external_additional_heater_start to -6°C during nighttime (21:00-6:40) |
+| FR-37 | System SHALL set external_additional_heater_stop to 4°C during nighttime (21:00-6:40) |
+| FR-38 | System SHALL apply daytime settings at 6:40 to ensure settings are active before Helen peak hours (7-21) |
+| FR-39 | System SHALL apply nighttime settings at 21:00 when peak hours end |
+
+### 4.6 Dashboard & UI
 
 | ID | Requirement |
 |----|-------------|
@@ -137,7 +149,15 @@ Pool heating is expensive and typically runs at fixed times regardless of electr
 - **Cost per Block:** energy × spot price (c/kWh)
 - **Rationale:** 5 kW is approximate based on typical compressor power at full load
 
-### 6.5 Hardware Constraints
+### 6.5 Helen Peak Power Pricing
+- **Peak Hours:** 07:00-21:00
+- **Peak Power Charge:** Additional cost when power consumption exceeds threshold during peak hours
+- **Mitigation:** Reduce external additional heater usage during peak hours by lowering temperature thresholds
+- **Daytime Settings (6:40-21:00):** Start at -10°C, stop at 0°C (effectively disables additional heater in normal conditions)
+- **Nighttime Settings (21:00-6:40):** Start at -6°C, stop at 4°C (normal operation)
+- **Buffer Time:** Settings applied 20 minutes before peak hours start (6:40) to ensure system has adjusted
+
+### 6.6 Hardware Constraints
 - Pool water temperature sensor not available (uses condenser temps instead)
 - Thermia integration occasionally freezes (requires periodic reload)
 - No direct heat pump control (uses relay to enable/disable circuit)

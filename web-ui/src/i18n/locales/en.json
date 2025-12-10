@@ -137,7 +137,16 @@
     "tapWaterStop": "Stop Temperature",
     "heatingCurveLimits": "Heating Curve Limits",
     "curveMaxLimit": "Maximum Supply Temp",
-    "curveMinLimit": "Minimum Supply Temp"
+    "curveMinLimit": "Minimum Supply Temp",
+    "peakPower": {
+      "title": "Peak Power Avoidance",
+      "description": "Adjust heater thresholds to avoid Helen peak charges (7-21)",
+      "daytime": "Daytime (Peak Hours)",
+      "nighttime": "Nighttime (Off-Peak)",
+      "startTime": "Start Time",
+      "heaterStart": "Heater Start Threshold",
+      "heaterStop": "Heater Stop Threshold"
+    }
   },
   "temperatures": {
     "title": "Temperature Monitor",

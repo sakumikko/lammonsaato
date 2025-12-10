@@ -29,6 +29,8 @@ const Index = () => {
     setScheduleParameters,
     recalculateSchedule,
     isInHeatingWindow,
+    setPeakPowerSetting,
+    setPeakPowerTime,
   } = useHomeAssistant();
 
   return (
@@ -73,11 +75,14 @@ const Index = () => {
                 tapWater={state.tapWater}
                 hotGasSettings={state.hotGasSettings}
                 heatingCurve={state.heatingCurve}
+                peakPower={state.peakPower}
                 heatPump={state.heatPump}
                 onGearLimitChange={setGearLimit}
                 onTapWaterChange={setTapWaterSetting}
                 onHotGasChange={setHotGasSetting}
                 onHeatingCurveChange={setHeatingCurveSetting}
+                onPeakPowerSettingChange={setPeakPowerSetting}
+                onPeakPowerTimeChange={setPeakPowerTime}
                 currentGears={{
                   heating: state.heatPump.compressorGear,
                 }}

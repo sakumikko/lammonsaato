@@ -16,6 +16,7 @@ make build-all
 echo "=== Copying packages and pyscript to HA ==="
 scp dist/packages/pool_heating.yaml root@${HA_HOST}:/config/packages/
 scp dist/packages/thermia_protection.yaml root@${HA_HOST}:/config/packages/
+scp dist/packages/peak_power.yaml root@${HA_HOST}:/config/packages/
 scp dist/pyscript/* root@${HA_HOST}:/config/pyscript/
 
 echo "=== Reloading pyscript in HA ==="
