@@ -38,6 +38,10 @@ interface SettingsSheetProps {
   onHotGasChange: (setting: HotGasSetting, value: number) => Promise<void>;
   onHeatingCurveChange: (setting: HeatingCurveSetting, value: number) => Promise<void>;
   className?: string;
+  // External control (when rendered without trigger)
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+  showTrigger?: boolean;
 }
 
 interface TemperatureDataPoint {
@@ -61,9 +65,17 @@ export function SettingsSheet({
   onHotGasChange,
   onHeatingCurveChange,
   className,
+  open: controlledOpen,
+  onOpenChange: controlledOnOpenChange,
+  showTrigger = true,
 }: SettingsSheetProps) {
   const { t } = useTranslation();
-  const [open, setOpen] = useState(false);
+  const [internalOpen, setInternalOpen] = useState(false);
+
+  // Use controlled state if provided, otherwise internal
+  const isControlled = controlledOpen !== undefined;
+  const open = isControlled ? controlledOpen : internalOpen;
+  const setOpen = isControlled ? (controlledOnOpenChange ?? (() => {})) : setInternalOpen;
   const [temperatureHistory, setTemperatureHistory] = useState<TemperatureDataPoint[]>([]);
   const lastUpdateRef = useRef<number>(0);
 
@@ -92,19 +104,21 @@ export function SettingsSheet({
 
   return (
     <Sheet open={open} onOpenChange={setOpen}>
-      <SheetTrigger asChild>
-        <button
-          className={cn(
-            'p-2 rounded-lg transition-colors',
-            'hover:bg-muted/80 active:bg-muted',
-            'text-muted-foreground hover:text-foreground',
-            className
-          )}
-          title={t('settings.title')}
-        >
-          <Settings className="w-5 h-5" />
-        </button>
-      </SheetTrigger>
+      {showTrigger && (
+        <SheetTrigger asChild>
+          <button
+            className={cn(
+              'p-2 rounded-lg transition-colors',
+              'hover:bg-muted/80 active:bg-muted',
+              'text-muted-foreground hover:text-foreground',
+              className
+            )}
+            title={t('settings.title')}
+          >
+            <Settings className="w-5 h-5" />
+          </button>
+        </SheetTrigger>
+      )}
       <SheetContent side="right" className="w-full sm:max-w-lg overflow-y-auto">
         <SheetHeader className="pb-4">
           <SheetTitle className="flex items-center gap-2">

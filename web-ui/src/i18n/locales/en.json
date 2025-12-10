@@ -149,6 +149,9 @@
     "warningAt": "Warning >{{temp}}°C",
     "dangerAt": "Danger >{{temp}}°C"
   },
+  "entityBrowser": {
+    "title": "Entity Browser"
+  },
   "analytics": {
     "title": "Analytics",
     "timeRange": {

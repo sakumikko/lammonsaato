@@ -139,6 +139,9 @@
     "curveMaxLimit": "Maksimi menolämpötila",
     "curveMinLimit": "Minimi menolämpötila"
   },
+  "entityBrowser": {
+    "title": "Entiteettien selain"
+  },
   "temperatures": {
     "title": "Lämpötilaseuranta",
     "hotGas": "Kuumakaasu",

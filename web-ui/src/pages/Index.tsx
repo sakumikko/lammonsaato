@@ -1,17 +1,19 @@
+import { useState } from 'react';
 import { useHomeAssistant } from '@/hooks/useHomeAssistant';
 import { SystemDiagram } from '@/components/heating/SystemDiagram';
 import { ControlPanel } from '@/components/heating/ControlPanel';
 import { SchedulePanel } from '@/components/heating/SchedulePanel';
 import { SettingsSheet } from '@/components/heating/SettingsSheet';
-import { LanguageSwitcher } from '@/components/LanguageSwitcher';
-import { ThemeToggle } from '@/components/ThemeToggle';
-import { Activity, Zap, Wifi, WifiOff, BarChart3 } from 'lucide-react';
+import { StatusIndicator } from '@/components/StatusIndicator';
+import { SettingsDropdown } from '@/components/SettingsDropdown';
+import { Zap, BarChart3 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { useTranslation } from 'react-i18next';
 
 const Index = () => {
   const { t } = useTranslation();
+  const [heatPumpSettingsOpen, setHeatPumpSettingsOpen] = useState(false);
   const {
     state,
     connected,
@@ -29,8 +31,6 @@ const Index = () => {
     isInHeatingWindow,
   } = useHomeAssistant();
 
-  const isPoolActive = state.valve.position === 'pool';
-
   return (
     <div className="min-h-screen bg-background bg-grid">
       {/* Header */}
@@ -47,16 +47,27 @@ const Index = () => {
               </div>
             </div>
 
-            {/* Status indicator */}
-            <div className="flex items-center gap-1.5 md:gap-4">
+            {/* Status indicators */}
+            <div className="flex items-center gap-1.5 md:gap-2">
               {/* Analytics link */}
               <Link to="/analytics">
-                <Button variant="ghost" size="sm" className="gap-1.5">
+                <Button variant="ghost" size="icon" className="h-8 w-8">
                   <BarChart3 className="w-4 h-4" />
-                  <span className="hidden md:inline">{t('analytics.title')}</span>
+                  <span className="sr-only">{t('analytics.title')}</span>
                 </Button>
               </Link>
-              {/* Settings, Theme and Language switchers */}
+
+              {/* Settings dropdown (theme, language, heat pump settings) */}
+              <SettingsDropdown onOpenHeatPumpSettings={() => setHeatPumpSettingsOpen(true)} />
+
+              {/* Consolidated status indicator */}
+              <StatusIndicator
+                connected={connected}
+                systemActive={state.heatPump.heatEnabled}
+                error={error}
+              />
+
+              {/* Heat pump settings sheet (controlled externally) */}
               <SettingsSheet
                 gearSettings={state.gearSettings}
                 tapWater={state.tapWater}
@@ -70,40 +81,10 @@ const Index = () => {
                 currentGears={{
                   heating: state.heatPump.compressorGear,
                 }}
+                open={heatPumpSettingsOpen}
+                onOpenChange={setHeatPumpSettingsOpen}
+                showTrigger={false}
               />
-              <ThemeToggle />
-              <LanguageSwitcher />
-              {/* Connection status */}
-              <div
-                className={`flex items-center gap-1 md:gap-2 px-2 md:px-3 py-1.5 md:py-2 rounded-lg ${
-                  connected ? 'bg-success/20' : 'bg-destructive/20'
-                }`}
-                title={error || (connected ? t('status.connected') : t('status.disconnected'))}
-              >
-                {connected ? (
-                  <Wifi className="w-4 h-4 text-success" />
-                ) : (
-                  <WifiOff className="w-4 h-4 text-destructive" />
-                )}
-                <span className={`text-sm font-medium hidden md:inline ${connected ? 'text-success' : 'text-destructive'}`}>
-                  {connected ? 'HA' : t('status.offline')}
-                </span>
-              </div>
-              <div className="flex items-center gap-1 md:gap-2 px-2 md:px-3 py-1.5 md:py-2 rounded-lg bg-muted/50">
-                <Activity
-                  className={`w-4 h-4 ${
-                    state.heatPump.heatEnabled ? 'text-success animate-pulse' : 'text-muted-foreground'
-                  }`}
-                />
-                <span className="text-sm font-medium text-foreground hidden md:inline">
-                  {state.heatPump.heatEnabled ? t('status.systemActive') : t('status.systemIdle')}
-                </span>
-              </div>
-              <div
-                className="px-2 md:px-3 py-1.5 md:py-2 rounded-lg font-mono text-xs md:text-sm transition-colors bg-hot/20 text-hot border border-hot/30"
-              >
-                {isPoolActive ? `→ ${t('valve.pool')}` : `↓ ${t('valve.radiators')}`}
-              </div>
             </div>
           </div>
         </div>

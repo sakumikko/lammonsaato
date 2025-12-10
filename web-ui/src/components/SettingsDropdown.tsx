@@ -1,5 +1,6 @@
-import { Settings, Sun, Moon, Globe, Wrench } from 'lucide-react';
+import { Settings, Sun, Moon, Globe, Wrench, Database } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { useNavigate } from 'react-router-dom';
 import { useTheme } from '@/contexts/ThemeContext';
 import { setLanguage } from '@/i18n';
 import { Button } from '@/components/ui/button';
@@ -21,6 +22,7 @@ interface SettingsDropdownProps {
 export function SettingsDropdown({ onOpenHeatPumpSettings }: SettingsDropdownProps) {
   const { t, i18n } = useTranslation();
   const { theme, toggleTheme } = useTheme();
+  const navigate = useNavigate();
   const currentLang = i18n.language;
 
   const toggleLanguage = () => {
@@ -42,10 +44,16 @@ export function SettingsDropdown({ onOpenHeatPumpSettings }: SettingsDropdownPro
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-48">
-        {/* Heat pump settings - first item */}
+        {/* Heat pump settings */}
         <DropdownMenuItem onClick={onOpenHeatPumpSettings} className="cursor-pointer">
           <Wrench className="mr-2 h-4 w-4" />
           <span>{t('settings.title')}</span>
+        </DropdownMenuItem>
+
+        {/* Entity browser */}
+        <DropdownMenuItem onClick={() => navigate('/entities')} className="cursor-pointer">
+          <Database className="mr-2 h-4 w-4" />
+          <span>{t('entityBrowser.title')}</span>
         </DropdownMenuItem>
 
         <DropdownMenuSeparator />
