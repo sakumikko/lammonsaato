@@ -125,8 +125,11 @@ test.describe('Simplified Topbar', () => {
     const settingsButton = page.getByTestId('settings-dropdown');
     await settingsButton.click();
 
-    // Click first menu item (theme toggle)
-    const themeItem = page.locator('[role="menuitem"]').first();
+    // Click theme toggle (3rd menuitem - after Heat Pump Settings and Entity Browser)
+    // Theme item has Sun or Moon icon
+    const themeItem = page.locator('[role="menuitem"]').filter({
+      has: page.locator('svg.lucide-sun, svg.lucide-moon'),
+    });
     await themeItem.click();
 
     // Wait for theme change

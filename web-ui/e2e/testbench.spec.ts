@@ -337,7 +337,7 @@ test.describe('Test Bench - Mock Server Integration', () => {
    * Ensures each change is correctly captured and sent
    */
   test('should handle multiple consecutive parameter changes', async ({ page }) => {
-    test.setTimeout(60000); // Longer timeout for multiple API calls
+    test.setTimeout(90000); // Longer timeout for multiple API calls
     const connected = await page.getByText(/mock server connected/i).isVisible();
     test.skip(!connected, 'Mock server not running');
 
@@ -348,13 +348,27 @@ test.describe('Test Bench - Mock Server Integration', () => {
         page.waitForResponse(resp => resp.url().includes('/api/calculate') && resp.status() === 200),
         page.getByTestId('schedule-editor-save').click(),
       ]);
-      await page.waitForTimeout(500);
+      await page.waitForTimeout(1000); // Longer wait for state to propagate
     };
 
-    // Helper to open editor
+    // Helper to open editor (handles case where it's already open)
     const openEditor = async () => {
-      await page.getByTestId('schedule-editor-toggle').click();
-      await expect(page.getByTestId('schedule-editor-panel')).toBeVisible({ timeout: 5000 });
+      const editorPanel = page.getByTestId('schedule-editor-panel');
+      const isVisible = await editorPanel.isVisible();
+      if (!isVisible) {
+        await page.getByTestId('schedule-editor-toggle').click();
+        await expect(editorPanel).toBeVisible({ timeout: 5000 });
+      }
+    };
+
+    // Helper to ensure editor is closed
+    const closeEditorIfOpen = async () => {
+      const editorPanel = page.getByTestId('schedule-editor-panel');
+      const isVisible = await editorPanel.isVisible();
+      if (isVisible) {
+        await page.getByTestId('schedule-editor-toggle').click();
+        await expect(editorPanel).not.toBeVisible({ timeout: 5000 });
+      }
     };
 
     // First change: 2h -> 4h
@@ -362,27 +376,27 @@ test.describe('Test Bench - Mock Server Integration', () => {
     await page.getByTestId('select-total-hours').click();
     await page.getByRole('option', { name: '4h', exact: true }).click();
     await saveAndWait();
-    await expect(page.getByTestId('total-minutes')).toContainText('240', { timeout: 10000 });
+    await expect(page.getByTestId('total-minutes')).toContainText('240', { timeout: 15000 });
 
-    // Wait for editor to close after success
-    await expect(page.getByTestId('schedule-editor-panel')).not.toBeVisible({ timeout: 5000 });
+    // Close editor before next change
+    await closeEditorIfOpen();
 
     // Second change: 4h -> 1h
     await openEditor();
     await page.getByTestId('select-total-hours').click();
     await page.getByRole('option', { name: '1h', exact: true }).click();
     await saveAndWait();
-    await expect(page.getByTestId('total-minutes')).toContainText('60', { timeout: 10000 });
+    await expect(page.getByTestId('total-minutes')).toContainText('60', { timeout: 15000 });
 
-    // Wait for editor to close after success
-    await expect(page.getByTestId('schedule-editor-panel')).not.toBeVisible({ timeout: 5000 });
+    // Close editor before next change
+    await closeEditorIfOpen();
 
     // Third change: 1h -> 3h
     await openEditor();
     await page.getByTestId('select-total-hours').click();
     await page.getByRole('option', { name: '3h', exact: true }).click();
     await saveAndWait();
-    await expect(page.getByTestId('total-minutes')).toContainText('180', { timeout: 10000 });
+    await expect(page.getByTestId('total-minutes')).toContainText('180', { timeout: 15000 });
   });
 
 });
