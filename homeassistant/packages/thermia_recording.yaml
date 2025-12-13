@@ -73,6 +73,8 @@ recorder:
       - sensor.*legacy*
       - sensor.*alarm*
       - sensor.*room_temperature*
+      # External heater control
+      - sensor.*external*
 
       # ==========================================
       # SWITCHES (~40 entities)
