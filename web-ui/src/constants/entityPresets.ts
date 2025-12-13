@@ -812,6 +812,32 @@ export const GRAPHABLE_ENTITIES = Object.keys(ENTITY_PRESETS);
 
 export const DEFAULT_GRAPHS: GraphConfig[] = [
   {
+    id: 'comprehensive-analysis',
+    name: 'Comprehensive Analysis',
+    entities: [
+      // PID values and rolling integrals
+      { ...ENTITY_PRESETS['sensor.external_heater_pid_sum'], visible: true },
+      { ...ENTITY_PRESETS['sensor.p_value_for_gear_shifting_and_demand_calculation'], visible: false },
+      { ...ENTITY_PRESETS['sensor.i_value_for_gear_shifting_and_demand_calculation'], visible: false },
+      { ...ENTITY_PRESETS['sensor.d_value_for_gear_shifting_and_demand_calculation'], visible: false },
+      // Rolling integrals are computed, added dynamically in GraphsPage
+      // Temperature differences
+      { ...ENTITY_PRESETS['sensor.supply_line_temperature_difference'], visible: true },
+      { ...ENTITY_PRESETS['sensor.pool_heat_exchanger_delta_t'], visible: false },
+      // Supply temps
+      { ...ENTITY_PRESETS['sensor.system_supply_line_temperature'], visible: true },
+      { ...ENTITY_PRESETS['sensor.system_supply_line_calculated_set_point'], visible: true },
+      { ...ENTITY_PRESETS['sensor.mix_valve_1_supply_line_temperature'], visible: true },
+      { ...ENTITY_PRESETS['sensor.desired_temperature_distribution_circuit_mix_valve_1'], visible: true },
+      // Compressor and heater
+      { ...ENTITY_PRESETS['sensor.compressor_speed_rpm'], visible: true },
+      { ...ENTITY_PRESETS['sensor.external_additional_heater_current_demand'], visible: true },
+      { ...ENTITY_PRESETS['sensor.discharge_pipe_temperature'], visible: false },
+    ],
+    timeRange: '1h',
+    mode: 'normalized',
+  },
+  {
     id: 'external-heater-analysis',
     name: 'External Heater Analysis',
     entities: [
@@ -882,32 +908,6 @@ export const DEFAULT_GRAPHS: GraphConfig[] = [
       { ...ENTITY_PRESETS['sensor.tap_water_top_temperature'], visible: true },
       { ...ENTITY_PRESETS['sensor.tap_water_lower_temperature'], visible: true },
       { ...ENTITY_PRESETS['sensor.tap_water_weighted_temperature'], visible: true },
-    ],
-    timeRange: '24h',
-    mode: 'normalized',
-  },
-  {
-    id: 'comprehensive-analysis',
-    name: 'Comprehensive Analysis',
-    entities: [
-      // PID values and rolling integrals
-      { ...ENTITY_PRESETS['sensor.external_heater_pid_sum'], visible: true },
-      { ...ENTITY_PRESETS['sensor.p_value_for_gear_shifting_and_demand_calculation'], visible: false },
-      { ...ENTITY_PRESETS['sensor.i_value_for_gear_shifting_and_demand_calculation'], visible: false },
-      { ...ENTITY_PRESETS['sensor.d_value_for_gear_shifting_and_demand_calculation'], visible: false },
-      // Rolling integrals are computed, added dynamically in GraphsPage
-      // Temperature differences
-      { ...ENTITY_PRESETS['sensor.supply_line_temperature_difference'], visible: true },
-      { ...ENTITY_PRESETS['sensor.pool_heat_exchanger_delta_t'], visible: false },
-      // Supply temps
-      { ...ENTITY_PRESETS['sensor.system_supply_line_temperature'], visible: true },
-      { ...ENTITY_PRESETS['sensor.system_supply_line_calculated_set_point'], visible: true },
-      { ...ENTITY_PRESETS['sensor.mix_valve_1_supply_line_temperature'], visible: true },
-      { ...ENTITY_PRESETS['sensor.desired_temperature_distribution_circuit_mix_valve_1'], visible: true },
-      // Compressor and heater
-      { ...ENTITY_PRESETS['sensor.compressor_speed_rpm'], visible: true },
-      { ...ENTITY_PRESETS['sensor.external_additional_heater_current_demand'], visible: true },
-      { ...ENTITY_PRESETS['sensor.discharge_pipe_temperature'], visible: false },
     ],
     timeRange: '24h',
     mode: 'normalized',
