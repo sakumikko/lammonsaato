@@ -65,6 +65,7 @@ entity_groups:
       - sensor.system_supply_line_temperature
       - sensor.system_supply_line_calculated_set_point
       - sensor.mix_valve_1_supply_line_temperature
+      - sensor.desired_temperature_distribution_circuit_mix_valve_1
 
   # ============================================
   # EXTERNAL_HEATER_ANALYSIS - For understanding

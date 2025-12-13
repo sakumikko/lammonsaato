@@ -4,18 +4,20 @@
 
 Users need to visualize multiple Thermia entities on the same time-series graph to understand correlations (e.g., how PID sum relates to supply temperature difference). However, entities have vastly different scales:
 
-| Entity | Typical Range | Unit |
-|--------|---------------|------|
-| Supply actual temp | 20-65 | °C |
-| Supply target temp | 20-65 | °C |
-| Condenser out temp | 20-70 | °C |
-| Condenser in temp | 20-60 | °C |
-| Temperature difference | -5 to +5 | °C |
-| PID sum | -20 to +20 | - |
-| Heating integral | -300 to +100 | °min |
-| External heater demand | 0-100 | % |
-| Compressor RPM | 0-6000 | rpm |
-| Compressor gear | 1-10 | - |
+| Entity | Typical Range | Unit | Axis Group |
+|--------|---------------|------|------------|
+| Supply actual temp | 20-65 | °C | temps |
+| Supply target temp | 20-65 | °C | temps |
+| Condenser out temp | 20-70 | °C | temps |
+| Condenser in temp | 20-60 | °C | temps |
+| Supply ΔT (target-actual) | -10 to +10 | °C | delta |
+| Condenser ΔT (out-in) | -10 to +10 | °C | delta |
+| PID sum | -20 to +20 | - | control |
+| Heating integral | -300 to +100 | °min | control |
+| Start/Stop thresholds | -20 to +20 | - | control |
+| External heater demand | 0-100 | % | percent |
+| Compressor RPM | 0-6000 | rpm | rpm |
+| Compressor gear | 1-10 | - | gear |
 
 Plotting these on a single Y-axis makes small-range values invisible.
 
@@ -72,12 +74,21 @@ const ENTITY_PRESETS: Record<string, Omit<EntityConfig, 'visible'>> = {
     axisGroup: 'left',
     unit: '°min',
   },
+  // Delta temperatures (narrow scale -10 to +10)
   'sensor.supply_line_temp_difference': {
-    label: 'Supply ΔT',
+    label: 'Supply ΔT (target-actual)',
     color: '#22c55e', // green
     minValue: -10,
     maxValue: 10,
-    axisGroup: 'right',
+    axisGroup: 'delta', // separate axis for deltas
+    unit: '°C',
+  },
+  'sensor.pool_heat_exchanger_delta_t': {
+    label: 'Condenser ΔT (out-in)',
+    color: '#f59e0b', // amber
+    minValue: -10,
+    maxValue: 10,
+    axisGroup: 'delta',
     unit: '°C',
   },
   'sensor.system_supply_line_temperature': {
