@@ -69,12 +69,13 @@ test.describe('Multi-Entity Graph', () => {
     await expect(chart.or(loading).or(error)).toBeVisible({ timeout: 15000 });
 
     // If chart is visible (not just loading), legend should show entity labels
+    // Use testids to avoid ambiguity with integral display labels
     if (await chart.isVisible()) {
-      await expect(page.getByText('PID Sum')).toBeVisible();
-      await expect(page.getByText('Heating Integral')).toBeVisible();
-      await expect(page.getByText('Supply ΔT')).toBeVisible();
-      await expect(page.getByText('Start Threshold')).toBeVisible();
-      await expect(page.getByText('Heater Demand')).toBeVisible();
+      await expect(page.getByTestId('legend-sensor.external_heater_pid_sum')).toBeVisible();
+      await expect(page.getByTestId('legend-sensor.heating_season_integral_value')).toBeVisible();
+      await expect(page.getByTestId('legend-sensor.supply_line_temp_difference')).toBeVisible();
+      await expect(page.getByTestId('legend-number.external_additional_heater_start')).toBeVisible();
+      await expect(page.getByTestId('legend-sensor.external_additional_heater_current_demand')).toBeVisible();
     }
   });
 

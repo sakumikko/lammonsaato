@@ -13,10 +13,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { MultiEntityChart, TimeRangeSelector } from '@/components/graphs';
+import { MultiEntityChart, TimeRangeSelector, IntegralDisplay } from '@/components/graphs';
 import { useHistoryData } from '@/hooks/useHistoryData';
+import { useIntegralCalculation } from '@/hooks/useIntegralCalculation';
 import { DEFAULT_GRAPHS } from '@/constants/entityPresets';
 import { GraphConfig, TimeRange } from '@/types/graphs';
+
+const PID_SUM_ENTITY_ID = 'sensor.external_heater_pid_sum';
 
 export function GraphsPage() {
   const [activeGraphId, setActiveGraphId] = useState(DEFAULT_GRAPHS[0].id);
@@ -27,6 +30,17 @@ export function GraphsPage() {
   });
 
   const { data, loading, error, fetchData } = useHistoryData();
+
+  // Calculate PID integral if current graph contains the PID sum entity
+  const hasPidSum = useMemo(() => {
+    const graph = DEFAULT_GRAPHS.find(g => g.id === activeGraphId) || DEFAULT_GRAPHS[0];
+    return graph.entities.some(e => e.entityId === PID_SUM_ENTITY_ID);
+  }, [activeGraphId]);
+
+  const pidIntegrals = useIntegralCalculation(
+    hasPidSum ? data : null,
+    PID_SUM_ENTITY_ID
+  );
 
   // Get active graph config
   const activeGraph = useMemo(() => {
@@ -122,6 +136,10 @@ export function GraphsPage() {
             loading={loading}
             error={error}
           />
+
+          {hasPidSum && (
+            <IntegralDisplay integrals={pidIntegrals} sensorLabel="PID Sum" />
+          )}
         </div>
       </main>
     </div>
