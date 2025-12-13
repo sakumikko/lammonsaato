@@ -44,8 +44,8 @@ export const ENTITY_PRESETS: Record<string, EntityPreset> = {
   },
 
   // Delta temperatures (narrow scale -10 to +10)
-  'sensor.supply_line_temp_difference': {
-    entityId: 'sensor.supply_line_temp_difference',
+  'sensor.supply_line_temperature_difference': {
+    entityId: 'sensor.supply_line_temperature_difference',
     label: 'Supply ΔT',
     color: '#22c55e', // green
     minValue: -10,
@@ -120,7 +120,7 @@ export const DEFAULT_GRAPHS: GraphConfig[] = [
     entities: [
       { ...ENTITY_PRESETS['sensor.external_heater_pid_sum'], visible: true },
       { ...ENTITY_PRESETS['sensor.heating_season_integral_value'], visible: true },
-      { ...ENTITY_PRESETS['sensor.supply_line_temp_difference'], visible: true },
+      { ...ENTITY_PRESETS['sensor.supply_line_temperature_difference'], visible: true },
       { ...ENTITY_PRESETS['number.external_additional_heater_start'], visible: true },
       { ...ENTITY_PRESETS['sensor.external_additional_heater_current_demand'], visible: true },
     ],
@@ -133,7 +133,7 @@ export const DEFAULT_GRAPHS: GraphConfig[] = [
     entities: [
       { ...ENTITY_PRESETS['sensor.system_supply_line_temperature'], visible: true },
       { ...ENTITY_PRESETS['sensor.system_supply_line_calculated_set_point'], visible: true },
-      { ...ENTITY_PRESETS['sensor.supply_line_temp_difference'], visible: true },
+      { ...ENTITY_PRESETS['sensor.supply_line_temperature_difference'], visible: true },
       { ...ENTITY_PRESETS['sensor.condenser_out_temperature'], visible: true },
       { ...ENTITY_PRESETS['sensor.condenser_in_temperature'], visible: true },
     ],

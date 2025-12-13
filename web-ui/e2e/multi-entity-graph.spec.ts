@@ -73,7 +73,7 @@ test.describe('Multi-Entity Graph', () => {
     if (await chart.isVisible()) {
       await expect(page.getByTestId('legend-sensor.external_heater_pid_sum')).toBeVisible();
       await expect(page.getByTestId('legend-sensor.heating_season_integral_value')).toBeVisible();
-      await expect(page.getByTestId('legend-sensor.supply_line_temp_difference')).toBeVisible();
+      await expect(page.getByTestId('legend-sensor.supply_line_temperature_difference')).toBeVisible();
       await expect(page.getByTestId('legend-number.external_additional_heater_start')).toBeVisible();
       await expect(page.getByTestId('legend-sensor.external_additional_heater_current_demand')).toBeVisible();
     }
