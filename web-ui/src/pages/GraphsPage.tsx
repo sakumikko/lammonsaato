@@ -13,11 +13,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { MultiEntityChart, TimeRangeSelector, IntegralDisplay } from '@/components/graphs';
+import { MultiEntityChart, TimeRangeSelector, IntegralDisplay, EntityPicker } from '@/components/graphs';
 import { useHistoryData } from '@/hooks/useHistoryData';
 import { useIntegralCalculation } from '@/hooks/useIntegralCalculation';
-import { DEFAULT_GRAPHS } from '@/constants/entityPresets';
-import { GraphConfig, TimeRange } from '@/types/graphs';
+import { DEFAULT_GRAPHS, ENTITY_PRESETS } from '@/constants/entityPresets';
+import { GraphConfig, TimeRange, EntityConfig } from '@/types/graphs';
 
 const PID_SUM_ENTITY_ID = 'sensor.external_heater_pid_sum';
 
@@ -28,24 +28,42 @@ export function GraphsPage() {
     const graph = DEFAULT_GRAPHS[0];
     return new Set(graph.entities.filter(e => e.visible).map(e => e.entityId));
   });
+  // Custom graph selected entities (used when activeGraphId === 'custom')
+  const [customSelectedEntities, setCustomSelectedEntities] = useState<Set<string>>(new Set());
+
+  const isCustomGraph = activeGraphId === 'custom';
 
   const { data, loading, error, fetchData } = useHistoryData();
 
+  // Get active graph config (builds entities from customSelectedEntities for custom graph)
+  const activeGraph = useMemo((): GraphConfig => {
+    const graph = DEFAULT_GRAPHS.find(g => g.id === activeGraphId) || DEFAULT_GRAPHS[0];
+
+    if (isCustomGraph) {
+      // Build entities from selected presets
+      const customEntities: EntityConfig[] = Array.from(customSelectedEntities)
+        .map(entityId => ENTITY_PRESETS[entityId])
+        .filter((e): e is EntityConfig => !!e)
+        .map(e => ({ ...e, visible: true }));
+
+      return {
+        ...graph,
+        entities: customEntities,
+      };
+    }
+
+    return graph;
+  }, [activeGraphId, isCustomGraph, customSelectedEntities]);
+
   // Calculate PID integral if current graph contains the PID sum entity
   const hasPidSum = useMemo(() => {
-    const graph = DEFAULT_GRAPHS.find(g => g.id === activeGraphId) || DEFAULT_GRAPHS[0];
-    return graph.entities.some(e => e.entityId === PID_SUM_ENTITY_ID);
-  }, [activeGraphId]);
+    return activeGraph.entities.some(e => e.entityId === PID_SUM_ENTITY_ID);
+  }, [activeGraph.entities]);
 
   const pidIntegrals = useIntegralCalculation(
     hasPidSum ? data : null,
     PID_SUM_ENTITY_ID
   );
-
-  // Get active graph config
-  const activeGraph = useMemo(() => {
-    return DEFAULT_GRAPHS.find(g => g.id === activeGraphId) || DEFAULT_GRAPHS[0];
-  }, [activeGraphId]);
 
   // Fetch data when graph, time range, or visible entities change
   useEffect(() => {
@@ -63,10 +81,31 @@ export function GraphsPage() {
     if (graph) {
       setActiveGraphId(graphId);
       setTimeRange(graph.timeRange);
-      setVisibleEntities(new Set(
-        graph.entities.filter(e => e.visible).map(e => e.entityId)
-      ));
+
+      if (graphId === 'custom') {
+        // For custom graph, visible entities = custom selected entities
+        setVisibleEntities(customSelectedEntities);
+      } else {
+        setVisibleEntities(new Set(
+          graph.entities.filter(e => e.visible).map(e => e.entityId)
+        ));
+      }
     }
+  }, [customSelectedEntities]);
+
+  // Handle custom entity selection toggle
+  const handleCustomEntityToggle = useCallback((entityId: string) => {
+    setCustomSelectedEntities(prev => {
+      const next = new Set(prev);
+      if (next.has(entityId)) {
+        next.delete(entityId);
+      } else {
+        next.add(entityId);
+      }
+      // Also update visible entities
+      setVisibleEntities(next);
+      return next;
+    });
   }, []);
 
   // Handle time range change
@@ -128,14 +167,32 @@ export function GraphsPage() {
         <div className="bg-card border rounded-lg p-4">
           <h2 className="text-lg font-semibold mb-4">{activeGraph.name}</h2>
 
-          <MultiEntityChart
-            data={data}
-            entities={activeGraph.entities}
-            visibleEntities={visibleEntities}
-            onToggleEntity={handleToggleEntity}
-            loading={loading}
-            error={error}
-          />
+          {/* Entity Picker for custom graph */}
+          {isCustomGraph && (
+            <EntityPicker
+              selectedEntities={customSelectedEntities}
+              onToggleEntity={handleCustomEntityToggle}
+            />
+          )}
+
+          {/* Show chart or empty state for custom graph */}
+          {isCustomGraph && customSelectedEntities.size === 0 ? (
+            <div
+              className="h-[400px] flex items-center justify-center text-muted-foreground"
+              data-testid="multi-entity-chart"
+            >
+              Select entities above to display in the chart
+            </div>
+          ) : (
+            <MultiEntityChart
+              data={data}
+              entities={activeGraph.entities}
+              visibleEntities={visibleEntities}
+              onToggleEntity={handleToggleEntity}
+              loading={loading}
+              error={error}
+            />
+          )}
 
           {hasPidSum && (
             <IntegralDisplay integrals={pidIntegrals} sensorLabel="PID Sum" />

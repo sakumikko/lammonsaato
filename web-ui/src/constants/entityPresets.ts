@@ -140,4 +140,14 @@ export const DEFAULT_GRAPHS: GraphConfig[] = [
     timeRange: '24h',
     mode: 'normalized',
   },
+  {
+    id: 'custom',
+    name: 'Custom',
+    entities: [], // User selects entities dynamically
+    timeRange: '24h',
+    mode: 'normalized',
+  },
 ];
+
+/** Get all available entity presets as an array for the entity picker */
+export const ALL_ENTITY_PRESETS = Object.values(ENTITY_PRESETS);
