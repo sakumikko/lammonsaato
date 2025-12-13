@@ -13,8 +13,8 @@ HA_USER ?= root
 
 .PHONY: help install test test-unit test-thermia test-nordpool test-firebase \
         test-integration test-ha test-ha-entities test-ha-schedule test-ha-workflow \
-        test-all lint clean deploy status validate-yaml build build-web build-all dist \
-        mock-server e2e-test web-dev web-dev-test ci
+        test-all lint clean deploy status validate-yaml validate-entities build build-web build-all dist \
+        mock-server e2e-test web-dev web-dev-test ci deploy-webui
 
 # Default target
 help:
@@ -50,8 +50,10 @@ help:
 	@echo "  build            Build HA backend (packages, pyscript, docs)"
 	@echo "  build-web        Build web UI addon"
 	@echo "  build-all        Build everything (backend + web UI)"
-	@echo "  deploy           Deploy to Home Assistant via SSH"
+	@echo "  deploy           Deploy backend to Home Assistant via SSH"
+	@echo "  deploy-webui     Deploy web UI addon to Home Assistant"
 	@echo "  validate-yaml    Validate YAML configuration files"
+	@echo "  validate-entities Check entity presets match config files"
 	@echo ""
 	@echo "E2E Testing:"
 	@echo "  mock-server      Start mock HA server for UI testing"
@@ -219,6 +221,11 @@ yaml.add_constructor('!include', lambda l,n: '<include>', Loader=yaml.SafeLoader
 yaml.safe_load(open('homeassistant/packages/pool_heating.yaml'));\
 print('  pool_heating.yaml: OK')" || echo "  pool_heating.yaml: FAILED"
 
+# Validate graph entities match config files
+validate-entities:
+	@echo "Validating graph entity presets..."
+	@$(PYTHON) scripts/standalone/validate_graph_entities.py
+
 # ============================================
 # BUILD
 # ============================================
@@ -253,6 +260,20 @@ deploy:
 	@echo ""
 	@echo "Done! Restart Home Assistant to apply changes."
 	@echo "  ssh $(HA_USER)@$(HA_HOST) 'ha core restart'"
+
+# Deploy web UI addon to Home Assistant
+deploy-webui: validate-entities build-web
+	@echo "Deploying web UI addon to Home Assistant at $(HA_HOST)..."
+	@echo ""
+	@echo "Cleaning old files in addon www directory..."
+	ssh $(HA_USER)@$(HA_HOST) "rm -rf /config/www/pool-heating-ui/assets/* 2>/dev/null || true"
+	@echo ""
+	@echo "Copying web UI files..."
+	ssh $(HA_USER)@$(HA_HOST) "mkdir -p /config/www/pool-heating-ui"
+	scp -r web-ui/addon/dist/* $(HA_USER)@$(HA_HOST):/config/www/pool-heating-ui/
+	@echo ""
+	@echo "Done! Web UI deployed to /config/www/pool-heating-ui/"
+	@echo "Access via: http://$(HA_HOST):8123/local/pool-heating-ui/index.html"
 
 # ============================================
 # CLEANUP

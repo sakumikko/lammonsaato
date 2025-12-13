@@ -3,7 +3,26 @@
  */
 
 export type TimeRange = '1h' | '6h' | '24h' | '7d' | '30d';
-export type AxisGroup = 'left' | 'right' | 'right2' | 'delta' | 'control' | 'percent';
+export type AxisGroup =
+  | 'left'
+  | 'right'
+  | 'right2'
+  | 'delta'
+  | 'control'
+  | 'percent'
+  | 'brine'
+  | 'rpm'
+  | 'gear'
+  | 'refrigerant'
+  | 'dhw'
+  | 'outdoor'
+  | 'pool'
+  | 'power'
+  | 'cost'
+  | 'price'
+  | 'raw'
+  | 'pressure'
+  | 'energy';
 export type ChartMode = 'normalized' | 'multi-axis';
 
 export interface EntityConfig {
