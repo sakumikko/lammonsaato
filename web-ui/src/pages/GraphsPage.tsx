@@ -16,10 +16,12 @@ import {
 import { MultiEntityChart, TimeRangeSelector, IntegralDisplay, EntityPicker } from '@/components/graphs';
 import { useHistoryData } from '@/hooks/useHistoryData';
 import { useIntegralCalculation } from '@/hooks/useIntegralCalculation';
+import { useRollingIntegrals, ROLLING_INTEGRAL_ENTITIES } from '@/hooks/useRollingIntegrals';
 import { DEFAULT_GRAPHS, ENTITY_PRESETS } from '@/constants/entityPresets';
 import { GraphConfig, TimeRange, EntityConfig } from '@/types/graphs';
 
 const PID_SUM_ENTITY_ID = 'sensor.external_heater_pid_sum';
+const ROLLING_INTEGRAL_IDS = Object.values(ROLLING_INTEGRAL_ENTITIES);
 
 export function GraphsPage() {
   const [activeGraphId, setActiveGraphId] = useState(DEFAULT_GRAPHS[0].id);
@@ -64,6 +66,25 @@ export function GraphsPage() {
     hasPidSum ? data : null,
     PID_SUM_ENTITY_ID
   );
+
+  // Calculate rolling integrals for graphing
+  const rollingIntegrals = useRollingIntegrals(data, PID_SUM_ENTITY_ID, hasPidSum);
+
+  // Merge rolling integral entities into active graph entities
+  const chartEntities = useMemo((): EntityConfig[] => {
+    if (!hasPidSum || !rollingIntegrals) {
+      return activeGraph.entities;
+    }
+    return [...activeGraph.entities, ...rollingIntegrals.entities];
+  }, [activeGraph.entities, hasPidSum, rollingIntegrals]);
+
+  // Use merged data with rolling integrals if available
+  const chartData = useMemo(() => {
+    if (hasPidSum && rollingIntegrals) {
+      return rollingIntegrals.data;
+    }
+    return data;
+  }, [data, hasPidSum, rollingIntegrals]);
 
   // Fetch data when graph, time range, or visible entities change
   useEffect(() => {
@@ -185,8 +206,8 @@ export function GraphsPage() {
             </div>
           ) : (
             <MultiEntityChart
-              data={data}
-              entities={activeGraph.entities}
+              data={chartData}
+              entities={chartEntities}
               visibleEntities={visibleEntities}
               onToggleEntity={handleToggleEntity}
               loading={loading}
