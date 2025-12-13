@@ -115,17 +115,17 @@ const ENTITIES = {
   tapWaterTop: 'sensor.tap_water_top_temperature',
   tapWaterLower: 'sensor.tap_water_lower_temperature',
   tapWaterWeighted: 'sensor.tap_water_weighted_temperature',
-  tapWaterStartTemp: 'number.tap_water_start_temperature',
-  tapWaterStopTemp: 'number.tap_water_stop_temperature',
+  tapWaterStartTemp: 'number.start_temperature_tap_water',
+  tapWaterStopTemp: 'number.stop_temperature_tap_water',
 
   // Hot gas pump control (Thermia Genesis)
-  hotGasPumpStartTemp: 'number.hot_gas_pump_start_temperature',
-  hotGasLowerStopLimit: 'number.hot_gas_pump_lower_stop_limit',
-  hotGasUpperStopLimit: 'number.hot_gas_pump_upper_stop_limit',
+  hotGasPumpStartTemp: 'number.hot_gas_pump_start_temperature_discharge_pipe',
+  hotGasLowerStopLimit: 'number.hot_gas_pump_lower_stop_limit_temperature_discharge_pipe',
+  hotGasUpperStopLimit: 'number.hot_gas_pump_upper_stop_limit_temperature_discharge_pipe',
 
   // Heating curve settings (Thermia Genesis)
-  heatingCurveMax: 'number.heat_curve_max_limitation',
-  heatingCurveMin: 'number.heat_curve_min_limitation',
+  heatingCurveMax: 'number.max_limitation',
+  heatingCurveMin: 'number.min_limitation',
 
   // Peak power avoidance settings
   peakPowerDaytimeHeaterStart: 'input_number.peak_power_daytime_heater_start',

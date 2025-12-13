@@ -1,0 +1,183 @@
+# Thermia Genesis Required Entities Configuration
+# ================================================
+# This file defines which Thermia entities should be enabled in Home Assistant.
+# Use scripts/standalone/sync_thermia_entities.py to apply this configuration.
+#
+# NOTE: The Thermia Genesis integration disables most entities by default.
+# Enabling too many can cause IndexError crashes due to batch Modbus reads.
+# Only enable entities that are actually needed.
+#
+# Recording: HA's recorder captures state changes automatically.
+# Thermia entities update every ~30-60s based on integration poll interval.
+
+thermia_device_id: "ac1e4962ee893b58e6d2c1f95e4caeef"
+
+entity_groups:
+  # ============================================
+  # CORE - Essential for UI and automations
+  # ============================================
+  core:
+    description: "Essential sensors for main UI display and automations"
+    entities:
+      # Condenser circuit (pool heat exchanger)
+      - sensor.condenser_out_temperature
+      - sensor.condenser_in_temperature
+
+      # Brine circuit (ground loop)
+      - sensor.brine_in_temperature
+      - sensor.brine_out_temperature
+
+      # System
+      - sensor.outdoor_temperature
+      - sensor.discharge_pipe_temperature
+      - sensor.pool_return_line_temperature
+
+      # Compressor
+      - sensor.compressor_speed_rpm
+      - sensor.compressor_current_gear
+      - sensor.brine_circulation_pump_speed
+
+  # ============================================
+  # TAP_WATER - Hot water tank monitoring
+  # ============================================
+  tap_water:
+    description: "Tap water (DHW) tank temperatures for UI and settings"
+    entities:
+      - sensor.tap_water_top_temperature
+      - sensor.tap_water_lower_temperature
+      - sensor.tap_water_weighted_temperature
+
+  # ============================================
+  # REFRIGERANT - Heat pump refrigerant cycle
+  # ============================================
+  refrigerant:
+    description: "Refrigerant temperatures for hot gas monitoring"
+    entities:
+      - sensor.suction_gas_temperature
+      - sensor.liquid_line_temperature
+
+  # ============================================
+  # SUPPLY_LINES - Heating system supply temps
+  # ============================================
+  supply_lines:
+    description: "System supply line temperatures with real values"
+    entities:
+      - sensor.system_supply_line_temperature
+      - sensor.system_supply_line_calculated_set_point
+      - sensor.mix_valve_1_supply_line_temperature
+
+  # ============================================
+  # EXTERNAL_HEATER_ANALYSIS - For understanding
+  # integral parameters and additional heater triggers
+  # ============================================
+  external_heater_analysis:
+    description: "Sensors for analyzing external heater demand calculation"
+    entities:
+      # PID control values
+      - sensor.p_value_for_gear_shifting_and_demand_calculation
+      - sensor.i_value_for_gear_shifting_and_demand_calculation
+      - sensor.d_value_for_gear_shifting_and_demand_calculation
+
+      # Integral accumulation
+      - sensor.heating_season_integral_value
+      - sensor.cooling_season_integral_value
+
+      # External heater output
+      - sensor.external_additional_heater_current_demand
+
+  # ============================================
+  # GEAR_CONTROLS - Compressor gear limits
+  # ============================================
+  gear_controls:
+    description: "Gear limitation controls used in Settings Sheet"
+    entities:
+      - number.minimum_allowed_gear_in_heating
+      - number.maximum_allowed_gear_in_heating
+      - number.minimum_allowed_gear_in_pool
+      - number.maximum_allowed_gear_in_pool
+      - number.minimum_allowed_gear_in_tap_water
+      - number.maximum_allowed_gear_in_tap_water
+
+  # ============================================
+  # TAP_WATER_CONTROLS - DHW temperature setpoints
+  # ============================================
+  tap_water_controls:
+    description: "Tap water start/stop temperature settings"
+    entities:
+      - number.start_temperature_tap_water
+      - number.stop_temperature_tap_water
+
+  # ============================================
+  # HOT_GAS_CONTROLS - High discharge temp protection
+  # ============================================
+  hot_gas_controls:
+    description: "Hot gas pump protection temperature thresholds"
+    entities:
+      - number.hot_gas_pump_start_temperature_discharge_pipe
+      - number.hot_gas_pump_lower_stop_limit_temperature_discharge_pipe
+      - number.hot_gas_pump_upper_stop_limit_temperature_discharge_pipe
+
+  # ============================================
+  # HEATING_CURVE_CONTROLS - Supply temp limits
+  # ============================================
+  heating_curve_controls:
+    description: "Heating curve limitation settings"
+    entities:
+      - number.max_limitation
+      - number.min_limitation
+      - number.comfort_wheel_setting
+
+  # ============================================
+  # HEAT_CURVE_SETPOINTS - Y-coordinate values
+  # ============================================
+  heat_curve_setpoints:
+    description: "Heat curve Y values (supply temps at different outdoor temps)"
+    entities:
+      - number.set_point_heat_curve_y_1
+      - number.set_point_heat_curve_y_2
+      - number.set_point_heat_curve_y_3
+      - number.set_point_heat_curve_y_4
+      - number.set_point_heat_curve_y_5
+      - number.set_point_heat_curve_y_6
+      - number.set_point_heat_curve_y_7
+
+  # ============================================
+  # EXTERNAL_HEATER_CONTROLS - Threshold adjustments
+  # ============================================
+  external_heater_controls:
+    description: "External heater start/stop threshold controls"
+    entities:
+      - number.external_additional_heater_start
+      - number.external_additional_heater_stop
+      - number.external_heater_outdoor_temp_limit
+
+  # ============================================
+  # DIAGNOSTIC - Additional diagnostic sensors
+  # ============================================
+  diagnostic:
+    description: "Diagnostic sensors for troubleshooting"
+    entities:
+      - sensor.condenser_circulation_pump_speed
+      - sensor.high_pressure_side
+      - sensor.low_pressure_side
+      - sensor.superheat_temperature
+      - sensor.sub_cooling_temperature
+      - sensor.compressor_available_gears
+      - sensor.mix_valve_1_position
+      - sensor.first_prioritised_demand
+      - sensor.maximum_gear_out_of_all_the_currently_requested_gears
+      - sensor.desired_gear_for_heating
+      - sensor.desired_gear_for_pool
+      - sensor.desired_gear_for_tap_water
+      - sensor.selected_heat_curve
+
+# ============================================
+# KNOWN UNAVAILABLE - Registers that don't exist
+# on this heat pump model (Thermia Mega)
+# ============================================
+unavailable_registers:
+  - binary_sensor.alarm_active_class_e
+  - binary_sensor.surplus_heat_temperature_deviation_alarm
+  - number.desired_cooling_temperature_setpoint_mixing_valve_3
+  - sensor.hot_water_directional_valve_position
+  - sensor.queued_demand_second_priority
