@@ -41,7 +41,7 @@ except ImportError:
 HA_HOST = "192.168.50.11"
 HA_PORT = 8123
 HA_WS_URL = f"ws://{HA_HOST}:{HA_PORT}/api/websocket"
-CONFIG_PATH = Path(__file__).parent.parent.parent / "homeassistant/packages/thermia_required_entities.yaml"
+CONFIG_PATH = Path(__file__).parent.parent / "config/thermia_required_entities.yaml"
 
 
 def load_config() -> dict:
