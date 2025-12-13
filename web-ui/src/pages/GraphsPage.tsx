@@ -37,16 +37,31 @@ export function GraphsPage() {
 
   const { data, loading, error, fetchData } = useHistoryData();
 
+  // Check if any rolling integral entities are selected (for custom graph)
+  const hasRollingIntegralsSelected = useMemo(() => {
+    return ROLLING_INTEGRAL_IDS.some(id => customSelectedEntities.has(id));
+  }, [customSelectedEntities]);
+
   // Get active graph config (builds entities from customSelectedEntities for custom graph)
+  // Note: Rolling integral entities are excluded here - they're computed client-side
   const activeGraph = useMemo((): GraphConfig => {
     const graph = DEFAULT_GRAPHS.find(g => g.id === activeGraphId) || DEFAULT_GRAPHS[0];
 
     if (isCustomGraph) {
-      // Build entities from selected presets
+      // Build entities from selected presets, excluding virtual rolling integrals
       const customEntities: EntityConfig[] = Array.from(customSelectedEntities)
+        .filter(entityId => !ROLLING_INTEGRAL_IDS.includes(entityId))
         .map(entityId => ENTITY_PRESETS[entityId])
         .filter((e): e is EntityConfig => !!e)
         .map(e => ({ ...e, visible: true }));
+
+      // If rolling integrals are selected but PID Sum isn't, add PID Sum (needed for computation)
+      if (hasRollingIntegralsSelected && !customSelectedEntities.has(PID_SUM_ENTITY_ID)) {
+        const pidSumPreset = ENTITY_PRESETS[PID_SUM_ENTITY_ID];
+        if (pidSumPreset) {
+          customEntities.push({ ...pidSumPreset, visible: false }); // Hidden but fetched
+        }
+      }
 
       return {
         ...graph,
@@ -55,12 +70,13 @@ export function GraphsPage() {
     }
 
     return graph;
-  }, [activeGraphId, isCustomGraph, customSelectedEntities]);
+  }, [activeGraphId, isCustomGraph, customSelectedEntities, hasRollingIntegralsSelected]);
 
-  // Calculate PID integral if current graph contains the PID sum entity
+  // Calculate PID integral if current graph contains PID sum or rolling integrals are selected
   const hasPidSum = useMemo(() => {
-    return activeGraph.entities.some(e => e.entityId === PID_SUM_ENTITY_ID);
-  }, [activeGraph.entities]);
+    return activeGraph.entities.some(e => e.entityId === PID_SUM_ENTITY_ID) ||
+           (isCustomGraph && hasRollingIntegralsSelected);
+  }, [activeGraph.entities, isCustomGraph, hasRollingIntegralsSelected]);
 
   const pidIntegrals = useIntegralCalculation(
     hasPidSum ? data : null,
@@ -75,8 +91,21 @@ export function GraphsPage() {
     if (!hasPidSum || !rollingIntegrals) {
       return activeGraph.entities;
     }
+
+    // For custom graph, use preset configs for selected rolling integrals
+    if (isCustomGraph) {
+      const selectedRollingEntities = ROLLING_INTEGRAL_IDS
+        .filter(id => customSelectedEntities.has(id))
+        .map(id => ENTITY_PRESETS[id])
+        .filter((e): e is EntityConfig => !!e)
+        .map(e => ({ ...e, visible: true }));
+
+      return [...activeGraph.entities, ...selectedRollingEntities];
+    }
+
+    // For preset graphs, add all rolling integral entities (hidden by default)
     return [...activeGraph.entities, ...rollingIntegrals.entities];
-  }, [activeGraph.entities, hasPidSum, rollingIntegrals]);
+  }, [activeGraph.entities, hasPidSum, rollingIntegrals, isCustomGraph, customSelectedEntities]);
 
   // Use merged data with rolling integrals if available
   const chartData = useMemo(() => {
@@ -88,13 +117,16 @@ export function GraphsPage() {
 
   // Fetch data when graph, time range, or visible entities change
   useEffect(() => {
+    // Get visible real entities (not virtual rolling integrals)
     const visibleConfigs = activeGraph.entities.filter(e =>
-      visibleEntities.has(e.entityId)
+      visibleEntities.has(e.entityId) ||
+      // Always fetch PID Sum if it's in entities (even if hidden, needed for rolling integrals)
+      (e.entityId === PID_SUM_ENTITY_ID && hasRollingIntegralsSelected)
     );
     if (visibleConfigs.length > 0) {
       fetchData(visibleConfigs, timeRange);
     }
-  }, [activeGraph.id, timeRange, visibleEntities, fetchData]);
+  }, [activeGraph.id, timeRange, visibleEntities, fetchData, hasRollingIntegralsSelected]);
 
   // Handle graph change
   const handleGraphChange = useCallback((graphId: string) => {
