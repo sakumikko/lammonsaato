@@ -164,6 +164,7 @@
   },
   "analytics": {
     "title": "Analytiikka",
+    "graphs": "Kuvaajat",
     "timeRange": {
       "1w": "1 viikko",
       "4w": "4 viikkoa",

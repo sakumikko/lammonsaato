@@ -164,6 +164,7 @@
   },
   "analytics": {
     "title": "Analytics",
+    "graphs": "Graphs",
     "timeRange": {
       "1w": "1 Week",
       "4w": "4 Weeks",

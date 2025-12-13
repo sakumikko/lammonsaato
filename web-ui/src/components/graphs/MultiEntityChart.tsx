@@ -145,7 +145,7 @@ export function MultiEntityChart({
             {visibleEntityList.map(entity => (
               <Line
                 key={entity.entityId}
-                type="stepAfter"
+                type="monotone"
                 dataKey={`${entity.entityId}_normalized`}
                 stroke={entity.color}
                 strokeWidth={2}

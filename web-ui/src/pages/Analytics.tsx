@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
-import { ArrowLeft, BarChart3, Loader2, AlertCircle } from 'lucide-react';
+import { ArrowLeft, BarChart3, Loader2, AlertCircle, LineChart } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -40,6 +40,12 @@ export function Analytics() {
             </div>
           </div>
           <div className="flex items-center gap-2">
+            <Link to="/graphs">
+              <Button variant="ghost" size="sm">
+                <LineChart className="w-4 h-4 mr-1" />
+                {t('analytics.graphs', { defaultValue: 'Graphs' })}
+              </Button>
+            </Link>
             <ThemeToggle />
             <LanguageSwitcher />
           </div>
