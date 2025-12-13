@@ -24,11 +24,11 @@ test.describe('Pool Temperature Modal', () => {
     await expect(modal.getByRole('button', { name: '48h' })).toBeVisible();
     await expect(modal.getByRole('button', { name: '7d' })).toBeVisible();
 
-    // Check for stats cards
-    await expect(modal.getByText(/Current|Nykyinen/i)).toBeVisible();
-    await expect(modal.getByText(/Min/i)).toBeVisible();
-    await expect(modal.getByText(/Max/i)).toBeVisible();
-    await expect(modal.getByText(/Avg/i)).toBeVisible();
+    // Check for stats cards (use .first() to avoid strict mode when chart legend also has Min/Max/Avg)
+    await expect(modal.getByText(/Current|Nykyinen/i).first()).toBeVisible();
+    await expect(modal.getByText(/Min/i).first()).toBeVisible();
+    await expect(modal.getByText(/Max/i).first()).toBeVisible();
+    await expect(modal.getByText(/Avg/i).first()).toBeVisible();
   });
 
   test('should switch time ranges', async ({ page }) => {

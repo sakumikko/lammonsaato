@@ -72,6 +72,13 @@ export class HAWebSocket {
       return `${protocol}//${window.location.host}/api/websocket`;
     }
 
+    // Test mode - use Vite proxy (port 8081 with proxy to mock server)
+    // This allows connecting to mock server via the dev server's WebSocket proxy
+    if (import.meta.env.MODE === 'test') {
+      const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+      return `${protocol}//${window.location.host}/api/websocket`;
+    }
+
     // Development mode - connect to HA directly
     // Can be overridden via environment variable
     const haUrl = import.meta.env.VITE_HA_URL || 'http://homeassistant.local:8123';
