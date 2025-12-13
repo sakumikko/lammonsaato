@@ -111,8 +111,8 @@ test.describe('Multi-Entity Graph', () => {
   });
 
   test.skip('tooltip shows actual values on hover', async ({ page }) => {
-    // Skip: Tooltip requires actual chart data which depends on WebSocket connection
-    // This would need proper mock server with WebSocket history support
+    // Skip: This test is flaky due to intermittent WebSocket data loading
+    // For exploratory testing, verify tooltip manually in browser
   });
 
   test('shows loading state while fetching data', async ({ page }) => {
@@ -215,8 +215,9 @@ test.describe('Multi-Entity Graph - Normalization', () => {
   });
 
   test.skip('tooltip shows denormalized actual values', async ({ page }) => {
-    // Skip: Tooltip requires actual chart data which depends on WebSocket connection
-    // This would need proper mock server with WebSocket history support
+    // Skip: Recharts path rendering is inconsistent in test environment
+    // The chart renders axes and legend, but path 'd' attribute may be null
+    // For exploratory testing, verify tooltip manually in browser
   });
 });
 

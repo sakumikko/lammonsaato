@@ -15,7 +15,9 @@ Protocol flow:
 
 import json
 import logging
-from datetime import datetime, timezone
+import math
+import random
+from datetime import datetime, timezone, timedelta
 from typing import Any
 
 from .state_manager import MockStateManager
@@ -153,6 +155,25 @@ class HAWebSocketHandler:
                 "result": {}
             })
 
+        elif msg_type == "history/history_during_period":
+            # Generate mock history data for entities
+            start_time = msg.get("start_time")
+            end_time = msg.get("end_time")
+            entity_ids = msg.get("entity_ids", [])
+            minimal_response = msg.get("minimal_response", True)
+
+            logger.info(f"History request: {len(entity_ids)} entities, {start_time} to {end_time}")
+
+            result = self._generate_mock_history(
+                start_time, end_time, entity_ids, minimal_response
+            )
+            responses.append({
+                "id": msg_id,
+                "type": "result",
+                "success": True,
+                "result": result
+            })
+
         elif msg_type == "config/entity_registry/list":
             # Entity registry - return empty for mock
             responses.append({
@@ -258,6 +279,175 @@ class HAWebSocketHandler:
                 })
 
         return events
+
+    def _generate_mock_history(
+        self,
+        start_time: str,
+        end_time: str,
+        entity_ids: list[str],
+        minimal_response: bool
+    ) -> dict:
+        """
+        Generate realistic mock history data for entities.
+
+        Returns dict keyed by entity_id with list of state records.
+        For minimal_response, uses abbreviated format: {s: state, lu: timestamp}
+        """
+        # Parse time range
+        try:
+            start = datetime.fromisoformat(start_time.replace('Z', '+00:00'))
+            end = datetime.fromisoformat(end_time.replace('Z', '+00:00'))
+        except (ValueError, AttributeError):
+            start = datetime.now(timezone.utc) - timedelta(hours=24)
+            end = datetime.now(timezone.utc)
+
+        duration_hours = (end - start).total_seconds() / 3600
+
+        # Generate ~60 data points per entity (1 per minute for short, less for long)
+        if duration_hours <= 1:
+            interval_minutes = 1
+        elif duration_hours <= 6:
+            interval_minutes = 2
+        elif duration_hours <= 24:
+            interval_minutes = 5
+        elif duration_hours <= 168:  # 7 days
+            interval_minutes = 15
+        else:
+            interval_minutes = 60
+
+        result = {}
+
+        for entity_id in entity_ids:
+            states = []
+            current_time = start
+            interval = timedelta(minutes=interval_minutes)
+
+            # Get entity config for realistic values
+            config = self._get_entity_history_config(entity_id)
+
+            # Generate time series
+            t = 0  # Time index for wave generation
+            while current_time <= end:
+                value = self._generate_entity_value(entity_id, config, t, duration_hours)
+                timestamp_unix = int(current_time.timestamp())
+
+                if minimal_response:
+                    # Minimal format: {s: state, lu: timestamp_unix_seconds}
+                    states.append({
+                        "s": str(round(value, 2)),
+                        "lu": timestamp_unix
+                    })
+                else:
+                    # Full format
+                    states.append({
+                        "entity_id": entity_id,
+                        "state": str(round(value, 2)),
+                        "attributes": {},
+                        "last_changed": current_time.isoformat(),
+                        "last_updated": current_time.isoformat()
+                    })
+
+                current_time += interval
+                t += 1
+
+            result[entity_id] = states
+
+        return result
+
+    def _get_entity_history_config(self, entity_id: str) -> dict:
+        """
+        Get history generation config for entity.
+        Returns: {base, amplitude, period, noise, min, max}
+        """
+        # PID sum: oscillates around 0, sometimes dips negative
+        if "external_heater_pid_sum" in entity_id:
+            return {"base": 0, "amplitude": 8, "period": 2.0, "noise": 1.5, "min": -15, "max": 15}
+
+        # Heating integral: slowly varies, mostly negative
+        if "heating_season_integral" in entity_id:
+            return {"base": -100, "amplitude": 80, "period": 6.0, "noise": 10, "min": -250, "max": 50}
+
+        # Supply line temp difference: small delta around 0
+        if "supply_line_temp_difference" in entity_id:
+            return {"base": 1.0, "amplitude": 3.0, "period": 1.5, "noise": 0.5, "min": -8, "max": 8}
+
+        # Pool heat exchanger delta: positive when heating
+        if "pool_heat_exchanger_delta" in entity_id:
+            return {"base": 3.0, "amplitude": 2.0, "period": 2.0, "noise": 0.3, "min": -2, "max": 10}
+
+        # Start/stop thresholds: constant values
+        if "external_additional_heater_start" in entity_id:
+            return {"base": -10, "amplitude": 0, "period": 1, "noise": 0, "min": -20, "max": 0}
+        if "external_additional_heater_stop" in entity_id:
+            return {"base": 0, "amplitude": 0, "period": 1, "noise": 0, "min": -10, "max": 10}
+
+        # Heater demand: mostly 0, sometimes spikes
+        if "external_additional_heater_current_demand" in entity_id:
+            return {"base": 5, "amplitude": 15, "period": 3.0, "noise": 3, "min": 0, "max": 100}
+
+        # Supply temperatures
+        if "system_supply_line_temperature" in entity_id:
+            return {"base": 48, "amplitude": 8, "period": 4.0, "noise": 1, "min": 35, "max": 60}
+        if "system_supply_line_calculated_set_point" in entity_id:
+            return {"base": 50, "amplitude": 5, "period": 8.0, "noise": 0.5, "min": 40, "max": 58}
+
+        # Condenser temperatures
+        if "condenser_out_temperature" in entity_id:
+            return {"base": 45, "amplitude": 10, "period": 3.0, "noise": 1, "min": 30, "max": 65}
+        if "condenser_in_temperature" in entity_id:
+            return {"base": 28, "amplitude": 5, "period": 3.0, "noise": 0.5, "min": 22, "max": 40}
+
+        # Outdoor temperature
+        if "outdoor_temperature" in entity_id:
+            return {"base": 5, "amplitude": 8, "period": 24.0, "noise": 1, "min": -10, "max": 20}
+
+        # Compressor
+        if "compressor_speed" in entity_id:
+            return {"base": 3000, "amplitude": 1500, "period": 2.0, "noise": 100, "min": 0, "max": 6000}
+        if "compressor_current_gear" in entity_id:
+            return {"base": 5, "amplitude": 3, "period": 2.0, "noise": 0.5, "min": 1, "max": 10}
+
+        # Brine temperatures
+        if "brine_in_temperature" in entity_id:
+            return {"base": 2, "amplitude": 3, "period": 4.0, "noise": 0.3, "min": -5, "max": 10}
+        if "brine_out_temperature" in entity_id:
+            return {"base": -1, "amplitude": 2, "period": 4.0, "noise": 0.3, "min": -8, "max": 5}
+
+        # Default: generic sensor
+        return {"base": 25, "amplitude": 5, "period": 2.0, "noise": 1, "min": 0, "max": 100}
+
+    def _generate_entity_value(
+        self,
+        entity_id: str,
+        config: dict,
+        t: int,
+        duration_hours: float
+    ) -> float:
+        """Generate a realistic value for entity at time index t."""
+        base = config["base"]
+        amplitude = config["amplitude"]
+        period = config["period"]
+        noise = config["noise"]
+        min_val = config["min"]
+        max_val = config["max"]
+
+        # Scale period based on duration (more variation for longer periods)
+        scaled_period = period * (1 + duration_hours / 24)
+
+        # Base wave with period
+        wave = amplitude * math.sin(2 * math.pi * t / (scaled_period * 12))
+
+        # Add secondary wave for more realism
+        wave2 = (amplitude / 3) * math.sin(2 * math.pi * t / (scaled_period * 5))
+
+        # Random noise
+        noise_val = random.gauss(0, noise)
+
+        # Combine
+        value = base + wave + wave2 + noise_val
+
+        # Clamp to min/max
+        return max(min_val, min(max_val, value))
 
     @staticmethod
     def auth_required_message() -> dict:
