@@ -1,0 +1,183 @@
+# ============================================
+# Thermia Genesis Sensor Recording
+# ============================================
+#
+# Records ALL Thermia Genesis entities for long-term statistics.
+# The integration provides ~400 entities - we capture them all using entity_globs.
+#
+# REQUIRED BY AUTOMATIONS (pool_heating.yaml, thermia_protection.yaml):
+#   - sensor.condenser_out_temperature (pool delta-T calculation)
+#   - sensor.condenser_in_temperature (pool delta-T calculation)
+#   - sensor.outdoor_temperature (thermal model, peak power)
+#   - sensor.compressor_speed_rpm (UI display)
+#   - sensor.compressor_current_gear (UI display)
+#   - sensor.discharge_pipe_temperature (hot gas protection)
+#
+# Reference: https://github.com/CJNE/thermiagenesis
+# Entity count: ~90 sensors, ~40 switches, ~98 binary_sensors, ~171 numbers
+#
+
+recorder:
+  include:
+    entity_globs:
+      # ==========================================
+      # SENSORS (~90 entities)
+      # ==========================================
+      # Temperatures
+      - sensor.*_temperature*
+      - sensor.*outdoor*
+      - sensor.*dew_point*
+      - sensor.*bubble_point*
+      - sensor.*superheat*
+      - sensor.*sub_cooling*
+      # Compressor
+      - sensor.*compressor*
+      - sensor.*discharge*
+      - sensor.*suction*
+      - sensor.*liquid_line*
+      # Circulation
+      - sensor.*brine*
+      - sensor.*condenser*
+      - sensor.*pump*
+      - sensor.*supply*
+      - sensor.*return*
+      # Systems
+      - sensor.*tap_water*
+      - sensor.*pool*
+      - sensor.*mix_valve*
+      - sensor.*buffer_tank*
+      - sensor.*hgw*
+      - sensor.*twc*
+      - sensor.*wcs*
+      - sensor.*cooling*
+      - sensor.*surplus_heat*
+      # Electrical
+      - sensor.*electric_meter*
+      - sensor.*energy*
+      - sensor.*power*
+      - sensor.*current*
+      - sensor.*voltage*
+      - sensor.*kwh*
+      # Status
+      - sensor.*heat_pump*
+      - sensor.*heat_curve*
+      - sensor.*operating_hours*
+      - sensor.*software_version*
+      - sensor.*demand*
+      - sensor.*gear*
+      - sensor.*comfort_mode*
+      - sensor.*integral_value*
+      - sensor.*pressure*
+      - sensor.*valve*
+      - sensor.*genesis*
+      - sensor.*legacy*
+      - sensor.*alarm*
+      - sensor.*room_temperature*
+
+      # ==========================================
+      # SWITCHES (~40 entities)
+      # ==========================================
+      - switch.*enable*
+      - switch.*reset*
+      - switch.*heater*
+      - switch.*heating*
+      - switch.*cooling*
+      - switch.*pump*
+      - switch.*valve*
+      - switch.*pool*
+      - switch.*tap_water*
+      - switch.*alarm*
+      - switch.*hgw*
+      - switch.*twc*
+      - switch.*wcs*
+      - switch.*brine*
+      - switch.*legionella*
+      - switch.*dew_point*
+      - switch.*surplus_heat*
+      - switch.*evaporator*
+      - switch.*outdoor*
+      - switch.*flow_switch*
+      - switch.*current_limitation*
+      - switch.*variable_speed*
+      - switch.*fixed_system*
+      # Local switches
+      - switch.altaan_*
+
+      # ==========================================
+      # BINARY SENSORS (~98 entities)
+      # ==========================================
+      - binary_sensor.*alarm*
+      - binary_sensor.*switch*
+      - binary_sensor.*sensor*
+      - binary_sensor.*pipe*
+      - binary_sensor.*inverter*
+      - binary_sensor.*super_heat*
+      - binary_sensor.*envelope*
+      - binary_sensor.*delta*
+      - binary_sensor.*indication*
+      - binary_sensor.*oil_boost*
+      - binary_sensor.*control_signal*
+      - binary_sensor.*smart_grid*
+      - binary_sensor.*external*
+      - binary_sensor.*season*
+      - binary_sensor.*heater*
+      - binary_sensor.*stopping*
+      - binary_sensor.*ok_to_start*
+      - binary_sensor.*regulation*
+      - binary_sensor.*directional_valve*
+      - binary_sensor.*circulation_pump*
+      - binary_sensor.*passive*
+      - binary_sensor.*active*
+      - binary_sensor.*pool*
+      - binary_sensor.*genesis*
+      - binary_sensor.*legacy*
+      - binary_sensor.*communication*
+      - binary_sensor.*conflict*
+      - binary_sensor.*speed*
+
+      # ==========================================
+      # NUMBER CONTROLS (~171 entities)
+      # ==========================================
+      - number.*mode*
+      - number.*limitation*
+      - number.*comfort*
+      - number.*set_point*
+      - number.*setpoint*
+      - number.*heat_curve*
+      - number.*season*
+      - number.*temperature*
+      - number.*gear*
+      - number.*valve*
+      - number.*twc*
+      - number.*wcs*
+      - number.*surplus_heat*
+      - number.*pool*
+      - number.*delay*
+      - number.*alarm*
+      - number.*pump*
+      - number.*speed*
+      - number.*standby*
+      - number.*cooling*
+      - number.*curve*
+      - number.*hysteresis*
+      - number.*outdoor*
+      - number.*heater*
+      - number.*brine*
+      - number.*condenser*
+      - number.*hot_gas*
+      - number.*mix_valve*
+      - number.*radiator*
+      - number.*tap_water*
+
+      # ==========================================
+      # CALCULATED POOL HEATING SENSORS
+      # ==========================================
+      - sensor.pool_*
+      - input_number.pool_*
+      - input_boolean.pool_*
+
+    entities:
+      # ==========================================
+      # NORDPOOL (electricity prices)
+      # ==========================================
+      - sensor.nordpool_kwh_fi_eur_3_10_0255
