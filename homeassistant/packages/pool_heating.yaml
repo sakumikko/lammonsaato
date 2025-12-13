@@ -568,6 +568,48 @@ template:
           {{ states('sensor.pool_heating_electrical_power') not in ['unknown', 'unavailable'] and
              states('sensor.nordpool_kwh_fi_eur_3_10_0255') not in ['unknown', 'unavailable'] }}
 
+      # External heater PID sum (P + I + D)
+      # Used for gear shifting and demand calculation
+      # When this exceeds the start threshold, external heater triggers
+      - name: "External Heater PID Sum"
+        unique_id: external_heater_pid_sum
+        state_class: measurement
+        state: >
+          {% set p = states('sensor.p_value_for_gear_shifting_and_demand_calculation') | float(0) %}
+          {% set i = states('sensor.i_value_for_gear_shifting_and_demand_calculation') | float(0) %}
+          {% set d = states('sensor.d_value_for_gear_shifting_and_demand_calculation') | float(0) %}
+          {{ (p + i + d) | round(1) }}
+        availability: >
+          {{ states('sensor.p_value_for_gear_shifting_and_demand_calculation') not in ['unknown', 'unavailable'] and
+             states('sensor.i_value_for_gear_shifting_and_demand_calculation') not in ['unknown', 'unavailable'] and
+             states('sensor.d_value_for_gear_shifting_and_demand_calculation') not in ['unknown', 'unavailable'] }}
+        attributes:
+          p_value: "{{ states('sensor.p_value_for_gear_shifting_and_demand_calculation') | float(0) }}"
+          i_value: "{{ states('sensor.i_value_for_gear_shifting_and_demand_calculation') | float(0) }}"
+          d_value: "{{ states('sensor.d_value_for_gear_shifting_and_demand_calculation') | float(0) }}"
+          start_threshold: "{{ states('number.external_additional_heater_start') | float(0) }}"
+          stop_threshold: "{{ states('number.external_additional_heater_stop') | float(0) }}"
+
+      # Supply line temperature difference (Target - Actual)
+      # Positive = needs more heating, negative = heating satisfied
+      # This accumulates into the heating_season_integral_value over time
+      - name: "Supply Line Temperature Difference"
+        unique_id: supply_line_temp_difference
+        unit_of_measurement: "°C"
+        device_class: temperature
+        state_class: measurement
+        state: >
+          {% set target = states('sensor.system_supply_line_calculated_set_point') | float(0) %}
+          {% set actual = states('sensor.system_supply_line_temperature') | float(0) %}
+          {{ (target - actual) | round(1) }}
+        availability: >
+          {{ states('sensor.system_supply_line_calculated_set_point') not in ['unknown', 'unavailable'] and
+             states('sensor.system_supply_line_temperature') not in ['unknown', 'unavailable'] }}
+        attributes:
+          target_temp: "{{ states('sensor.system_supply_line_calculated_set_point') | float(0) }}"
+          actual_temp: "{{ states('sensor.system_supply_line_temperature') | float(0) }}"
+          integral: "{{ states('sensor.heating_season_integral_value') | float(0) }}"
+
       # Next scheduled heating block
       - name: "Pool Next Heating"
         unique_id: pool_next_heating
