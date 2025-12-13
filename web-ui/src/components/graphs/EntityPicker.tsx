@@ -29,14 +29,31 @@ export function EntityPicker({ selectedEntities, onToggleEntity }: EntityPickerP
   }, {} as Record<string, EntityPreset[]>);
 
   const groupLabels: Record<string, string> = {
-    control: 'Control Values',
+    control: 'Control & PID',
     delta: 'Temperature Differences',
     right: 'Temperatures',
     percent: 'Percentages',
+    rpm: 'Compressor',
+    gear: 'Gear Settings',
+    brine: 'Brine Circuit',
+    refrigerant: 'Refrigerant',
+    dhw: 'Tap Water',
+    outdoor: 'Outdoor',
+    pool: 'Pool',
+    power: 'Power',
+    cost: 'Costs',
+    price: 'Prices',
+    energy: 'Energy',
+    pressure: 'Pressure',
+    raw: 'Raw Values',
     other: 'Other',
   };
 
-  const groupOrder = ['control', 'delta', 'right', 'percent', 'other'];
+  const groupOrder = [
+    'control', 'rpm', 'gear', 'delta', 'right', 'brine', 'refrigerant',
+    'dhw', 'pool', 'outdoor', 'percent', 'power', 'cost', 'price', 'energy',
+    'pressure', 'raw', 'other'
+  ];
 
   return (
     <TooltipProvider delayDuration={100}>
