@@ -47,3 +47,5 @@ build/
 # Local config
 .env.local
 config/secrets.yaml
+thermia_entities.json
+thermia_registers_available.json
