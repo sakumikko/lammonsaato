@@ -1,6 +1,6 @@
 import { cn } from '@/lib/utils';
 import { HeatPumpState } from '@/types/heating';
-import { Zap, Thermometer, Wind } from 'lucide-react';
+import { Zap, Thermometer, Wind, Gauge, Settings } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
 interface HeatPumpUnitProps {
@@ -79,20 +79,21 @@ export function HeatPumpUnit({ state, className }: HeatPumpUnitProps) {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-2 gap-2 md:gap-3 text-xs md:text-sm">
-        <div className="flex items-center gap-1 md:gap-2">
-          <Zap className="w-3 h-3 md:w-4 md:h-4 text-hot" />
-          <div>
-            <div className="text-muted-foreground text-[10px] md:text-xs">{t('heatPump.compressor')}</div>
-            <div className="font-mono text-foreground text-xs md:text-sm">{state.compressorRpm} {t('units.rpm')}</div>
-          </div>
+      <div className="grid grid-cols-3 gap-2 md:gap-3 text-xs md:text-sm">
+        <div className="flex flex-col items-center text-center">
+          <Gauge className="w-3 h-3 md:w-4 md:h-4 text-hot mb-1" />
+          <div className="text-muted-foreground text-[10px] md:text-xs">{t('heatPump.compressor')}</div>
+          <div className="font-mono text-foreground text-xs md:text-sm">{state.compressorRpm} {t('units.rpm')}</div>
         </div>
-        <div className="flex items-center gap-1 md:gap-2">
-          <Wind className="w-3 h-3 md:w-4 md:h-4 text-cold" />
-          <div>
-            <div className="text-muted-foreground text-[10px] md:text-xs">{t('heatPump.brinePump')}</div>
-            <div className="font-mono text-foreground text-xs md:text-sm">{state.brineCirculationSpeed.toFixed(1)}{t('units.percent')}</div>
-          </div>
+        <div className="flex flex-col items-center text-center">
+          <Settings className="w-3 h-3 md:w-4 md:h-4 text-primary mb-1" />
+          <div className="text-muted-foreground text-[10px] md:text-xs">{t('heatPump.gear')}</div>
+          <div className="font-mono text-foreground text-xs md:text-sm">{state.compressorGear}</div>
+        </div>
+        <div className="flex flex-col items-center text-center">
+          <Wind className="w-3 h-3 md:w-4 md:h-4 text-cold mb-1" />
+          <div className="text-muted-foreground text-[10px] md:text-xs">{t('heatPump.brinePump')}</div>
+          <div className="font-mono text-foreground text-xs md:text-sm">{state.brineCirculationSpeed.toFixed(1)}{t('units.percent')}</div>
         </div>
       </div>
 

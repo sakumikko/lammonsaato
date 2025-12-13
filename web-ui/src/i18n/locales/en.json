@@ -21,6 +21,7 @@
   "heatPump": {
     "title": "Heat Pump",
     "compressor": "Compressor",
+    "gear": "Gear",
     "brinePump": "Brine Pump",
     "condenserIn": "Condenser In",
     "condenserOut": "Condenser Out",

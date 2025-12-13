@@ -21,6 +21,7 @@
   "heatPump": {
     "title": "Lämpöpumppu",
     "compressor": "Kompressori",
+    "gear": "Vaihde",
     "brinePump": "Liuospumppu",
     "condenserIn": "Lauhdutin sisään",
     "condenserOut": "Lauhdutin ulos",

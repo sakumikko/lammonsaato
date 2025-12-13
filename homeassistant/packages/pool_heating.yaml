@@ -423,42 +423,6 @@ input_number:
     unit_of_measurement: "€"
     icon: mdi:cash-check
 
-  # Thermal calibration - true pool temperatures from circulation readings
-  pool_true_temp_pre_heating:
-    name: "True Pool Temp (Pre-Heating)"
-    min: 10
-    max: 40
-    step: 0.1
-    unit_of_measurement: "°C"
-    icon: mdi:thermometer
-
-  pool_true_temp_post_heating:
-    name: "True Pool Temp (Post-Heating)"
-    min: 10
-    max: 40
-    step: 0.1
-    unit_of_measurement: "°C"
-    icon: mdi:thermometer-high
-
-  pool_true_temp_daytime:
-    name: "True Pool Temp (Daytime)"
-    min: 10
-    max: 40
-    step: 0.1
-    unit_of_measurement: "°C"
-    icon: mdi:thermometer-lines
-
-  # Unified true pool temperature - updated at:
-  # 1. End of each heating block (circulation just stopped, sensor = true temp)
-  # 2. Each calibration event (after 25 min circulation)
-  pool_true_temp:
-    name: "Pool True Temperature"
-    min: 10
-    max: 40
-    step: 0.01
-    unit_of_measurement: "°C"
-    icon: mdi:pool-thermometer
-
 input_text:
   pool_heating_schedule_info:
     name: "Schedule Info"
@@ -495,6 +459,25 @@ input_text:
 # ============================================
 
 template:
+  # Trigger-based sensor for pool true temperature
+  # Updates when pool_true_temp_updated event is fired by pyscript or automations
+  # Has state_class: measurement for long-term statistics
+  - trigger:
+      - platform: event
+        event_type: pool_true_temp_updated
+    sensor:
+      - name: "Pool True Temperature"
+        unique_id: pool_true_temp
+        unit_of_measurement: "°C"
+        device_class: temperature
+        state_class: measurement
+        icon: mdi:pool-thermometer
+        state: "{{ trigger.event.data.temperature | float(0) | round(2) }}"
+        attributes:
+          measurement_type: "{{ trigger.event.data.measurement_type | default('unknown') }}"
+          outdoor_temp: "{{ trigger.event.data.outdoor_temp | default(none) }}"
+          last_updated: "{{ now().isoformat() }}"
+
   - sensor:
       # Pool return line temperature (corrected)
       # The raw sensor reports in hundredths of degrees (e.g., 2573 = 25.73°C)
@@ -1467,12 +1450,12 @@ automation:
       # Wait a few seconds for sensor reading to stabilize
       - delay:
           seconds: 10
-      # Capture the return line temp as true pool temp
-      - service: input_number.set_value
-        target:
-          entity_id: input_number.pool_true_temp
-        data:
-          value: "{{ states('sensor.pool_return_line_temperature_corrected') | float(0) }}"
+      # Fire event to update the trigger-based template sensor
+      - event: pool_true_temp_updated
+        event_data:
+          temperature: "{{ states('sensor.pool_return_line_temperature_corrected') | float(0) }}"
+          outdoor_temp: "{{ states('sensor.outdoor_temperature') | float(none) }}"
+          measurement_type: "post_heating"
       - service: logbook.log
         data:
           name: "Pool Thermal"
@@ -1766,9 +1749,5 @@ recorder:
       - binary_sensor.pool_heating_cost_limit_active
       - sensor.pool_heating_enabled_block_count
       # Thermal calibration
-      - input_number.pool_true_temp_pre_heating
-      - input_number.pool_true_temp_post_heating
-      - input_number.pool_true_temp_daytime
+      - sensor.pool_true_temperature
       - input_datetime.pool_last_calibration_time
-      - sensor.pool_estimated_true_temp
-      - sensor.pool_predicted_temp_after_heating

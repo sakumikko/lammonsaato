@@ -63,6 +63,7 @@ const ENTITIES = {
   brineOut: 'sensor.brine_out_temperature',
   outdoor: 'sensor.outdoor_temperature',
   compressorSpeed: 'sensor.compressor_speed_rpm',
+  compressorGear: 'sensor.compressor_current_gear',
   brinePumpSpeed: 'sensor.brine_circulation_pump_speed',
   heatPumpMode: 'sensor.heat_pump_mode',
 
@@ -354,7 +355,7 @@ export function useHomeAssistant(): UseHomeAssistantReturn {
     const heatPump: HeatPumpState = {
       heatEnabled: isRunning,
       tapWaterEnabled: false, // Not tracked in current setup
-      compressorGear: 0, // Not tracked
+      compressorGear: parseNumber(get(ENTITIES.compressorGear)),
       compressorRpm: compressorSpeed,
       brineInTemp: parseNumber(get(ENTITIES.brineIn)),
       brineOutTemp: parseNumber(get(ENTITIES.brineOut)),

@@ -1514,21 +1514,12 @@ def record_true_pool_temp(measurement_type="pre_heating"):
         log.warning(f"Cannot record true temp - sensor unavailable")
         return
 
-    # Store in appropriate entity
-    entity_map = {
-        "pre_heating": "input_number.pool_true_temp_pre_heating",
-        "post_heating": "input_number.pool_true_temp_post_heating",
-        "daytime": "input_number.pool_true_temp_daytime"
-    }
-
-    entity_id = entity_map.get(measurement_type)
-    if entity_id:
-        service.call("input_number", "set_value", entity_id=entity_id, value=sensor_temp)
-
-    # Also update the unified true temp sensor for history tracking
-    service.call("input_number", "set_value",
-                 entity_id="input_number.pool_true_temp",
-                 value=sensor_temp)
+    # Fire event to update the trigger-based template sensor
+    # This sensor has state_class=measurement for long-term statistics
+    event.fire("pool_true_temp_updated",
+               temperature=round(sensor_temp, 2),
+               outdoor_temp=round(outdoor_temp, 1) if outdoor_temp else None,
+               measurement_type=measurement_type)
 
     # Update last calibration timestamp
     service.call(

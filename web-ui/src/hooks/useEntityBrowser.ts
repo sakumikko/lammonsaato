@@ -240,14 +240,25 @@ export function useEntityBrowser(): UseEntityBrowserReturn {
     const points: HistoryDataPoint[] = historyStates.map(state => {
       const stateObj = state as Record<string, unknown>;
       const stateValue = (stateObj.state ?? stateObj.s) as string;
-      const lastUpdated = (stateObj.last_updated ?? stateObj.lu) as string;
+      const lastUpdated = stateObj.last_updated ?? stateObj.lu;
+
+      // Handle both ISO string format and Unix timestamp (minimal_response format)
+      // minimal_response returns 'lu' as Unix timestamp in seconds
+      let timestamp: Date;
+      if (typeof lastUpdated === 'number') {
+        // Unix timestamp in seconds - convert to milliseconds
+        timestamp = new Date(lastUpdated * 1000);
+      } else {
+        // ISO string format
+        timestamp = new Date(lastUpdated as string);
+      }
 
       const numericValue = stateValue !== 'unknown' && stateValue !== 'unavailable'
         ? parseFloat(stateValue)
         : null;
 
       return {
-        timestamp: new Date(lastUpdated),
+        timestamp,
         value: stateValue,
         numericValue: isNaN(numericValue as number) ? null : numericValue,
       };
