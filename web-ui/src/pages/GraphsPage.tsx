@@ -17,7 +17,10 @@ import { MultiEntityChart, TimeRangeSelector, IntegralDisplay, EntityPicker } fr
 import { useHistoryData } from '@/hooks/useHistoryData';
 import { useIntegralCalculation } from '@/hooks/useIntegralCalculation';
 import { useRollingIntegrals, ROLLING_INTEGRAL_ENTITIES } from '@/hooks/useRollingIntegrals';
+import { useHeatingPeriods } from '@/hooks/useHeatingPeriods';
 import { DEFAULT_GRAPHS, ENTITY_PRESETS } from '@/constants/entityPresets';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Label } from '@/components/ui/label';
 import { GraphConfig, TimeRange, EntityConfig } from '@/types/graphs';
 
 const PID_SUM_ENTITY_ID = 'sensor.external_heater_pid_sum';
@@ -36,6 +39,8 @@ export function GraphsPage() {
   const isCustomGraph = activeGraphId === 'custom';
 
   const { data, loading, error, fetchData } = useHistoryData();
+  const { periods: heatingPeriods, fetchPeriods } = useHeatingPeriods();
+  const [showHeatingPeriods, setShowHeatingPeriods] = useState(true);
 
   // Check if any rolling integral entities are selected (for custom graph)
   const hasRollingIntegralsSelected = useMemo(() => {
@@ -126,7 +131,9 @@ export function GraphsPage() {
     if (visibleConfigs.length > 0) {
       fetchData(visibleConfigs, timeRange);
     }
-  }, [activeGraph.id, timeRange, visibleEntities, fetchData, hasRollingIntegralsSelected]);
+    // Also fetch heating periods
+    fetchPeriods(timeRange);
+  }, [activeGraph.id, timeRange, visibleEntities, fetchData, fetchPeriods, hasRollingIntegralsSelected]);
 
   // Handle graph change
   const handleGraphChange = useCallback((graphId: string) => {
@@ -205,6 +212,17 @@ export function GraphsPage() {
               </SelectContent>
             </Select>
 
+            <div className="flex items-center gap-2">
+              <Checkbox
+                id="show-heating"
+                checked={showHeatingPeriods}
+                onCheckedChange={(checked) => setShowHeatingPeriods(checked === true)}
+              />
+              <Label htmlFor="show-heating" className="text-sm cursor-pointer">
+                Pool heating
+              </Label>
+            </div>
+
             <div className="ml-auto">
               <TimeRangeSelector
                 value={timeRange}
@@ -244,6 +262,8 @@ export function GraphsPage() {
               onToggleEntity={handleToggleEntity}
               loading={loading}
               error={error}
+              heatingPeriods={heatingPeriods}
+              showHeatingPeriods={showHeatingPeriods}
             />
           )}
 

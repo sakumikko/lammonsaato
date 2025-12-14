@@ -12,7 +12,9 @@ import {
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
+  ReferenceArea,
 } from 'recharts';
+import { HeatingPeriod } from '@/hooks/useHeatingPeriods';
 import { MultiEntityHistoryData, EntityConfig } from '@/types/graphs';
 import { ChartTooltip } from './ChartTooltip';
 import { ChartLegend } from './ChartLegend';
@@ -25,6 +27,8 @@ interface MultiEntityChartProps {
   onToggleEntity: (entityId: string) => void;
   loading?: boolean;
   error?: string | null;
+  heatingPeriods?: HeatingPeriod[];
+  showHeatingPeriods?: boolean;
 }
 
 function formatTime(timestamp: number): string {
@@ -39,6 +43,8 @@ export function MultiEntityChart({
   onToggleEntity,
   loading,
   error,
+  heatingPeriods = [],
+  showHeatingPeriods = false,
 }: MultiEntityChartProps) {
   // Transform data for Recharts
   const chartData = useMemo(() => {
@@ -142,6 +148,21 @@ export function MultiEntityChart({
             <Tooltip
               content={<ChartTooltip entities={entityConfigs} />}
             />
+            {/* Heating period background shading */}
+            {showHeatingPeriods && heatingPeriods.map((period, idx) => (
+              <ReferenceArea
+                key={`heating-${idx}`}
+                x1={period.start}
+                x2={period.end}
+                y1={0}
+                y2={100}
+                fill="hsl(142 76% 36%)"
+                fillOpacity={0.15}
+                stroke="hsl(142 76% 36%)"
+                strokeOpacity={0.3}
+                strokeWidth={1}
+              />
+            ))}
             {visibleEntityList.map(entity => (
               <Line
                 key={entity.entityId}
