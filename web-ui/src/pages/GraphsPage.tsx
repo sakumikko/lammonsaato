@@ -4,7 +4,7 @@
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Download } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Select,
@@ -186,6 +186,46 @@ export function GraphsPage() {
     });
   }, []);
 
+  // Export chart data to CSV
+  const handleExportCsv = useCallback(() => {
+    if (!chartData || chartData.series.length === 0) return;
+
+    // Get visible entities for export
+    const exportEntities = chartEntities.filter(e => visibleEntities.has(e.entityId));
+    if (exportEntities.length === 0) return;
+
+    // Build CSV header
+    const headers = ['timestamp', ...exportEntities.map(e => e.label)];
+
+    // Build CSV rows
+    const rows = chartData.series.map(point => {
+      const timestamp = new Date(point.timestamp).toISOString();
+      const values = exportEntities.map(e => {
+        const value = point.values[e.entityId]?.raw;
+        return value !== null && value !== undefined ? value.toString() : '';
+      });
+      return [timestamp, ...values];
+    });
+
+    // Create CSV content
+    const csvContent = [
+      headers.join(','),
+      ...rows.map(row => row.join(','))
+    ].join('\n');
+
+    // Create and trigger download
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+    link.download = `${activeGraph.name.toLowerCase().replace(/\s+/g, '-')}-${timestamp}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  }, [chartData, chartEntities, visibleEntities, activeGraph.name]);
+
   return (
     <div className="min-h-screen bg-background" data-testid="graphs-page">
       {/* Header */}
@@ -223,11 +263,20 @@ export function GraphsPage() {
               </Label>
             </div>
 
-            <div className="ml-auto">
+            <div className="ml-auto flex items-center gap-2">
               <TimeRangeSelector
                 value={timeRange}
                 onChange={handleTimeRangeChange}
               />
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleExportCsv}
+                disabled={!chartData || chartData.series.length === 0}
+                title="Export visible data to CSV"
+              >
+                <Download className="h-4 w-4" />
+              </Button>
             </div>
           </div>
         </div>
