@@ -79,7 +79,16 @@ Pool heating is expensive and typically runs at fixed times regardless of electr
 | FR-38 | System SHALL apply daytime settings at 6:40 to ensure settings are active before Helen peak hours (7-21) |
 | FR-39 | System SHALL apply nighttime settings at 21:00 when peak hours end |
 
-### 4.6 Dashboard & UI
+### 4.6 Pool Heating Temperature Control
+
+| ID | Requirement |
+|----|-------------|
+| FR-43 | System SHALL keep the 30-minute PID integral close to zero while heating the pool by adjusting the fixed supply line target |
+| FR-44 | System SHALL switch back to radiator heating if supply line temperature drops below 32°C |
+| FR-45 | System SHALL switch back to radiator heating if supply line temperature drops more than 15°C below the original supply target |
+| FR-46 | System SHALL set minimum compressor gear to 6 during pool heating |
+
+### 4.7 Dashboard & UI
 
 | ID | Requirement |
 |----|-------------|
