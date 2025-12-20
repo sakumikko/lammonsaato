@@ -629,7 +629,7 @@ template:
           {% if ns.future_blocks | length > 0 %}
             {{ (ns.future_blocks | sort | first).isoformat() }}
           {% else %}
-            unknown
+            {{ none }}
           {% endif %}
 
       # Current electricity price
@@ -721,7 +721,7 @@ template:
       - name: "Pool Heating 15min Energy"
         unique_id: pool_heating_15min_energy
         unit_of_measurement: "kWh"
-        state_class: measurement
+        state_class: total
         device_class: energy
         state: >
           {% set current = states('sensor.pool_heating_electricity') | float(0) %}
@@ -753,7 +753,7 @@ template:
         unique_id: pool_heating_night_summary
         unit_of_measurement: "kWh"
         device_class: energy
-        state_class: measurement
+        state_class: total
         icon: mdi:chart-line
         state: >
           {% set data = states('input_text.pool_heating_night_summary_data') %}
