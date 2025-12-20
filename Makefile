@@ -14,7 +14,7 @@ HA_USER ?= root
 .PHONY: help install test test-unit test-thermia test-nordpool test-firebase \
         test-integration test-ha test-ha-entities test-ha-schedule test-ha-workflow \
         test-all lint clean deploy status validate-yaml validate-entities build build-web build-all dist \
-        mock-server e2e-test web-dev web-dev-test ci deploy-webui
+        mock-server e2e-test e2e-test-file test-servers-start test-servers-stop web-dev web-dev-test ci deploy-webui
 
 # Default target
 help:
@@ -323,6 +323,39 @@ web-dev-test:
 # Run Playwright E2E tests
 e2e-test:
 	cd web-ui && npx playwright test
+
+# Run a specific E2E test file (use E2E_FILE=filename.spec.ts)
+e2e-test-file:
+	@if [ -z "$(E2E_FILE)" ]; then \
+		echo "Usage: make e2e-test-file E2E_FILE=radiator-unit.spec.ts"; \
+		exit 1; \
+	fi
+	cd web-ui && BASE_URL=http://localhost:8081 npx playwright test e2e/$(E2E_FILE) --reporter=list
+
+# Start test servers (mock HA + web UI dev in background)
+test-servers-start:
+	@echo "Starting mock HA server..."
+	@pkill -f "scripts.mock_server" 2>/dev/null || true
+	@pkill -f "vite.*--mode.*test" 2>/dev/null || true
+	@sleep 1
+	@$(PYTHON) -m scripts.mock_server &
+	@sleep 2
+	@echo "Starting web UI dev server (test mode)..."
+	@cd web-ui && npm run dev:test &
+	@sleep 4
+	@echo ""
+	@echo "Servers running:"
+	@echo "  Mock HA:  http://localhost:8765"
+	@echo "  Web UI:   http://localhost:8081"
+	@echo ""
+	@echo "Run 'make test-servers-stop' to stop servers"
+
+# Stop test servers
+test-servers-stop:
+	@echo "Stopping test servers..."
+	@pkill -f "scripts.mock_server" 2>/dev/null || true
+	@pkill -f "vite.*--mode.*test" 2>/dev/null || true
+	@echo "Done"
 
 # Install Playwright browsers
 e2e-setup:

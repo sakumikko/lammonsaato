@@ -153,6 +153,15 @@ entity_groups:
       - number.external_heater_outdoor_temp_limit
 
   # ============================================
+  # FIXED_SUPPLY_CONTROLS - For pool heating mode
+  # ============================================
+  # fixed_supply_controls:
+  #   description: "Fixed system supply setpoint for pool-only operation"
+  #   entities:
+  #     - switch.enable_fixed_system_supply_set_point
+  #     - number.fixed_system_supply_set_point
+
+  # ============================================
   # DIAGNOSTIC - Additional diagnostic sensors
   # ============================================
   diagnostic:
