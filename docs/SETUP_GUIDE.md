@@ -372,7 +372,33 @@ The auto-generated dashboard shows toggle switches for integrations like "Pannuh
    - The package includes `thermia_auto_recovery` automation
    - If Thermia sensors go stale, it reloads the integration automatically
 
-### 6.4 Thermia Integration Stability (Known Issue)
+### 6.4 Thermia Integration - Patch Required for KeyError Bug
+
+The official `pythermiagenesis` library has a bug that causes `KeyError` crashes when `fixed_system_supply_set_point` register is not available on the heat pump. **You must patch the thermiagenesis integration** to use the forked library.
+
+**Patch the integration:**
+
+1. SSH into Home Assistant or use File Editor add-on
+2. Navigate to the thermiagenesis custom component:
+   ```
+   /config/custom_components/thermiagenesis/manifest.json
+   ```
+3. Find the `requirements` line and change it from:
+   ```json
+   "requirements": ["pythermiagenesis==2.1.0"],
+   ```
+   to:
+   ```json
+   "requirements": ["pythermiagenesis @ git+https://github.com/sakumikko/pythermiagenesis.git@fixed-system-supply-key-error"],
+   ```
+4. Restart Home Assistant
+
+**Why this patch is required:**
+- The official library crashes with `KeyError` when optional Modbus registers are missing
+- The forked version adds graceful handling for missing registers
+- Without this fix, the integration crashes periodically
+
+### 6.5 Thermia Integration Stability (Known Issue)
 
 The `thermiagenesis` integration has a known bug where Modbus polling stops after some idle time, causing sensors to freeze. This is **not** a recorder issue - the integration stops updating.
 
