@@ -111,6 +111,10 @@ class MockStateManager:
                     return "35.0"
                 if "condenser_in" in entity_id:
                     return "30.0"
+                if "system_supply_line_temperature" in entity_id:
+                    return "32.5"
+                if "system_supply_line_calculated_set_point" in entity_id:
+                    return "35.0"
                 if "tap_water" in entity_id:
                     if "start" in entity_id:
                         return "45"
@@ -132,6 +136,10 @@ class MockStateManager:
                     if "min" in entity_id:
                         return "25"
                 return "20.0"
+
+            # Fixed supply set point
+            if "fixed_system_supply_set_point" in entity_id:
+                return "30"
 
             # Gear limits
             if "gear" in entity_id:

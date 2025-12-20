@@ -96,6 +96,9 @@ Pool heating is expensive and typically runs at fixed times regardless of electr
 | FR-30 | Web UI SHALL display total scheduled cost in EUR |
 | FR-31 | Web UI SHALL show warning when cost limit causes blocks to be disabled |
 | FR-32 | Web UI SHALL allow user to manually override cost-exceeded blocks (re-enable them) |
+| FR-40 | Dashboard SHALL display radiator circuit supply temperature |
+| FR-41 | Dashboard SHALL display both heat curve target and fixed supply target temperatures |
+| FR-42 | Dashboard SHALL visually indicate which target mode (curve vs fixed) is active |
 
 ## 5. Non-Functional Requirements
 

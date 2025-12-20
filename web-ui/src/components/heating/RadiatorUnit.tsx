@@ -1,19 +1,31 @@
 import { cn } from '@/lib/utils';
-import { Home, Thermometer } from 'lucide-react';
+import { Home, Thermometer, Target, Crosshair } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
 interface RadiatorUnitProps {
   isActive: boolean;
   supplyTemp: number;
   returnTemp: number;
+  curveTarget: number;
+  fixedTarget: number;
+  fixedModeEnabled: boolean;
   className?: string;
 }
 
-export function RadiatorUnit({ isActive, supplyTemp, returnTemp, className }: RadiatorUnitProps) {
+export function RadiatorUnit({
+  isActive,
+  supplyTemp,
+  returnTemp,
+  curveTarget,
+  fixedTarget,
+  fixedModeEnabled,
+  className,
+}: RadiatorUnitProps) {
   const { t } = useTranslation();
 
   return (
     <div
+      data-testid="radiator-unit"
       className={cn(
         'relative p-2 md:p-5 rounded-xl md:rounded-2xl border-2 transition-all duration-500',
         isActive
@@ -63,17 +75,43 @@ export function RadiatorUnit({ isActive, supplyTemp, returnTemp, className }: Ra
         ))}
       </div>
 
-      {/* Stats - stacked on mobile */}
-      <div className="flex flex-col md:grid md:grid-cols-2 gap-0.5 md:gap-2 text-[10px] md:text-xs">
-        <div className="flex items-center gap-0.5 md:gap-1">
-          <Thermometer className="w-2.5 h-2.5 md:w-3 md:h-3 text-hot" />
-          <span className="text-muted-foreground">{t('radiators.supply')}:</span>
-          <span className="font-mono text-foreground">{supplyTemp.toFixed(1)}°C</span>
+      {/* Supply temperature */}
+      <div className="flex items-center gap-0.5 md:gap-1 text-[10px] md:text-xs mb-1 md:mb-2">
+        <Thermometer className="w-2.5 h-2.5 md:w-3 md:h-3 text-hot" />
+        <span className="text-muted-foreground">{t('radiators.supply')}:</span>
+        <span data-testid="supply-temp" className="font-mono text-foreground">
+          {supplyTemp.toFixed(1)}°C
+        </span>
+      </div>
+
+      {/* Target temperatures - stable layout */}
+      <div className="grid grid-cols-2 gap-1 md:gap-2 text-[10px] md:text-xs">
+        {/* Curve target - always first/left */}
+        <div
+          data-testid="curve-target"
+          data-active={!fixedModeEnabled}
+          className={cn(
+            'flex items-center gap-0.5 md:gap-1 px-1 py-0.5 rounded transition-colors',
+            !fixedModeEnabled ? 'bg-primary/10 ring-1 ring-primary/30' : 'opacity-60'
+          )}
+        >
+          <Target className={cn('w-2.5 h-2.5 md:w-3 md:h-3', !fixedModeEnabled ? 'text-primary' : 'text-muted-foreground')} />
+          <span className="text-muted-foreground truncate">{t('radiators.curveTarget')}:</span>
+          <span className="font-mono text-foreground">{curveTarget.toFixed(1)}°C</span>
         </div>
-        <div className="flex items-center gap-0.5 md:gap-1">
-          <Thermometer className="w-2.5 h-2.5 md:w-3 md:h-3 text-cold" />
-          <span className="text-muted-foreground">{t('radiators.return')}:</span>
-          <span className="font-mono text-foreground">{returnTemp.toFixed(1)}°C</span>
+
+        {/* Fixed target - always second/right */}
+        <div
+          data-testid="fixed-target"
+          data-active={fixedModeEnabled}
+          className={cn(
+            'flex items-center gap-0.5 md:gap-1 px-1 py-0.5 rounded transition-colors',
+            fixedModeEnabled ? 'bg-primary/10 ring-1 ring-primary/30' : 'opacity-60'
+          )}
+        >
+          <Crosshair className={cn('w-2.5 h-2.5 md:w-3 md:h-3', fixedModeEnabled ? 'text-primary' : 'text-muted-foreground')} />
+          <span className="text-muted-foreground truncate">{t('radiators.fixedTarget')}:</span>
+          <span className="font-mono text-foreground">{fixedTarget.toFixed(1)}°C</span>
         </div>
       </div>
     </div>

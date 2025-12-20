@@ -104,6 +104,13 @@ export interface PeakPowerSettings {
   nighttimeStartTime: string;   // Default: "21:00"
 }
 
+export interface SystemSupplyState {
+  supplyTemp: number;           // Current system supply line temperature
+  curveTarget: number;          // Calculated target from heat curve
+  fixedTarget: number;          // Fixed supply target setpoint
+  fixedModeEnabled: boolean;    // Whether fixed mode is active
+}
+
 export interface SystemState {
   heatPump: HeatPumpState;
   poolHeating: PoolHeatingState;
@@ -114,4 +121,5 @@ export interface SystemState {
   hotGasSettings: HotGasSettings;
   heatingCurve: HeatingCurveSettings;
   peakPower: PeakPowerSettings;
+  systemSupply: SystemSupplyState;
 }

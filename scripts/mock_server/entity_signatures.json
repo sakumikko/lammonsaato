@@ -1905,6 +1905,50 @@
       "attributes": [
         "friendly_name"
       ]
+    },
+    {
+      "entity_id": "sensor.system_supply_line_temperature",
+      "domain": "sensor",
+      "state_type": "numeric",
+      "deployed": true,
+      "attributes": [
+        "friendly_name",
+        "unit_of_measurement"
+      ],
+      "unit_of_measurement": "\u00b0C"
+    },
+    {
+      "entity_id": "sensor.system_supply_line_calculated_set_point",
+      "domain": "sensor",
+      "state_type": "numeric",
+      "deployed": true,
+      "attributes": [
+        "friendly_name",
+        "unit_of_measurement"
+      ],
+      "unit_of_measurement": "\u00b0C"
+    },
+    {
+      "entity_id": "number.fixed_system_supply_set_point",
+      "domain": "number",
+      "state_type": "numeric",
+      "deployed": true,
+      "attributes": [
+        "friendly_name",
+        "unit_of_measurement",
+        "min",
+        "max"
+      ],
+      "unit_of_measurement": "\u00b0C"
+    },
+    {
+      "entity_id": "switch.enable_fixed_system_supply_set_point",
+      "domain": "switch",
+      "state_type": "boolean",
+      "deployed": true,
+      "attributes": [
+        "friendly_name"
+      ]
     }
   ]
 }

@@ -55,8 +55,11 @@ export function SystemDiagram({ state, onToggleValve, className }: SystemDiagram
             />
             <RadiatorUnit
               isActive={!isPoolActive && isHeatPumpRunning}
-              supplyTemp={state.heatPump.condenserOutTemp}
+              supplyTemp={state.systemSupply.supplyTemp}
               returnTemp={state.heatPump.condenserInTemp}
+              curveTarget={state.systemSupply.curveTarget}
+              fixedTarget={state.systemSupply.fixedTarget}
+              fixedModeEnabled={state.systemSupply.fixedModeEnabled}
               className="flex-1"
             />
           </div>

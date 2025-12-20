@@ -50,7 +50,11 @@
     "active": "Active",
     "standby": "Standby",
     "supply": "Supply",
-    "return": "Return"
+    "return": "Return",
+    "curveTarget": "Curve",
+    "fixedTarget": "Fixed",
+    "curveActive": "CURVE",
+    "fixedActive": "FIXED"
   },
   "controls": {
     "title": "System Controls",

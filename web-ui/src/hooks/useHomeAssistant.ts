@@ -12,6 +12,7 @@ import {
   HotGasSettings,
   HeatingCurveSettings,
   PeakPowerSettings,
+  SystemSupplyState,
 } from '@/types/heating';
 import { getHAWebSocket, HAEntityState } from '@/lib/ha-websocket';
 
@@ -134,6 +135,12 @@ const ENTITIES = {
   peakPowerNighttimeHeaterStop: 'input_number.peak_power_nighttime_heater_stop',
   peakPowerDaytimeStart: 'input_datetime.peak_power_daytime_start',
   peakPowerNighttimeStart: 'input_datetime.peak_power_nighttime_start',
+
+  // System supply temperatures (Thermia Genesis)
+  systemSupplyTemp: 'sensor.system_supply_line_temperature',
+  systemSupplyCurveTarget: 'sensor.system_supply_line_calculated_set_point',
+  systemSupplyFixedTarget: 'number.fixed_system_supply_set_point',
+  systemSupplyFixedEnabled: 'switch.enable_fixed_system_supply_set_point',
 } as const;
 
 // Block entities (1-10)
@@ -225,6 +232,12 @@ const defaultState: SystemState = {
     nighttimeHeaterStop: 4,
     daytimeStartTime: '06:40',
     nighttimeStartTime: '21:00',
+  },
+  systemSupply: {
+    supplyTemp: 0,
+    curveTarget: 0,
+    fixedTarget: 30,
+    fixedModeEnabled: false,
   },
 };
 
@@ -492,7 +505,15 @@ export function useHomeAssistant(): UseHomeAssistantReturn {
       nighttimeStartTime: parseTime(get(ENTITIES.peakPowerNighttimeStart)) || '21:00',
     };
 
-    return { heatPump, poolHeating, valve, schedule, gearSettings, tapWater, hotGasSettings, heatingCurve, peakPower };
+    // System supply temperatures
+    const systemSupply: SystemSupplyState = {
+      supplyTemp: parseNumber(get(ENTITIES.systemSupplyTemp)),
+      curveTarget: parseNumber(get(ENTITIES.systemSupplyCurveTarget)),
+      fixedTarget: parseNumber(get(ENTITIES.systemSupplyFixedTarget)) || 30,
+      fixedModeEnabled: parseBoolean(get(ENTITIES.systemSupplyFixedEnabled)),
+    };
+
+    return { heatPump, poolHeating, valve, schedule, gearSettings, tapWater, hotGasSettings, heatingCurve, peakPower, systemSupply };
   }, []);
 
   // Initial connection and state fetch

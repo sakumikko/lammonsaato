@@ -50,7 +50,11 @@
     "active": "Aktiivinen",
     "standby": "Valmiustilassa",
     "supply": "Meno",
-    "return": "Paluu"
+    "return": "Paluu",
+    "curveTarget": "Käyrä",
+    "fixedTarget": "Kiinteä",
+    "curveActive": "KÄYRÄ",
+    "fixedActive": "KIINTEÄ"
   },
   "controls": {
     "title": "Järjestelmän ohjaus",
