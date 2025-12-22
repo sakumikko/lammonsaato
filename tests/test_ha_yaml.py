@@ -201,18 +201,14 @@ class TestYAMLStructure:
             assert f'pool_heat_block_{i}_price' in yaml_config['input_number']
 
     def test_has_automations(self, yaml_config):
-        """Should have automation section with start/stop for each block."""
+        """Should have automation section with consolidated start/stop automations."""
         assert 'automation' in yaml_config
 
         automation_ids = [a['id'] for a in yaml_config['automation']]
 
-        # Check start automations
-        for i in range(1, 5):
-            assert f'pool_start_heating_block_{i}' in automation_ids
-
-        # Check stop automations
-        for i in range(1, 5):
-            assert f'pool_stop_heating_block_{i}' in automation_ids
+        # Check consolidated start/stop automations (all blocks handled by single automation)
+        assert 'pool_start_heating_blocks' in automation_ids
+        assert 'pool_stop_heating_blocks' in automation_ids
 
     def test_has_scripts(self, yaml_config):
         """Should have required scripts."""

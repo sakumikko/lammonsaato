@@ -920,401 +920,103 @@ automation:
           title: "Pool Heating Complete"
           message: "Target temperature {{ states('input_number.pool_target_temperature') }}°C reached. Remaining blocks skipped."
 
-  # Start heating at scheduled block times
-  - id: pool_start_heating_block_1
-    alias: "Pool: Start Heating Block 1"
+  # Start heating at scheduled block times (consolidated - all 10 blocks)
+  # Uses trigger.id to identify which block triggered the automation
+  - id: pool_start_heating_blocks
+    alias: "Pool: Start Heating Blocks"
     trigger:
       - platform: time
         at: input_datetime.pool_heat_block_1_start
-    condition:
-      - condition: state
-        entity_id: input_boolean.pool_heating_enabled
-        state: "on"
-      - condition: state
-        entity_id: input_boolean.pool_heat_block_1_enabled
-        state: "on"
-      - condition: state
-        entity_id: input_boolean.pool_heating_night_complete
-        state: "off"
-      - condition: template
-        value_template: >
-          {% set block_start = as_datetime(states('input_datetime.pool_heat_block_1_start')) %}
-          {% set block_end = as_datetime(states('input_datetime.pool_heat_block_1_end')) %}
-          {{ block_start.date() >= (now() - timedelta(days=1)).date() and block_end > block_start }}
-    action:
-      - service: script.pool_heating_block_start
-        data:
-          block_number: 1
-
-  - id: pool_start_heating_block_2
-    alias: "Pool: Start Heating Block 2"
-    trigger:
+        id: "1"
       - platform: time
         at: input_datetime.pool_heat_block_2_start
-    condition:
-      - condition: state
-        entity_id: input_boolean.pool_heating_enabled
-        state: "on"
-      - condition: state
-        entity_id: input_boolean.pool_heat_block_2_enabled
-        state: "on"
-      - condition: state
-        entity_id: input_boolean.pool_heating_night_complete
-        state: "off"
-      - condition: template
-        value_template: >
-          {% set block_start = as_datetime(states('input_datetime.pool_heat_block_2_start')) %}
-          {% set block_end = as_datetime(states('input_datetime.pool_heat_block_2_end')) %}
-          {{ block_start.date() >= (now() - timedelta(days=1)).date() and block_end > block_start }}
-    action:
-      - service: script.pool_heating_block_start
-        data:
-          block_number: 2
-
-  - id: pool_start_heating_block_3
-    alias: "Pool: Start Heating Block 3"
-    trigger:
+        id: "2"
       - platform: time
         at: input_datetime.pool_heat_block_3_start
-    condition:
-      - condition: state
-        entity_id: input_boolean.pool_heating_enabled
-        state: "on"
-      - condition: state
-        entity_id: input_boolean.pool_heat_block_3_enabled
-        state: "on"
-      - condition: state
-        entity_id: input_boolean.pool_heating_night_complete
-        state: "off"
-      - condition: template
-        value_template: >
-          {% set block_start = as_datetime(states('input_datetime.pool_heat_block_3_start')) %}
-          {% set block_end = as_datetime(states('input_datetime.pool_heat_block_3_end')) %}
-          {{ block_start.date() >= (now() - timedelta(days=1)).date() and block_end > block_start }}
-    action:
-      - service: script.pool_heating_block_start
-        data:
-          block_number: 3
-
-  - id: pool_start_heating_block_4
-    alias: "Pool: Start Heating Block 4"
-    trigger:
+        id: "3"
       - platform: time
         at: input_datetime.pool_heat_block_4_start
+        id: "4"
+      - platform: time
+        at: input_datetime.pool_heat_block_5_start
+        id: "5"
+      - platform: time
+        at: input_datetime.pool_heat_block_6_start
+        id: "6"
+      - platform: time
+        at: input_datetime.pool_heat_block_7_start
+        id: "7"
+      - platform: time
+        at: input_datetime.pool_heat_block_8_start
+        id: "8"
+      - platform: time
+        at: input_datetime.pool_heat_block_9_start
+        id: "9"
+      - platform: time
+        at: input_datetime.pool_heat_block_10_start
+        id: "10"
     condition:
       - condition: state
         entity_id: input_boolean.pool_heating_enabled
         state: "on"
       - condition: state
-        entity_id: input_boolean.pool_heat_block_4_enabled
-        state: "on"
-      - condition: state
         entity_id: input_boolean.pool_heating_night_complete
         state: "off"
+      # Check the triggered block is enabled
       - condition: template
         value_template: >
-          {% set block_start = as_datetime(states('input_datetime.pool_heat_block_4_start')) %}
-          {% set block_end = as_datetime(states('input_datetime.pool_heat_block_4_end')) %}
+          {{ states('input_boolean.pool_heat_block_' ~ trigger.id ~ '_enabled') == 'on' }}
+      # Check block times are valid and recent
+      - condition: template
+        value_template: >
+          {% set block_start = as_datetime(states('input_datetime.pool_heat_block_' ~ trigger.id ~ '_start')) %}
+          {% set block_end = as_datetime(states('input_datetime.pool_heat_block_' ~ trigger.id ~ '_end')) %}
           {{ block_start.date() >= (now() - timedelta(days=1)).date() and block_end > block_start }}
     action:
       - service: script.pool_heating_block_start
         data:
-          block_number: 4
+          block_number: "{{ trigger.id | int }}"
 
-  # Stop heating at scheduled block end times
-  # Each stop automation checks that the block is valid (end > start) and recent
-  - id: pool_stop_heating_block_1
-    alias: "Pool: Stop Heating Block 1"
+  # Stop heating at scheduled block end times (consolidated - all 10 blocks)
+  - id: pool_stop_heating_blocks
+    alias: "Pool: Stop Heating Blocks"
     trigger:
       - platform: time
         at: input_datetime.pool_heat_block_1_end
-    condition:
-      - condition: template
-        value_template: >
-          {% set start = as_datetime(states('input_datetime.pool_heat_block_1_start')) %}
-          {% set end = as_datetime(states('input_datetime.pool_heat_block_1_end')) %}
-          {{ end > start and end.date() >= (now() - timedelta(days=1)).date() }}
-    action:
-      - service: script.pool_heating_block_stop
-
-  - id: pool_stop_heating_block_2
-    alias: "Pool: Stop Heating Block 2"
-    trigger:
+        id: "1"
       - platform: time
         at: input_datetime.pool_heat_block_2_end
-    condition:
-      - condition: template
-        value_template: >
-          {% set start = as_datetime(states('input_datetime.pool_heat_block_2_start')) %}
-          {% set end = as_datetime(states('input_datetime.pool_heat_block_2_end')) %}
-          {{ end > start and end.date() >= (now() - timedelta(days=1)).date() }}
-    action:
-      - service: script.pool_heating_block_stop
-
-  - id: pool_stop_heating_block_3
-    alias: "Pool: Stop Heating Block 3"
-    trigger:
+        id: "2"
       - platform: time
         at: input_datetime.pool_heat_block_3_end
-    condition:
-      - condition: template
-        value_template: >
-          {% set start = as_datetime(states('input_datetime.pool_heat_block_3_start')) %}
-          {% set end = as_datetime(states('input_datetime.pool_heat_block_3_end')) %}
-          {{ end > start and end.date() >= (now() - timedelta(days=1)).date() }}
-    action:
-      - service: script.pool_heating_block_stop
-
-  - id: pool_stop_heating_block_4
-    alias: "Pool: Stop Heating Block 4"
-    trigger:
+        id: "3"
       - platform: time
         at: input_datetime.pool_heat_block_4_end
-    condition:
-      - condition: template
-        value_template: >
-          {% set start = as_datetime(states('input_datetime.pool_heat_block_4_start')) %}
-          {% set end = as_datetime(states('input_datetime.pool_heat_block_4_end')) %}
-          {{ end > start and end.date() >= (now() - timedelta(days=1)).date() }}
-    action:
-      - service: script.pool_heating_block_stop
-
-  # Block 5 Start/Stop
-  - id: pool_start_heating_block_5
-    alias: "Pool: Start Heating Block 5"
-    trigger:
-      - platform: time
-        at: input_datetime.pool_heat_block_5_start
-    condition:
-      - condition: state
-        entity_id: input_boolean.pool_heating_enabled
-        state: "on"
-      - condition: state
-        entity_id: input_boolean.pool_heat_block_5_enabled
-        state: "on"
-      - condition: state
-        entity_id: input_boolean.pool_heating_night_complete
-        state: "off"
-      - condition: template
-        value_template: >
-          {% set block_start = as_datetime(states('input_datetime.pool_heat_block_5_start')) %}
-          {% set block_end = as_datetime(states('input_datetime.pool_heat_block_5_end')) %}
-          {{ block_start.date() >= (now() - timedelta(days=1)).date() and block_end > block_start }}
-    action:
-      - service: script.pool_heating_block_start
-        data:
-          block_number: 5
-
-  - id: pool_stop_heating_block_5
-    alias: "Pool: Stop Heating Block 5"
-    trigger:
+        id: "4"
       - platform: time
         at: input_datetime.pool_heat_block_5_end
-    condition:
-      - condition: template
-        value_template: >
-          {% set start = as_datetime(states('input_datetime.pool_heat_block_5_start')) %}
-          {% set end = as_datetime(states('input_datetime.pool_heat_block_5_end')) %}
-          {{ end > start and end.date() >= (now() - timedelta(days=1)).date() }}
-    action:
-      - service: script.pool_heating_block_stop
-
-  # Block 6 Start/Stop
-  - id: pool_start_heating_block_6
-    alias: "Pool: Start Heating Block 6"
-    trigger:
-      - platform: time
-        at: input_datetime.pool_heat_block_6_start
-    condition:
-      - condition: state
-        entity_id: input_boolean.pool_heating_enabled
-        state: "on"
-      - condition: state
-        entity_id: input_boolean.pool_heat_block_6_enabled
-        state: "on"
-      - condition: state
-        entity_id: input_boolean.pool_heating_night_complete
-        state: "off"
-      - condition: template
-        value_template: >
-          {% set block_start = as_datetime(states('input_datetime.pool_heat_block_6_start')) %}
-          {% set block_end = as_datetime(states('input_datetime.pool_heat_block_6_end')) %}
-          {{ block_start.date() >= (now() - timedelta(days=1)).date() and block_end > block_start }}
-    action:
-      - service: script.pool_heating_block_start
-        data:
-          block_number: 6
-
-  - id: pool_stop_heating_block_6
-    alias: "Pool: Stop Heating Block 6"
-    trigger:
+        id: "5"
       - platform: time
         at: input_datetime.pool_heat_block_6_end
-    condition:
-      - condition: template
-        value_template: >
-          {% set start = as_datetime(states('input_datetime.pool_heat_block_6_start')) %}
-          {% set end = as_datetime(states('input_datetime.pool_heat_block_6_end')) %}
-          {{ end > start and end.date() >= (now() - timedelta(days=1)).date() }}
-    action:
-      - service: script.pool_heating_block_stop
-
-  # Block 7 Start/Stop
-  - id: pool_start_heating_block_7
-    alias: "Pool: Start Heating Block 7"
-    trigger:
-      - platform: time
-        at: input_datetime.pool_heat_block_7_start
-    condition:
-      - condition: state
-        entity_id: input_boolean.pool_heating_enabled
-        state: "on"
-      - condition: state
-        entity_id: input_boolean.pool_heat_block_7_enabled
-        state: "on"
-      - condition: state
-        entity_id: input_boolean.pool_heating_night_complete
-        state: "off"
-      - condition: template
-        value_template: >
-          {% set block_start = as_datetime(states('input_datetime.pool_heat_block_7_start')) %}
-          {% set block_end = as_datetime(states('input_datetime.pool_heat_block_7_end')) %}
-          {{ block_start.date() >= (now() - timedelta(days=1)).date() and block_end > block_start }}
-    action:
-      - service: script.pool_heating_block_start
-        data:
-          block_number: 7
-
-  - id: pool_stop_heating_block_7
-    alias: "Pool: Stop Heating Block 7"
-    trigger:
+        id: "6"
       - platform: time
         at: input_datetime.pool_heat_block_7_end
-    condition:
-      - condition: template
-        value_template: >
-          {% set start = as_datetime(states('input_datetime.pool_heat_block_7_start')) %}
-          {% set end = as_datetime(states('input_datetime.pool_heat_block_7_end')) %}
-          {{ end > start and end.date() >= (now() - timedelta(days=1)).date() }}
-    action:
-      - service: script.pool_heating_block_stop
-
-  # Block 8 Start/Stop
-  - id: pool_start_heating_block_8
-    alias: "Pool: Start Heating Block 8"
-    trigger:
-      - platform: time
-        at: input_datetime.pool_heat_block_8_start
-    condition:
-      - condition: state
-        entity_id: input_boolean.pool_heating_enabled
-        state: "on"
-      - condition: state
-        entity_id: input_boolean.pool_heat_block_8_enabled
-        state: "on"
-      - condition: state
-        entity_id: input_boolean.pool_heating_night_complete
-        state: "off"
-      - condition: template
-        value_template: >
-          {% set block_start = as_datetime(states('input_datetime.pool_heat_block_8_start')) %}
-          {% set block_end = as_datetime(states('input_datetime.pool_heat_block_8_end')) %}
-          {{ block_start.date() >= (now() - timedelta(days=1)).date() and block_end > block_start }}
-    action:
-      - service: script.pool_heating_block_start
-        data:
-          block_number: 8
-
-  - id: pool_stop_heating_block_8
-    alias: "Pool: Stop Heating Block 8"
-    trigger:
+        id: "7"
       - platform: time
         at: input_datetime.pool_heat_block_8_end
-    condition:
-      - condition: template
-        value_template: >
-          {% set start = as_datetime(states('input_datetime.pool_heat_block_8_start')) %}
-          {% set end = as_datetime(states('input_datetime.pool_heat_block_8_end')) %}
-          {{ end > start and end.date() >= (now() - timedelta(days=1)).date() }}
-    action:
-      - service: script.pool_heating_block_stop
-
-  # Block 9 Start/Stop
-  - id: pool_start_heating_block_9
-    alias: "Pool: Start Heating Block 9"
-    trigger:
-      - platform: time
-        at: input_datetime.pool_heat_block_9_start
-    condition:
-      - condition: state
-        entity_id: input_boolean.pool_heating_enabled
-        state: "on"
-      - condition: state
-        entity_id: input_boolean.pool_heat_block_9_enabled
-        state: "on"
-      - condition: state
-        entity_id: input_boolean.pool_heating_night_complete
-        state: "off"
-      - condition: template
-        value_template: >
-          {% set block_start = as_datetime(states('input_datetime.pool_heat_block_9_start')) %}
-          {% set block_end = as_datetime(states('input_datetime.pool_heat_block_9_end')) %}
-          {{ block_start.date() >= (now() - timedelta(days=1)).date() and block_end > block_start }}
-    action:
-      - service: script.pool_heating_block_start
-        data:
-          block_number: 9
-
-  - id: pool_stop_heating_block_9
-    alias: "Pool: Stop Heating Block 9"
-    trigger:
+        id: "8"
       - platform: time
         at: input_datetime.pool_heat_block_9_end
-    condition:
-      - condition: template
-        value_template: >
-          {% set start = as_datetime(states('input_datetime.pool_heat_block_9_start')) %}
-          {% set end = as_datetime(states('input_datetime.pool_heat_block_9_end')) %}
-          {{ end > start and end.date() >= (now() - timedelta(days=1)).date() }}
-    action:
-      - service: script.pool_heating_block_stop
-
-  # Block 10 Start/Stop
-  - id: pool_start_heating_block_10
-    alias: "Pool: Start Heating Block 10"
-    trigger:
-      - platform: time
-        at: input_datetime.pool_heat_block_10_start
-    condition:
-      - condition: state
-        entity_id: input_boolean.pool_heating_enabled
-        state: "on"
-      - condition: state
-        entity_id: input_boolean.pool_heat_block_10_enabled
-        state: "on"
-      - condition: state
-        entity_id: input_boolean.pool_heating_night_complete
-        state: "off"
-      - condition: template
-        value_template: >
-          {% set block_start = as_datetime(states('input_datetime.pool_heat_block_10_start')) %}
-          {% set block_end = as_datetime(states('input_datetime.pool_heat_block_10_end')) %}
-          {{ block_start.date() >= (now() - timedelta(days=1)).date() and block_end > block_start }}
-    action:
-      - service: script.pool_heating_block_start
-        data:
-          block_number: 10
-
-  - id: pool_stop_heating_block_10
-    alias: "Pool: Stop Heating Block 10"
-    trigger:
+        id: "9"
       - platform: time
         at: input_datetime.pool_heat_block_10_end
+        id: "10"
     condition:
+      # Check block times are valid and recent
       - condition: template
         value_template: >
-          {% set start = as_datetime(states('input_datetime.pool_heat_block_10_start')) %}
-          {% set end = as_datetime(states('input_datetime.pool_heat_block_10_end')) %}
+          {% set start = as_datetime(states('input_datetime.pool_heat_block_' ~ trigger.id ~ '_start')) %}
+          {% set end = as_datetime(states('input_datetime.pool_heat_block_' ~ trigger.id ~ '_end')) %}
           {{ end > start and end.date() >= (now() - timedelta(days=1)).date() }}
     action:
       - service: script.pool_heating_block_stop
@@ -1523,10 +1225,30 @@ script:
       - service: switch.turn_off
         target:
           entity_id: switch.altaan_lammityksen_esto
+        continue_on_error: true
+      # Small delay to ensure prevention switch completes before pump
+      - delay:
+          seconds: 2
       # Turn ON the circulation pump
       - service: switch.turn_on
         target:
           entity_id: switch.altaan_kiertovesipumppu
+        continue_on_error: true
+      # Verify pump is on after 3 seconds, retry if not
+      - delay:
+          seconds: 3
+      - if:
+          - condition: state
+            entity_id: switch.altaan_kiertovesipumppu
+            state: "off"
+        then:
+          - service: switch.turn_on
+            target:
+              entity_id: switch.altaan_kiertovesipumppu
+          - service: notify.persistent_notification
+            data:
+              title: "Pool Heating Warning"
+              message: "Circulation pump retry at {{ now().strftime('%H:%M') }} - first attempt may have failed"
       - service: logbook.log
         data:
           name: "Pool Heating"
