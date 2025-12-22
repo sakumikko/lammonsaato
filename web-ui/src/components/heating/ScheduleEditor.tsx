@@ -32,9 +32,29 @@ interface ScheduleEditorProps {
 
 // Valid options for dropdowns
 const BLOCK_DURATIONS = [30, 45, 60];
-// Max 5h due to heating window constraint (21:00-07:00 = 600min)
+// Max 5h (300min) due to heating window constraint (21:00-07:00 = 600min)
 // With breaks equal to block duration, 5.5h+ doesn't fit
-const TOTAL_HOURS_OPTIONS = [0, 0.5, 1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5];
+const MAX_TOTAL_MINUTES = 300;
+
+// Generate all valid total hours as multiples of min block duration
+// This prevents schedule calculation failures when total minutes % block size != 0
+const getValidTotalHours = (minBlockDuration: number): number[] => {
+  const options: number[] = [0];
+  for (let minutes = minBlockDuration; minutes <= MAX_TOTAL_MINUTES; minutes += minBlockDuration) {
+    options.push(minutes / 60);
+  }
+  return options;
+};
+
+// Find closest valid total hours value
+const findClosestValidHours = (current: number, minBlockDuration: number): number => {
+  const validOptions = getValidTotalHours(minBlockDuration);
+  if (validOptions.includes(current)) return current;
+  // Find closest valid value
+  return validOptions.reduce((prev, curr) =>
+    Math.abs(curr - current) < Math.abs(prev - current) ? curr : prev
+  );
+};
 
 export function useScheduleEditor({
   parameters,
@@ -159,9 +179,15 @@ export function useScheduleEditor({
           </label>
           <Select
             value={editParams.minBlockDuration.toString()}
-            onValueChange={(v) =>
-              setEditParams((p) => ({ ...p, minBlockDuration: parseInt(v) }))
-            }
+            onValueChange={(v) => {
+              const newMinBlock = parseInt(v);
+              setEditParams((p) => ({
+                ...p,
+                minBlockDuration: newMinBlock,
+                // Auto-adjust totalHours to closest valid value for new min block
+                totalHours: findClosestValidHours(p.totalHours, newMinBlock),
+              }));
+            }}
           >
             <SelectTrigger data-testid="select-min-block" className="h-8 text-xs font-mono">
               <SelectValue />
@@ -211,11 +237,18 @@ export function useScheduleEditor({
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              {TOTAL_HOURS_OPTIONS.map((h) => (
-                <SelectItem key={h} value={h.toString()} className="text-xs font-mono">
-                  {h === 0 ? '0' : `${h}h`}
-                </SelectItem>
-              ))}
+              {getValidTotalHours(editParams.minBlockDuration).map((h) => {
+                // Format hours: 0, 45m, 1h, 1h 30m, 2h 15m, etc.
+                if (h === 0) return <SelectItem key={h} value={h.toString()} className="text-xs font-mono">0</SelectItem>;
+                const hours = Math.floor(h);
+                const minutes = Math.round((h - hours) * 60);
+                const label = hours > 0 && minutes > 0
+                  ? `${hours}h ${minutes}m`
+                  : hours > 0
+                    ? `${hours}h`
+                    : `${minutes}m`;
+                return <SelectItem key={h} value={h.toString()} className="text-xs font-mono">{label}</SelectItem>;
+              })}
             </SelectContent>
           </Select>
         </div>

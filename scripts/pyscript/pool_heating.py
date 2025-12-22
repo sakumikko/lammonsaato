@@ -26,6 +26,9 @@ DEFAULT_MAX_BLOCK_MINUTES = 45       # Maximum consecutive heating duration
 # Power consumption for cost calculation
 POWER_KW = 5.0  # Heat pump electrical draw during pool heating
 
+# Preheat optimization - include comfort wheel preheat period in cost calculation
+PREHEAT_SLOTS = 1  # Number of 15-min slots for preheat (15 min before first block)
+
 # Valid ranges for schedule parameters
 VALID_BLOCK_DURATIONS = [30, 45, 60]  # minutes
 VALID_TOTAL_HOURS = [x * 0.5 for x in range(0, 11)]  # 0, 0.5, 1.0, ..., 5.0
@@ -193,6 +196,27 @@ def find_best_heating_schedule(
     def slot_index(hour, quarter=0):
         return hour * 4 + quarter
 
+    # Capture preheat slot prices (slots before window for cost calculation)
+    # Preheat happens 15 min before first block to warm up radiators
+    preheat_prices = []
+    for i in range(PREHEAT_SLOTS):
+        # Work backwards from window start (20:45 for window_start=21, PREHEAT_SLOTS=1)
+        preheat_quarter = 3 - i  # 3, 2, 1, 0 for slots before window
+        preheat_hour = window_start - 1
+        if preheat_quarter < 0:
+            preheat_quarter += 4
+            preheat_hour -= 1
+        idx = slot_index(preheat_hour, preheat_quarter)
+        if prices_today and idx < len(prices_today) and idx >= 0:
+            preheat_prices.append(prices_today[idx])
+        else:
+            # Fallback: use first slot in window if preheat price unavailable
+            fallback_idx = slot_index(window_start, 0)
+            if prices_today and fallback_idx < len(prices_today):
+                preheat_prices.append(prices_today[fallback_idx])
+            else:
+                preheat_prices.append(0)
+
     # Tonight's slots (21:00 - 23:45)
     for hour in range(window_start, 24):
         for quarter in range(4):
@@ -243,12 +267,27 @@ def find_best_heating_schedule(
     )
 
     # For each combination of block sizes, find optimal placement
+    # Pass preheat_prices so the optimization includes preheat cost
     for block_sizes in block_combinations:
-        schedule = _find_best_placement(slots, block_sizes, slot_minutes)
+        schedule = _find_best_placement(slots, block_sizes, slot_minutes, preheat_prices)
         if schedule:
             total_cost = 0
             for b in schedule:
                 total_cost = total_cost + b['avg_price'] * b['duration_minutes']
+            # Add preheat cost to total (for comparison after selection)
+            if preheat_prices and schedule:
+                first_block_start = schedule[0]['start']
+                # Find if first block starts at window start
+                if slots and first_block_start == slots[0]['datetime']:
+                    # Add captured preheat price (20:45)
+                    for p in preheat_prices:
+                        total_cost = total_cost + p
+                elif slots:
+                    # Find the preceding slot's price
+                    for i, s in enumerate(slots):
+                        if s['datetime'] == first_block_start and i > 0:
+                            total_cost = total_cost + slots[i-1]['price']
+                            break
             if total_cost < best_cost:
                 best_cost = total_cost
                 best_schedule = schedule
@@ -271,17 +310,30 @@ def _find_block_combinations(remaining, min_size, max_size, current, results):
         current.pop()
 
 
-def _find_best_placement(slots, block_sizes, slot_minutes):
+def _find_best_placement(slots, block_sizes, slot_minutes, preheat_prices=None):
     """
     Find the best placement of heating blocks with given sizes.
 
     Each block must be followed by a break of at least equal duration.
+
+    Args:
+        slots: List of slot dicts with 'price', 'datetime', etc.
+        block_sizes: List of block sizes (in slots)
+        slot_minutes: Duration of each slot in minutes
+        preheat_prices: List of prices for preheat slots (before first block)
+                       If provided, preheat cost is added to first block's cost
     """
     n_slots = len(slots)
     n_blocks = len(block_sizes)
 
     if n_blocks == 0:
         return []
+
+    # Calculate total preheat cost (sum of all preheat slot prices)
+    preheat_cost = 0
+    if preheat_prices:
+        for p in preheat_prices:
+            preheat_cost = preheat_cost + p
 
     # Calculate average price for a block starting at position i with given size
     def block_cost(start_idx, size):
@@ -328,6 +380,19 @@ def _find_best_placement(slots, block_sizes, slot_minutes):
             }
 
             new_cost = current_cost + avg_price * block_size
+
+            # For first block, add preheat cost
+            # Preheat happens 15 min before first block to warm radiators
+            if block_idx == 0 and preheat_prices:
+                # Get price of slot before this block's start
+                if start_idx > 0:
+                    # Use preceding slot's price (it's within the heating window)
+                    preheat_slot_price = slots[start_idx - 1]['price']
+                else:
+                    # First block starts at beginning of window (21:00)
+                    # Use the pre-captured preheat price (20:45)
+                    preheat_slot_price = preheat_cost
+                new_cost = new_cost + preheat_slot_price
 
             # Prune if already worse than best
             if new_cost >= best_total_cost:
@@ -483,10 +548,11 @@ def get_schedule_parameters():
         total_hours_val = state.get(PARAM_TOTAL_HOURS)
         if total_hours_val not in ['unknown', 'unavailable', None]:
             total_hours = float(total_hours_val)
-            # Allow 0 to 6 hours in 0.5 steps
+            # Allow 0 to 6 hours
             if 0 <= total_hours <= 6:
-                # Round to nearest 0.5
-                total_hours = round(total_hours * 2) / 2
+                # Round to nearest 15min (0.25h) - the slot size
+                # This supports all block sizes: 30min (0.5h), 45min (0.75h), 60min (1h)
+                total_hours = round(total_hours * 4) / 4
                 params['total_minutes'] = int(total_hours * 60)
             else:
                 fallback_used.append(f"total_hours={total_hours} not in 0-6 range")
