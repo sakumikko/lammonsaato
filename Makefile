@@ -14,7 +14,8 @@ HA_USER ?= root
 .PHONY: help install test test-unit test-thermia test-nordpool test-firebase \
         test-integration test-ha test-ha-entities test-ha-schedule test-ha-workflow \
         test-all lint clean deploy status validate-yaml validate-entities build build-web build-all dist \
-        mock-server e2e-test e2e-test-file test-servers-start test-servers-stop web-dev web-dev-test ci deploy-webui
+        mock-server e2e-test e2e-test-file test-servers-start test-servers-stop web-dev web-dev-test ci deploy-webui \
+        sim-validate sim-analyze-p sim-benchmark sim-compare
 
 # Default target
 help:
@@ -63,6 +64,12 @@ help:
 	@echo ""
 	@echo "Full Test Cycle:"
 	@echo "  ci               Run all tests (Python + E2E) - use after rebasing"
+	@echo ""
+	@echo "Algorithm Simulation:"
+	@echo "  sim-validate     Validate current algorithm implementation"
+	@echo "  sim-analyze-p    Analyze P value relationship with error"
+	@echo "  sim-benchmark    Run algorithm benchmark on historical data"
+	@echo "  sim-compare      Compare old vs new algorithm side by side"
 	@echo ""
 	@echo "Other:"
 	@echo "  lint             Run linting checks"
@@ -384,3 +391,23 @@ ci:
 		exit $$EXIT_CODE
 	@echo ""
 	@echo "=== All Tests Passed ==="
+
+# ============================================
+# ALGORITHM SIMULATION
+# ============================================
+
+# Validate current algorithm implementation
+sim-validate:
+	$(PYTHON) scripts/standalone/pid_simulation.py validate
+
+# Analyze P value relationship with (Supply - Target)
+sim-analyze-p:
+	$(PYTHON) scripts/standalone/pid_simulation.py analyze-p
+
+# Run algorithm benchmark on historical data
+sim-benchmark:
+	$(PYTHON) scripts/standalone/pid_simulation.py benchmark
+
+# Compare old vs new algorithm side by side
+sim-compare:
+	$(PYTHON) scripts/standalone/pid_simulation.py compare
