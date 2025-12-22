@@ -83,11 +83,11 @@ Pool heating is expensive and typically runs at fixed times regardless of electr
 
 | ID | Requirement |
 |----|-------------|
-| FR-43 | System SHALL keep the 30-minute PID integral close to zero while heating the pool by adjusting the fixed supply line target using Chase + Compensation algorithm |
+| FR-43 | System SHALL keep the 30-minute PID integral in target range [-5, 0] while heating the pool by adjusting the fixed supply line target using PID-Feedback Target Control algorithm |
 | FR-44 | System SHALL switch back to radiator heating if supply line temperature drops below 32°C |
 | FR-45 | System SHALL switch back to radiator heating if supply line temperature drops more than 15°C below the original supply target |
-| FR-46 | System SHALL set minimum compressor gear to 6 during pool heating |
-| FR-47 | System SHALL maintain fixed supply target at 0.5°C below actual supply to keep PID integral slightly positive and stable |
+| FR-46 | System SHALL set minimum compressor gear to 7 during pool heating |
+| FR-47 | System SHALL calculate fixed supply target as: `target = supply + pid_correction`, where `pid_correction = (pid_30m - (-2.5)) × 0.10`, clamped to [-1.0, +4.0] degrees |
 | FR-48 | System SHALL disable fixed supply mode while continuing pool circulation during pool-to-radiator transition |
 
 ### 4.7 Radiator Preheat Before Pool Heating
@@ -187,7 +187,22 @@ Pool heating is expensive and typically runs at fixed times regardless of electr
 - No direct heat pump control (uses relay to enable/disable circuit)
 
 ### 6.7 Pool Temperature Control Parameters
-- **Target Offset:** 0.5°C (fixed target = supply - 0.5°C)
+
+**PID-Feedback Target Control Algorithm:**
+- **PID Target Range:** [-5, 0] (target midpoint: -2.5)
+- **PID Gain:** 0.10 (°C correction per unit of PID error)
+- **Min Correction:** -1.0°C (max below supply when PID too negative)
+- **Max Correction:** +4.0°C (max above supply when PID too positive)
+- **Formula:** `target = supply + (pid_30m - (-2.5)) × 0.10`
+
+**PID Integral Behavior:**
+- Error = Target - Supply
+- Positive error (target > supply) → PID integral DECREASES
+- Negative error (target < supply) → PID integral INCREASES
+- When PID is too high: set target ABOVE supply to drive PID down
+- When PID is too low: set target BELOW supply to drive PID up
+
+**Operational Parameters:**
 - **Adjustment Interval:** 5 minutes
 - **Safety Check Interval:** 1 minute
 - **Maximum Duration:** 60 minutes (hard timeout)
@@ -195,8 +210,8 @@ Pool heating is expensive and typically runs at fixed times regardless of electr
 - **Maximum Setpoint:** 45°C (never go above)
 - **Absolute Minimum Supply:** 32°C (FR-44 safety threshold)
 - **Relative Drop Maximum:** 15°C (FR-45 safety threshold)
-- **Minimum Compressor Gear:** 6 (prevents gear hunting)
-- **Rationale:** Parameters tuned to keep PID integral near zero while providing adequate pool heating
+- **Minimum Compressor Gear:** 7 (prevents gear hunting)
+- **Rationale:** Parameters tuned to keep PID integral in [-5, 0] while providing adequate pool heating
 
 ### 6.8 Radiator Preheat Parameters
 - **Preheat Duration:** 15 minutes (1 slot)

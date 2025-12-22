@@ -95,7 +95,9 @@ Single YAML file containing all HA configuration:
 | `sensor.pool_heating_cost_daily` | Daily EUR |
 | `sensor.pool_heating_cost_monthly` | Monthly EUR |
 
-### 2.2 Pyscript Module (`scripts/pyscript/pool_heating.py`)
+### 2.2 Pyscript Modules
+
+#### `scripts/pyscript/pool_heating.py` - Schedule Optimization
 
 **Services Exposed:**
 
@@ -114,14 +116,55 @@ Single YAML file containing all HA configuration:
 
 1. Get prices for 21:00-07:00 window (40 × 15-min slots)
 2. Generate all valid block configurations:
-   - 4 blocks × 30-45 min each = 120 min total
+   - N blocks × 30-60 min each (configurable)
    - Break between blocks = preceding block duration
 3. For each configuration:
    - Calculate total cost (sum of slot prices × slot duration)
 4. Select configuration with lowest total cost
 5. Set input_datetime entities with block times
-6. Set input_number entities with block prices
+6. Set input_number entities with block prices and costs
+7. Apply cost constraint if configured (enable cheapest blocks up to EUR limit)
 ```
+
+#### `scripts/pyscript/pool_temp_control.py` - PID Temperature Control
+
+**Services Exposed:**
+
+| Service | Trigger | Purpose |
+|---------|---------|---------|
+| `pyscript.pool_temp_control_start` | Block start | Store original settings, enable fixed supply |
+| `pyscript.pool_temp_control_stop` | Block end | Restore settings, disable fixed supply |
+| `pyscript.pool_temp_control_adjust` | Every 5 min during heating | Apply PID-feedback algorithm |
+| `pyscript.pool_temp_control_safety_check` | Every 1 min during heating | Check FR-44/FR-45 conditions |
+| `pyscript.pool_temp_control_timeout` | After 60 min continuous | Force stop for radiator recovery |
+| `pyscript.pool_temp_control_preheat` | 15 min before block | Raise comfort wheel for preheat |
+
+**Algorithm: PID-Feedback Target Control**
+
+The algorithm keeps the PID Integral (30-min average) in target range [-5, 0] by adjusting the fixed supply setpoint.
+
+```python
+# Key insight: Error = Target - Supply
+#   Positive error (target > supply) → PID DECREASES
+#   Negative error (target < supply) → PID INCREASES
+
+# Formula:
+pid_error = pid_30m - PID_TARGET      # PID_TARGET = -2.5 (midpoint of [-5, 0])
+pid_correction = pid_error * PID_GAIN  # PID_GAIN = 0.10
+pid_correction = clamp(pid_correction, -1.0, +4.0)  # MIN/MAX correction
+new_target = current_supply + pid_correction
+new_target = clamp(new_target, 28.0, 45.0)  # MIN/MAX setpoint
+
+# Examples:
+# PID at +25: correction = (25 - (-2.5)) × 0.10 = +2.75 → target ABOVE supply → PID decreases
+# PID at -10: correction = (-10 - (-2.5)) × 0.10 = -0.75 → target BELOW supply → PID increases
+# PID at -2.5: correction = (-2.5 - (-2.5)) × 0.10 = 0 → target = supply (stable)
+```
+
+**Safety Conditions:**
+- FR-44: Supply < 32°C → Trigger fallback
+- FR-45: Supply < (original_curve - 15°C) → Trigger fallback
+- FR-46: Set minimum compressor gear to 7
 
 ### 2.3 Data Logging Module (`scripts/pyscript/firebase_sync.py`)
 
@@ -184,11 +227,53 @@ Find yours via Developer Tools → Services → Search "reload config entry"
 | Automation | Trigger | Action |
 |------------|---------|--------|
 | `pool_calculate_heating_schedule` | Tomorrow prices available | Call pyscript.calculate_pool_heating_schedule |
-| `pool_start_heating_block_N` | Block N start time | Run script.pool_heating_block_start |
-| `pool_stop_heating_block_N` | Block N end time | Run script.pool_heating_block_stop |
+| `pool_start_heating_blocks` | Block N start time (1-10) | Run script.pool_heating_block_start |
+| `pool_stop_heating_blocks` | Block N end time (1-10) | Run script.pool_heating_block_stop |
 | `pool_log_temperatures` | Every 5 min when heating | Call pyscript.log_pool_temperatures |
+| `pool_temp_control_adjust` | Every 5 min when temp control active | Call pyscript.pool_temp_control_adjust |
+| `pool_temp_control_safety_check` | Every 1 min when heating active | Call pyscript.pool_temp_control_safety_check |
 | `thermia_hourly_reload` | Every hour | Reload Thermia integration |
 | `thermia_stale_recovery` | Sensor stale >10 min | Reload Thermia integration |
+
+## 4.1 Scripts
+
+**Modular Scripts** (can be called individually from Developer Tools):
+
+| Script | Purpose |
+|--------|---------|
+| `pool_heating_preheat` | Raise comfort wheel by 3°C to preheat radiators |
+| `pool_heating_start_temp_control` | Enable fixed supply mode and start PID management |
+| `pool_heating_switches_on` | Turn on pool heating switches (prevention OFF, pump ON) |
+| `pool_heating_switches_off` | Turn off pool heating switches |
+| `pool_heating_stop_temp_control` | Disable fixed supply mode and restore original settings |
+
+**Orchestrator Scripts** (full sequences):
+
+| Script | Sequence |
+|--------|----------|
+| `pool_heating_block_start` | preheat → 15min delay → temp control → switches ON |
+| `pool_heating_block_stop` | temp control off → switches off → 15min mix → log final temp |
+| `pool_heating_emergency_stop` | Immediately stop everything |
+| `pool_heating_manual_start` | 30min heating session with logging |
+
+**Heating Block Start Sequence:**
+```
+Block Start Trigger (at block_start time)
+    │
+    ▼
+script.pool_heating_block_start
+    │
+    ├── script.pool_heating_preheat
+    │   └── Raises comfort wheel +3°C
+    │       ↓
+    │   delay: 15 minutes (radiators warm up)
+    │       ↓
+    ├── script.pool_heating_start_temp_control
+    │   └── Enables fixed supply mode
+    │       ↓
+    └── script.pool_heating_switches_on
+        └── Prevention OFF, Circulation ON
+```
 
 ## 5. Energy Calculation
 
@@ -237,15 +322,39 @@ Note: Nordpool prices are in c/kWh, divide by 100 for EUR
 
 Run: `make test`
 
-### 6.2 Integration Tests (`scripts/standalone/`)
+### 6.2 Standalone Scripts (`scripts/standalone/`)
 
-| Test File | Requirements | Command |
-|-----------|--------------|---------|
-| `test_live_integration.py` | Network access | `make test-thermia`, `make test-nordpool` |
-| `test_ha_automation.py` | HA_URL, HA_TOKEN | `make test-ha` |
-| `test_condenser_sensors.py` | HA_URL, HA_TOKEN | `make test-ha-sensors` |
-| `test_templates.py` | HA_URL, HA_TOKEN | `python scripts/standalone/test_templates.py` |
-| `test_firebase.py` | Firebase credentials | `make test-firebase` |
+**Core Utilities:**
+
+| Script | Purpose | Usage |
+|--------|---------|-------|
+| `ha_client.py` | Reusable HA REST/WebSocket client | Library for other scripts |
+| `read_thermia_registers.py` | Direct Modbus read to Thermia | `python scripts/standalone/read_thermia_registers.py` |
+
+**System Monitoring & Debugging:**
+
+| Script | Purpose | Usage |
+|--------|---------|-------|
+| `fetch_analytics.py` | Display all analytics sensors | `python scripts/standalone/fetch_analytics.py` |
+| `fetch_blocks.py` | Show current heating schedule | `python scripts/standalone/fetch_blocks.py` |
+| `test_condenser_sensors.py` | Validate condenser temp sensors | `python scripts/standalone/test_condenser_sensors.py` |
+| `validate_graph_entities.py` | Validate web-ui graph entities | `python scripts/standalone/validate_graph_entities.py` |
+
+**Thermia Entity Management:**
+
+| Script | Purpose | Usage |
+|--------|---------|-------|
+| `check_thermia_availability.py` | Check entity availability | `python scripts/standalone/check_thermia_availability.py` |
+| `enable_thermia_entities.py` | Bulk enable/disable entities | `python scripts/standalone/enable_thermia_entities.py` |
+| `sync_thermia_entities.py` | Sync entities with config | `python scripts/standalone/sync_thermia_entities.py` |
+
+**Development & Testing:**
+
+| Script | Purpose | Usage |
+|--------|---------|-------|
+| `test_templates.py` | Validate Jinja2 templates via HA | `python scripts/standalone/test_templates.py` |
+| `pid_simulation.py` | PID algorithm benchmarking | `python scripts/standalone/pid_simulation.py` |
+| `pool_thermal_model.py` | Thermal model calibration | Reference implementation |
 
 ### 6.3 Template Testing
 
@@ -291,21 +400,28 @@ When modifying Jinja2 templates in pool_heating.yaml:
 lammonsaato/
 ├── homeassistant/
 │   ├── packages/
-│   │   └── pool_heating.yaml      # All HA config in one file
+│   │   ├── pool_heating.yaml      # Schedule, blocks, energy tracking
+│   │   └── pool_temp_control.yaml # PID temperature control
 │   └── lovelace/
 │       └── pool_heating_card.yaml # Dashboard card
 ├── scripts/
 │   ├── pyscript/
 │   │   ├── pool_heating.py        # Schedule optimization
+│   │   ├── pool_temp_control.py   # PID temperature control
 │   │   └── firebase_sync.py       # Local session logging
 │   └── standalone/
-│       ├── ha_client.py           # HA API client library
-│       ├── test_live_integration.py
-│       ├── test_ha_automation.py
-│       ├── test_condenser_sensors.py
-│       ├── test_templates.py
-│       ├── test_firebase.py
-│       └── find_thermia_sensors.py
+│       ├── ha_client.py                  # HA API client library
+│       ├── read_thermia_registers.py     # Modbus debugging tool
+│       ├── fetch_analytics.py            # Display analytics sensors
+│       ├── fetch_blocks.py               # Show heating schedule
+│       ├── test_condenser_sensors.py     # Validate sensors
+│       ├── test_templates.py             # Validate Jinja2 templates
+│       ├── validate_graph_entities.py    # Validate web-ui entities
+│       ├── check_thermia_availability.py # Check entity availability
+│       ├── enable_thermia_entities.py    # Bulk entity management
+│       ├── sync_thermia_entities.py      # Sync entities with config
+│       ├── pid_simulation.py             # PID benchmarking
+│       └── pool_thermal_model.py         # Thermal model reference
 ├── web-ui/                         # Real-time visualization UI
 │   ├── src/
 │   │   ├── components/heating/    # System diagram components

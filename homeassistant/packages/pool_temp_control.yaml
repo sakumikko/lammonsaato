@@ -1,19 +1,20 @@
 # Pool Temperature Control Package
-# Manages fixed supply setpoint during pool heating (Chase + Compensation algorithm)
+# Manages fixed supply setpoint during pool heating (PID-Feedback Target Control algorithm)
 #
 # Requirements (FR-43 through FR-46):
-# - FR-43: Keep 30-minute PID integral close to zero by adjusting fixed supply target
+# - FR-43: Keep 30-minute PID integral in range [-5, 0] by adjusting fixed supply target
 # - FR-44: Switch back to radiator heating if supply drops below 32 deg C
 # - FR-45: Switch back to radiator heating if supply drops >15 deg C below original target
-# - FR-46: Set minimum compressor gear to 6 during pool heating
+# - FR-46: Set minimum compressor gear to 7 during pool heating
 #
 # Dependencies:
 # - pool_heating.yaml (must be loaded first)
 # - thermiagenesis integration with fixed supply entities enabled
 # - pyscript integration with pool_temp_control.py
 #
-# Algorithm: new_target = current_supply - 2 - drop_rate
-# This keeps the target below actual supply, preventing negative PID integral accumulation
+# Algorithm: new_target = current_supply + pid_correction
+# Where pid_correction = (pid_30m - (-2.5)) * 0.10, clamped to [-1.0, +4.0]
+# Key insight: positive error (target > supply) → PID decreases; negative error → PID increases
 
 # ============================================
 # INPUT HELPERS - State Storage
@@ -145,7 +146,7 @@ automation:
   # Enable temp control when pool heating starts
   - id: pool_temp_control_start
     alias: "Pool Temp Control: Start"
-    description: "Initialize Chase+Compensation control when pool heating begins"
+    description: "Initialize PID-Feedback Target Control when pool heating begins"
     trigger:
       - platform: state
         entity_id: binary_sensor.pool_heating_active
@@ -175,7 +176,7 @@ automation:
   # Adjust setpoint every 5 minutes during pool heating
   - id: pool_temp_control_adjust
     alias: "Pool Temp Control: Adjust Setpoint"
-    description: "Run Chase+Compensation algorithm every 5 minutes"
+    description: "Run PID-Feedback Target Control algorithm every 5 minutes"
     trigger:
       - platform: time_pattern
         minutes: "/5"
