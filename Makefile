@@ -15,7 +15,7 @@ HA_USER ?= root
         test-integration test-ha test-ha-entities test-ha-schedule test-ha-workflow \
         test-all lint clean deploy status validate-yaml validate-entities build build-web build-all dist \
         mock-server e2e-test e2e-test-file test-servers-start test-servers-stop web-dev web-dev-test ci deploy-webui \
-        sim-validate sim-analyze-p sim-benchmark sim-compare
+        sim-validate sim-analyze-p sim-benchmark sim-compare sim-plot
 
 # Default target
 help:
@@ -70,6 +70,7 @@ help:
 	@echo "  sim-analyze-p    Analyze P value relationship with error"
 	@echo "  sim-benchmark    Run algorithm benchmark on historical data"
 	@echo "  sim-compare      Compare old vs new algorithm side by side"
+	@echo "  sim-plot         Generate PNG/HTML comparison graphs"
 	@echo ""
 	@echo "Other:"
 	@echo "  lint             Run linting checks"
@@ -411,3 +412,7 @@ sim-benchmark:
 # Compare old vs new algorithm side by side
 sim-compare:
 	$(PYTHON) scripts/standalone/pid_simulation.py compare
+
+# Generate PNG/HTML comparison graphs
+sim-plot:
+	$(PYTHON) scripts/standalone/pid_simulation.py plot --no-show -i

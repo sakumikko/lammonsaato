@@ -46,9 +46,27 @@ from datetime import datetime
 from pathlib import Path
 from typing import Callable, Dict, List, Optional, Tuple
 
+# Optional plotting libraries (installed via: pip install matplotlib plotly)
+try:
+    import matplotlib.pyplot as plt
+    import matplotlib.dates as mdates
+    MATPLOTLIB_AVAILABLE = True
+except ImportError:
+    MATPLOTLIB_AVAILABLE = False
+
+try:
+    import plotly.graph_objects as go
+    from plotly.subplots import make_subplots
+    PLOTLY_AVAILABLE = True
+except ImportError:
+    PLOTLY_AVAILABLE = False
+
 # Add project root to path
 PROJECT_ROOT = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
+
+# Import the actual deployed algorithm (must be after path setup)
+from scripts.pyscript.pool_temp_control import calculate_new_setpoint as deployed_algorithm
 
 
 # ============================================================================
@@ -149,26 +167,17 @@ def algorithm_old(supply: float, prev_supply: float, pid_30m: float) -> float:
 
 def algorithm_new(supply: float, prev_supply: float, pid_30m: float) -> float:
     """
-    NEW algorithm (correct sign).
+    NEW algorithm - wrapper around the actual deployed algorithm.
+
+    Uses the real calculate_new_setpoint() from pool_temp_control.py
+    to ensure simulation matches deployed behavior exactly.
 
     Formula: target = supply + pid_correction
-
-    When PID is too high (+25):
-        correction = (25 - (-2.5)) * 0.10 = +2.75
-        target = supply + 2.75 (ABOVE supply)
-        → Positive error → PID decreases
-
-    When PID is too low (-10):
-        correction = (-10 - (-2.5)) * 0.10 = -0.75
-        target = supply - 0.75 (BELOW supply)
-        → Negative error → PID increases
+    See pool_temp_control.py for full documentation.
     """
-    pid_error = pid_30m - PID_TARGET
-    pid_correction = max(MIN_CORRECTION, min(pid_error * PID_GAIN, MAX_CORRECTION))
-
-    # NEW: add correction (correct!)
-    target = supply + pid_correction
-    return max(MIN_SETPOINT, min(target, MAX_SETPOINT))
+    # Call the actual deployed algorithm
+    target, _drop_rate, _correction = deployed_algorithm(supply, prev_supply, pid_30m)
+    return target
 
 
 # Registry of available algorithms
@@ -595,6 +604,256 @@ def cmd_validate(args):
     return 0 if all_passed else 1
 
 
+def cmd_plot(args):
+    """Generate comprehensive algorithm comparison graphs.
+
+    Shows:
+    - Observed/real values from HA
+    - New algorithm targets and simulated P/PID values
+    - Proper PID simulation using P ≈ (Supply - Target) relationship
+    """
+    if not MATPLOTLIB_AVAILABLE:
+        print("Error: matplotlib not installed. Run: pip install matplotlib")
+        return 1
+
+    print("=" * 70)
+    print("GENERATING ALGORITHM COMPARISON PLOTS")
+    print("=" * 70)
+
+    csv_path = args.csv or os.path.join(PROJECT_ROOT, DEFAULT_COMPREHENSIVE_CSV)
+    readings = load_comprehensive_csv(csv_path)
+
+    if not readings:
+        print(f"No data loaded from {csv_path}")
+        return 1
+
+    # Load real P values if available
+    pid_csv_path = os.path.join(PROJECT_ROOT, DEFAULT_PID_CSV)
+    pid_data = {}
+    if os.path.exists(pid_csv_path):
+        pid_data = load_pid_values_csv(pid_csv_path)
+        print(f"Loaded P values from {pid_csv_path}")
+
+    # Build lookup for real P values
+    p_entity = 'sensor.p_value_for_gear_shifting_and_demand_calculation'
+
+    # Calculate and simulate
+    timestamps = []
+    supply_values = []
+    real_targets = []
+    real_pid_30m = []
+    real_p_values = []
+
+    new_algo_targets = []
+    new_algo_p_expected = []  # P = Supply - Target
+    new_algo_pid_simulated = []
+
+    # Initialize simulation
+    prev_supply = readings[0].supply_actual if readings else 40.0
+    simulated_pid = readings[0].pid_30m if readings else 0.0
+
+    # PID dynamics from empirical analysis:
+    # - Error = Target - Supply
+    # - PID_rate ≈ -3.5 * Error per 5 minutes = -0.7 * (Target - Supply) per minute
+    # - Which equals: +0.7 * (Supply - Target) per minute = +0.7 * P
+    # - When Target > Supply: negative P → PID decreases (good for reducing high PID)
+    # - When Target < Supply: positive P → PID increases
+    PID_RATE_PER_MIN = 0.7  # Positive: PID_change = rate * (Supply - Target)
+
+    for i, r in enumerate(readings):
+        timestamps.append(r.timestamp)
+        supply_values.append(r.supply_actual)
+        real_targets.append(r.supply_target)
+        real_pid_30m.append(r.pid_30m)
+
+        # Get real P value if available
+        ts_key = r.timestamp.strftime('%Y-%m-%dT%H:%M')
+        real_p = None
+        if ts_key in pid_data and p_entity in pid_data[ts_key]:
+            real_p = pid_data[ts_key][p_entity]
+        real_p_values.append(real_p)
+
+        # Calculate new algorithm target using SIMULATED PID (not real)
+        new_target = algorithm_new(r.supply_actual, prev_supply, simulated_pid)
+        new_algo_targets.append(new_target)
+
+        # Expected P if we used this target: P ≈ Supply - Target
+        expected_p = r.supply_actual - new_target
+        new_algo_p_expected.append(expected_p)
+
+        # Record current simulated PID
+        new_algo_pid_simulated.append(simulated_pid)
+
+        # Update simulated PID for next iteration
+        # Time delta (assume ~1 min between readings on average)
+        if i > 0:
+            dt_seconds = (r.timestamp - readings[i-1].timestamp).total_seconds()
+            dt_minutes = dt_seconds / 60.0
+            # PID change based on expected P
+            pid_change = PID_RATE_PER_MIN * expected_p * dt_minutes
+            simulated_pid += pid_change
+            # Clamp to reasonable range
+            simulated_pid = max(-30, min(50, simulated_pid))
+
+        prev_supply = r.supply_actual
+
+    # Create figure with 4 subplots
+    fig, axes = plt.subplots(4, 1, figsize=(14, 16), sharex=True)
+    fig.suptitle('PID Algorithm Comparison - Full Simulation', fontsize=14, fontweight='bold')
+
+    # --- Plot 1: PID 30m (Real vs Simulated) ---
+    ax1 = axes[0]
+    ax1.plot(timestamps, real_pid_30m, 'b-', label='Observed PID 30m', linewidth=1.5)
+    ax1.plot(timestamps, new_algo_pid_simulated, 'g-', label='New Algo PID (simulated)', linewidth=1.5, alpha=0.8)
+
+    ax1.axhspan(-5, 0, alpha=0.15, color='green', label='Target Range [-5, 0]')
+    ax1.axhline(y=PID_TARGET, color='gray', linestyle=':', alpha=0.5, label=f'Target ({PID_TARGET})')
+
+    ax1.set_ylabel('PID 30m Sum')
+    ax1.set_title('PID Integral: Observed vs New Algorithm Simulation')
+    ax1.legend(loc='upper left', fontsize=8)
+    ax1.grid(True, alpha=0.3)
+    ax1.set_ylim(-20, 50)
+
+    # --- Plot 2: P Value (Real vs Expected) ---
+    ax2 = axes[1]
+    # Filter out None values for real P
+    real_p_ts = [t for t, p in zip(timestamps, real_p_values) if p is not None]
+    real_p_vals = [p for p in real_p_values if p is not None]
+    if real_p_vals:
+        ax2.plot(real_p_ts, real_p_vals, 'b-', label='Observed P', linewidth=1.5)
+    ax2.plot(timestamps, new_algo_p_expected, 'g-', label='New Algo Expected P', linewidth=1.5, alpha=0.8)
+
+    ax2.axhline(y=0, color='black', linestyle='-', alpha=0.3)
+    ax2.set_ylabel('P Value')
+    ax2.set_title('P Value: Observed vs New Algorithm Expected (P ≈ Supply - Target)')
+    ax2.legend(loc='upper left', fontsize=8)
+    ax2.grid(True, alpha=0.3)
+
+    # --- Plot 3: Temperature Targets ---
+    ax3 = axes[2]
+    ax3.plot(timestamps, supply_values, 'b-', label='Supply Actual', linewidth=2)
+    ax3.plot(timestamps, real_targets, 'k--', label='Observed Target (HA)', alpha=0.7, linewidth=1)
+    ax3.plot(timestamps, new_algo_targets, 'g-', label='New Algo Target', alpha=0.8, linewidth=1.5)
+
+    ax3.set_ylabel('Temperature (°C)')
+    ax3.set_title('Supply Temperature & Targets: Observed vs New Algorithm')
+    ax3.legend(loc='upper right', fontsize=8)
+    ax3.grid(True, alpha=0.3)
+
+    # --- Plot 4: Error (Target - Supply) ---
+    ax4 = axes[3]
+    real_error = [t - s for t, s in zip(real_targets, supply_values)]
+    new_error = [t - s for t, s in zip(new_algo_targets, supply_values)]
+
+    ax4.plot(timestamps, real_error, 'k--', label='Observed Error', alpha=0.7, linewidth=1)
+    ax4.plot(timestamps, new_error, 'g-', label='New Algo Error', alpha=0.8, linewidth=1.5)
+    ax4.axhline(y=0, color='black', linestyle='-', alpha=0.3)
+
+    ax4.set_ylabel('Error (Target - Supply)')
+    ax4.set_xlabel('Time')
+    ax4.set_title('Control Error: Negative → PID Increases, Positive → PID Decreases')
+    ax4.legend(loc='upper right', fontsize=8)
+    ax4.grid(True, alpha=0.3)
+
+    # Format x-axis
+    ax4.xaxis.set_major_formatter(mdates.DateFormatter('%H:%M'))
+    ax4.xaxis.set_major_locator(mdates.HourLocator(interval=2))
+    plt.xticks(rotation=45)
+
+    plt.tight_layout()
+
+    # Save plot
+    output_dir = os.path.join(PROJECT_ROOT, "findings")
+    os.makedirs(output_dir, exist_ok=True)
+
+    # PNG output
+    png_path = os.path.join(output_dir, "algorithm_comparison.png")
+    plt.savefig(png_path, dpi=150, bbox_inches='tight')
+    print(f"\nSaved PNG: {png_path}")
+
+    # Interactive HTML if plotly available
+    if PLOTLY_AVAILABLE and args.interactive:
+        fig_plotly = make_subplots(
+            rows=4, cols=1,
+            shared_xaxes=True,
+            subplot_titles=('PID 30m: Observed vs Simulated', 'P Value: Observed vs Expected',
+                           'Temperature Targets', 'Control Error'),
+            vertical_spacing=0.06
+        )
+
+        # Plot 1: PID comparison
+        fig_plotly.add_trace(go.Scatter(x=timestamps, y=real_pid_30m,
+            name='Observed PID 30m', line=dict(color='blue')), row=1, col=1)
+        fig_plotly.add_trace(go.Scatter(x=timestamps, y=new_algo_pid_simulated,
+            name='New Algo PID (sim)', line=dict(color='green')), row=1, col=1)
+
+        # Plot 2: P values
+        if real_p_vals:
+            fig_plotly.add_trace(go.Scatter(x=real_p_ts, y=real_p_vals,
+                name='Observed P', line=dict(color='blue')), row=2, col=1)
+        fig_plotly.add_trace(go.Scatter(x=timestamps, y=new_algo_p_expected,
+            name='New Algo Expected P', line=dict(color='green')), row=2, col=1)
+
+        # Plot 3: Temps and targets
+        fig_plotly.add_trace(go.Scatter(x=timestamps, y=supply_values,
+            name='Supply Actual', line=dict(color='blue', width=2)), row=3, col=1)
+        fig_plotly.add_trace(go.Scatter(x=timestamps, y=real_targets,
+            name='Observed Target', line=dict(color='black', dash='dash')), row=3, col=1)
+        fig_plotly.add_trace(go.Scatter(x=timestamps, y=new_algo_targets,
+            name='New Algo Target', line=dict(color='green')), row=3, col=1)
+
+        # Plot 4: Error
+        fig_plotly.add_trace(go.Scatter(x=timestamps, y=real_error,
+            name='Observed Error', line=dict(color='black', dash='dash')), row=4, col=1)
+        fig_plotly.add_trace(go.Scatter(x=timestamps, y=new_error,
+            name='New Algo Error', line=dict(color='green')), row=4, col=1)
+
+        fig_plotly.update_layout(
+            title='PID Algorithm Comparison - Full Simulation',
+            height=900,
+            showlegend=True
+        )
+
+        html_path = os.path.join(output_dir, "algorithm_comparison.html")
+        fig_plotly.write_html(html_path)
+        print(f"Saved interactive HTML: {html_path}")
+
+    # Print summary stats
+    print("\n" + "=" * 70)
+    print("SIMULATION SUMMARY")
+    print("=" * 70)
+    print(f"{'Metric':<30} {'Observed':>15} {'New Algo (sim)':>15}")
+    print("-" * 60)
+
+    # PID statistics
+    real_in_range = sum(1 for p in real_pid_30m if -5 <= p <= 0)
+    sim_in_range = sum(1 for p in new_algo_pid_simulated if -5 <= p <= 0)
+    total = len(real_pid_30m)
+
+    print(f"{'Final PID 30m':<30} {real_pid_30m[-1]:>15.1f} {new_algo_pid_simulated[-1]:>15.1f}")
+    print(f"{'% in target range [-5,0]':<30} {100*real_in_range/total:>14.1f}% {100*sim_in_range/total:>14.1f}%")
+    print(f"{'Mean PID 30m':<30} {sum(real_pid_30m)/total:>15.1f} {sum(new_algo_pid_simulated)/total:>15.1f}")
+
+    # Error statistics
+    new_positive = sum(1 for e in new_error if e > 0)
+    real_positive = sum(1 for e in real_error if e > 0)
+
+    print(f"\n{'Mean target error':<30} {sum(real_error)/total:>15.2f} {sum(new_error)/total:>15.2f}")
+    print(f"{'% positive error':<30} {100*real_positive/total:>14.1f}% {100*new_positive/total:>14.1f}%")
+    print("(positive error → PID decreases)")
+
+    # P value comparison if available
+    if real_p_vals:
+        print(f"\n{'Mean P (observed)':<30} {sum(real_p_vals)/len(real_p_vals):>15.2f}")
+    print(f"{'Mean P (expected by algo)':<30} {'':>15} {sum(new_algo_p_expected)/total:>15.2f}")
+
+    if not args.no_show:
+        plt.show()
+
+    return 0
+
+
 # ============================================================================
 # MAIN
 # ============================================================================
@@ -626,6 +885,15 @@ def main():
     p_validate = subparsers.add_parser('validate',
         help='Validate current algorithm implementation')
 
+    # plot command
+    p_plot = subparsers.add_parser('plot',
+        help='Generate visual comparison graphs')
+    p_plot.add_argument('--csv', help='Path to comprehensive CSV file')
+    p_plot.add_argument('--interactive', '-i', action='store_true',
+        help='Also generate interactive HTML (requires plotly)')
+    p_plot.add_argument('--no-show', action='store_true',
+        help='Save files without displaying')
+
     args = parser.parse_args()
 
     if args.command == 'analyze-p':
@@ -636,6 +904,8 @@ def main():
         cmd_compare(args)
     elif args.command == 'validate':
         return cmd_validate(args)
+    elif args.command == 'plot':
+        return cmd_plot(args)
     else:
         parser.print_help()
 
