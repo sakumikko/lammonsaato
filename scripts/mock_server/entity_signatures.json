@@ -2,7 +2,7 @@
   "version": 1,
   "last_verified": "2025-12-08T06:42:23.277909+00:00",
   "ha_version": "unknown",
-  "entity_count": 116,
+  "entity_count": 129,
   "entities": [
     {
       "entity_id": "binary_sensor.nordpool_tomorrow_available",
@@ -1949,6 +1949,190 @@
       "attributes": [
         "friendly_name"
       ]
+    },
+    {
+      "entity_id": "input_number.pool_heating_original_curve_target",
+      "domain": "input_number",
+      "state_type": "numeric",
+      "deployed": true,
+      "attributes": [
+        "friendly_name",
+        "unit_of_measurement",
+        "min",
+        "max"
+      ],
+      "unit_of_measurement": "°C",
+      "min_value": 20.0,
+      "max_value": 60.0
+    },
+    {
+      "entity_id": "input_number.pool_heating_original_min_gear",
+      "domain": "input_number",
+      "state_type": "numeric",
+      "deployed": true,
+      "attributes": [
+        "friendly_name",
+        "min",
+        "max"
+      ],
+      "min_value": 1,
+      "max_value": 9
+    },
+    {
+      "entity_id": "input_number.pool_heating_prev_supply_temp",
+      "domain": "input_number",
+      "state_type": "numeric",
+      "deployed": true,
+      "attributes": [
+        "friendly_name",
+        "unit_of_measurement",
+        "min",
+        "max"
+      ],
+      "unit_of_measurement": "°C",
+      "min_value": 0.0,
+      "max_value": 80.0
+    },
+    {
+      "entity_id": "input_boolean.pool_temp_control_active",
+      "domain": "input_boolean",
+      "state_type": "boolean",
+      "deployed": true,
+      "attributes": [
+        "friendly_name",
+        "icon"
+      ]
+    },
+    {
+      "entity_id": "input_boolean.pool_heating_safety_fallback",
+      "domain": "input_boolean",
+      "state_type": "boolean",
+      "deployed": true,
+      "attributes": [
+        "friendly_name",
+        "icon"
+      ]
+    },
+    {
+      "entity_id": "input_number.pool_heating_original_comfort_wheel",
+      "domain": "input_number",
+      "state_type": "numeric",
+      "deployed": true,
+      "attributes": [
+        "friendly_name",
+        "unit_of_measurement",
+        "min",
+        "max"
+      ],
+      "unit_of_measurement": "°C",
+      "min_value": 0.0,
+      "max_value": 30.0
+    },
+    {
+      "entity_id": "input_boolean.pool_heating_preheat_active",
+      "domain": "input_boolean",
+      "state_type": "boolean",
+      "deployed": true,
+      "attributes": [
+        "friendly_name",
+        "icon"
+      ]
+    },
+    {
+      "entity_id": "number.comfort_wheel_setting",
+      "domain": "number",
+      "state_type": "numeric",
+      "deployed": true,
+      "attributes": [
+        "friendly_name",
+        "unit_of_measurement",
+        "min",
+        "max"
+      ],
+      "unit_of_measurement": "°C",
+      "min_value": 0.0,
+      "max_value": 30.0
+    },
+    {
+      "entity_id": "input_text.pool_temp_control_log",
+      "domain": "input_text",
+      "state_type": "string",
+      "deployed": true,
+      "attributes": [
+        "friendly_name",
+        "icon",
+        "max"
+      ],
+      "max_value": 255
+    },
+    {
+      "entity_id": "sensor.pool_fixed_supply_delta",
+      "domain": "sensor",
+      "state_type": "numeric",
+      "deployed": true,
+      "attributes": [
+        "friendly_name",
+        "unit_of_measurement",
+        "state_class"
+      ],
+      "unit_of_measurement": "°C"
+    },
+    {
+      "entity_id": "sensor.pool_supply_drop_rate",
+      "domain": "sensor",
+      "state_type": "numeric",
+      "deployed": true,
+      "attributes": [
+        "friendly_name",
+        "unit_of_measurement",
+        "state_class"
+      ],
+      "unit_of_measurement": "°C/5min"
+    },
+    {
+      "entity_id": "sensor.pool_temp_control_setpoint",
+      "domain": "sensor",
+      "state_type": "numeric",
+      "deployed": true,
+      "attributes": [
+        "friendly_name",
+        "unit_of_measurement",
+        "state_class"
+      ],
+      "unit_of_measurement": "°C"
+    },
+    {
+      "entity_id": "binary_sensor.pool_temp_control_running",
+      "domain": "binary_sensor",
+      "state_type": "boolean",
+      "deployed": true,
+      "attributes": [
+        "friendly_name",
+        "device_class"
+      ]
+    },
+    {
+      "entity_id": "binary_sensor.pool_heating_safety_fallback_active",
+      "domain": "binary_sensor",
+      "state_type": "boolean",
+      "deployed": true,
+      "attributes": [
+        "friendly_name",
+        "device_class"
+      ]
+    },
+    {
+      "entity_id": "number.minimum_allowed_gear_in_heating_mode",
+      "domain": "number",
+      "state_type": "numeric",
+      "deployed": true,
+      "attributes": [
+        "friendly_name",
+        "min",
+        "max"
+      ],
+      "min_value": 1,
+      "max_value": 9
     }
   ]
 }
