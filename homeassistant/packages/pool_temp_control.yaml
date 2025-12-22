@@ -1,0 +1,378 @@
+# Pool Temperature Control Package
+# Manages fixed supply setpoint during pool heating (Chase + Compensation algorithm)
+#
+# Requirements (FR-43 through FR-46):
+# - FR-43: Keep 30-minute PID integral close to zero by adjusting fixed supply target
+# - FR-44: Switch back to radiator heating if supply drops below 32 deg C
+# - FR-45: Switch back to radiator heating if supply drops >15 deg C below original target
+# - FR-46: Set minimum compressor gear to 6 during pool heating
+#
+# Dependencies:
+# - pool_heating.yaml (must be loaded first)
+# - thermiagenesis integration with fixed supply entities enabled
+# - pyscript integration with pool_temp_control.py
+#
+# Algorithm: new_target = current_supply - 2 - drop_rate
+# This keeps the target below actual supply, preventing negative PID integral accumulation
+
+# ============================================
+# INPUT HELPERS - State Storage
+# ============================================
+
+input_number:
+  # Stored values at pool heating start
+  pool_heating_original_curve_target:
+    name: "Original Curve Target"
+    min: 20
+    max: 60
+    step: 0.1
+    unit_of_measurement: "°C"
+    icon: mdi:thermometer-lines
+
+  pool_heating_original_min_gear:
+    name: "Original Minimum Gear"
+    min: 1
+    max: 9
+    step: 1
+    icon: mdi:cog
+
+  pool_heating_prev_supply_temp:
+    name: "Previous Supply Temperature"
+    min: 0
+    max: 80
+    step: 0.1
+    unit_of_measurement: "°C"
+    icon: mdi:thermometer-chevron-down
+
+  pool_heating_original_comfort_wheel:
+    name: "Original Comfort Wheel"
+    min: 0
+    max: 30
+    step: 0.1
+    unit_of_measurement: "°C"
+    icon: mdi:thermostat-box
+
+input_boolean:
+  pool_temp_control_active:
+    name: "Pool Temp Control Active"
+    icon: mdi:thermostat-auto
+
+  pool_heating_preheat_active:
+    name: "Pool Heating Preheat Active"
+    icon: mdi:radiator
+
+  pool_heating_safety_fallback:
+    name: "Pool Heating Safety Fallback"
+    icon: mdi:alert-octagon
+
+input_text:
+  pool_temp_control_log:
+    name: "Temp Control Log"
+    max: 255
+    icon: mdi:text-box-outline
+
+# ============================================
+# TEMPLATE SENSORS - Monitoring
+# ============================================
+
+template:
+  - sensor:
+      # Difference between actual supply and fixed target
+      # Positive = supply exceeds target (good for PID)
+      - name: "Pool Fixed Supply Delta"
+        unique_id: pool_fixed_supply_delta
+        unit_of_measurement: "°C"
+        state_class: measurement
+        icon: mdi:thermometer-plus
+        state: >
+          {% set supply = states('sensor.system_supply_line_temperature') | float(0) %}
+          {% set target = states('number.fixed_system_supply_set_point') | float(0) %}
+          {{ (supply - target) | round(1) }}
+        availability: >
+          {{ states('sensor.system_supply_line_temperature') not in ['unknown', 'unavailable'] and
+             states('number.fixed_system_supply_set_point') not in ['unknown', 'unavailable'] }}
+
+      # Rate of supply temperature drop (deg C per 5 minutes)
+      - name: "Pool Supply Drop Rate"
+        unique_id: pool_supply_drop_rate
+        unit_of_measurement: "°C/5min"
+        state_class: measurement
+        icon: mdi:arrow-down-bold
+        state: >
+          {% set prev = states('input_number.pool_heating_prev_supply_temp') | float(0) %}
+          {% set curr = states('sensor.system_supply_line_temperature') | float(0) %}
+          {% if prev > 0 and curr > 0 %}
+            {{ [0, (prev - curr)] | max | round(1) }}
+          {% else %}
+            0
+          {% endif %}
+        availability: >
+          {{ states('sensor.system_supply_line_temperature') not in ['unknown', 'unavailable'] }}
+
+      # Current algorithm setpoint (for display)
+      - name: "Pool Temp Control Setpoint"
+        unique_id: pool_temp_control_setpoint
+        unit_of_measurement: "°C"
+        state_class: measurement
+        icon: mdi:target
+        state: >
+          {% if is_state('input_boolean.pool_temp_control_active', 'on') %}
+            {{ states('number.fixed_system_supply_set_point') | float(0) }}
+          {% else %}
+            0
+          {% endif %}
+
+  - binary_sensor:
+      # Is temp control currently active
+      - name: "Pool Temp Control Running"
+        unique_id: pool_temp_control_running
+        device_class: running
+        state: >
+          {{ is_state('input_boolean.pool_temp_control_active', 'on') }}
+
+      # Is safety fallback triggered
+      - name: "Pool Heating Safety Fallback Active"
+        unique_id: pool_heating_safety_fallback_active
+        device_class: problem
+        state: >
+          {{ is_state('input_boolean.pool_heating_safety_fallback', 'on') }}
+
+# ============================================
+# AUTOMATIONS
+# ============================================
+
+automation:
+  # Enable temp control when pool heating starts
+  - id: pool_temp_control_start
+    alias: "Pool Temp Control: Start"
+    description: "Initialize Chase+Compensation control when pool heating begins"
+    trigger:
+      - platform: state
+        entity_id: binary_sensor.pool_heating_active
+        from: "off"
+        to: "on"
+    condition:
+      - condition: state
+        entity_id: input_boolean.pool_heating_safety_fallback
+        state: "off"
+    action:
+      - service: pyscript.pool_temp_control_start
+        continue_on_error: true
+
+  # Disable temp control when pool heating stops
+  - id: pool_temp_control_stop
+    alias: "Pool Temp Control: Stop"
+    description: "Disable fixed supply mode when pool heating ends"
+    trigger:
+      - platform: state
+        entity_id: binary_sensor.pool_heating_active
+        from: "on"
+        to: "off"
+    action:
+      - service: pyscript.pool_temp_control_stop
+        continue_on_error: true
+
+  # Adjust setpoint every 5 minutes during pool heating
+  - id: pool_temp_control_adjust
+    alias: "Pool Temp Control: Adjust Setpoint"
+    description: "Run Chase+Compensation algorithm every 5 minutes"
+    trigger:
+      - platform: time_pattern
+        minutes: "/5"
+    condition:
+      - condition: state
+        entity_id: input_boolean.pool_temp_control_active
+        state: "on"
+      - condition: state
+        entity_id: binary_sensor.pool_heating_active
+        state: "on"
+    action:
+      - service: pyscript.pool_temp_control_adjust
+        continue_on_error: true
+
+  # Safety check every minute
+  - id: pool_temp_control_safety_check
+    alias: "Pool Temp Control: Safety Check"
+    description: "Check FR-44 and FR-45 safety conditions every minute"
+    trigger:
+      - platform: time_pattern
+        minutes: "/1"
+    condition:
+      - condition: state
+        entity_id: binary_sensor.pool_heating_active
+        state: "on"
+    action:
+      - service: pyscript.pool_temp_control_safety_check
+        continue_on_error: true
+
+  # 60-minute timeout protection
+  - id: pool_heating_60min_timeout
+    alias: "Pool: Max 60min Continuous Heating"
+    description: "Force stop pool heating after 60 continuous minutes"
+    trigger:
+      - platform: state
+        entity_id: binary_sensor.pool_heating_active
+        to: "on"
+        for:
+          minutes: 60
+    action:
+      - service: pyscript.pool_temp_control_timeout
+        continue_on_error: true
+      - service: notify.persistent_notification
+        data:
+          title: "Pool Heating Timeout"
+          message: "Stopped after 60 continuous minutes to allow radiator reheating"
+
+  # Clear safety fallback at start of new heating window
+  - id: pool_temp_control_reset_fallback
+    alias: "Pool Temp Control: Reset Fallback"
+    description: "Clear safety fallback flag before next heating session"
+    trigger:
+      - platform: time
+        at: "20:00:00"
+    action:
+      - service: input_boolean.turn_off
+        target:
+          entity_id: input_boolean.pool_heating_safety_fallback
+      - service: logbook.log
+        data:
+          name: "Pool Temp Control"
+          message: "Safety fallback flag cleared for new heating window"
+
+  # Also clear fallback when pool heating is manually disabled
+  - id: pool_temp_control_clear_on_disable
+    alias: "Pool Temp Control: Clear Fallback on Disable"
+    description: "Clear safety fallback when pool heating is disabled"
+    trigger:
+      - platform: state
+        entity_id: input_boolean.pool_heating_enabled
+        to: "off"
+    action:
+      - service: input_boolean.turn_off
+        target:
+          entity_id: input_boolean.pool_heating_safety_fallback
+
+  # Preheat radiators 15 minutes before each heating block
+  # Uses offset triggers - fires exactly 15 min before each block start
+  - id: pool_temp_control_preheat
+    alias: "Pool Temp Control: Preheat Radiators"
+    description: "Raise comfort wheel 15 min before pool heating to preheat radiators"
+    trigger:
+      - platform: time
+        at: input_datetime.pool_heat_block_1_start
+        offset: "-00:15:00"
+        id: "1"
+      - platform: time
+        at: input_datetime.pool_heat_block_2_start
+        offset: "-00:15:00"
+        id: "2"
+      - platform: time
+        at: input_datetime.pool_heat_block_3_start
+        offset: "-00:15:00"
+        id: "3"
+      - platform: time
+        at: input_datetime.pool_heat_block_4_start
+        offset: "-00:15:00"
+        id: "4"
+      - platform: time
+        at: input_datetime.pool_heat_block_5_start
+        offset: "-00:15:00"
+        id: "5"
+      - platform: time
+        at: input_datetime.pool_heat_block_6_start
+        offset: "-00:15:00"
+        id: "6"
+      - platform: time
+        at: input_datetime.pool_heat_block_7_start
+        offset: "-00:15:00"
+        id: "7"
+      - platform: time
+        at: input_datetime.pool_heat_block_8_start
+        offset: "-00:15:00"
+        id: "8"
+      - platform: time
+        at: input_datetime.pool_heat_block_9_start
+        offset: "-00:15:00"
+        id: "9"
+      - platform: time
+        at: input_datetime.pool_heat_block_10_start
+        offset: "-00:15:00"
+        id: "10"
+    condition:
+      - condition: state
+        entity_id: input_boolean.pool_heating_enabled
+        state: "on"
+      - condition: state
+        entity_id: input_boolean.pool_heating_preheat_active
+        state: "off"
+      - condition: state
+        entity_id: binary_sensor.pool_heating_active
+        state: "off"
+      # Check the triggered block is enabled
+      - condition: template
+        value_template: >
+          {{ states('input_boolean.pool_heat_block_' ~ trigger.id ~ '_enabled') == 'on' }}
+      # Check block times are valid and recent
+      - condition: template
+        value_template: >
+          {% set block_start = as_datetime(states('input_datetime.pool_heat_block_' ~ trigger.id ~ '_start')) %}
+          {% set block_end = as_datetime(states('input_datetime.pool_heat_block_' ~ trigger.id ~ '_end')) %}
+          {{ block_start.date() >= (now() - timedelta(days=1)).date() and block_end > block_start }}
+    action:
+      - service: pyscript.pool_temp_control_preheat
+        continue_on_error: true
+      - service: logbook.log
+        data:
+          name: "Pool Temp Control"
+          message: "Preheat started for block {{ trigger.id }} - comfort wheel raised by 3°C"
+          entity_id: input_boolean.pool_heating_preheat_active
+
+  # Clear preheat if pool heating doesn't start within 20 minutes (safety)
+  - id: pool_temp_control_preheat_timeout
+    alias: "Pool Temp Control: Preheat Timeout"
+    description: "Restore comfort wheel if pool heating didn't start after preheat"
+    trigger:
+      - platform: state
+        entity_id: input_boolean.pool_heating_preheat_active
+        to: "on"
+        for:
+          minutes: 20
+    condition:
+      # Only restore if pool heating didn't start
+      - condition: state
+        entity_id: binary_sensor.pool_heating_active
+        state: "off"
+    action:
+      # Restore original comfort wheel
+      - service: number.set_value
+        target:
+          entity_id: number.comfort_wheel_setting
+        data:
+          value: "{{ states('input_number.pool_heating_original_comfort_wheel') | float(20) }}"
+      - service: input_boolean.turn_off
+        target:
+          entity_id: input_boolean.pool_heating_preheat_active
+      - service: logbook.log
+        data:
+          name: "Pool Temp Control"
+          message: "Preheat timeout - pool heating did not start, restored comfort wheel"
+
+# ============================================
+# RECORDER - Ensure data is logged
+# ============================================
+
+recorder:
+  include:
+    entities:
+      - input_number.pool_heating_original_curve_target
+      - input_number.pool_heating_prev_supply_temp
+      - input_number.pool_heating_original_min_gear
+      - input_number.pool_heating_original_comfort_wheel
+      - input_boolean.pool_temp_control_active
+      - input_boolean.pool_heating_preheat_active
+      - input_boolean.pool_heating_safety_fallback
+      - sensor.pool_fixed_supply_delta
+      - sensor.pool_supply_drop_rate
+      - sensor.pool_temp_control_setpoint
+      - binary_sensor.pool_temp_control_running
+      - binary_sensor.pool_heating_safety_fallback_active
