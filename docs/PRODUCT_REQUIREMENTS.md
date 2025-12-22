@@ -83,12 +83,24 @@ Pool heating is expensive and typically runs at fixed times regardless of electr
 
 | ID | Requirement |
 |----|-------------|
-| FR-43 | System SHALL keep the 30-minute PID integral close to zero while heating the pool by adjusting the fixed supply line target |
+| FR-43 | System SHALL keep the 30-minute PID integral close to zero while heating the pool by adjusting the fixed supply line target using Chase + Compensation algorithm |
 | FR-44 | System SHALL switch back to radiator heating if supply line temperature drops below 32°C |
 | FR-45 | System SHALL switch back to radiator heating if supply line temperature drops more than 15°C below the original supply target |
 | FR-46 | System SHALL set minimum compressor gear to 6 during pool heating |
+| FR-47 | System SHALL maintain fixed supply target at 0.5°C below actual supply to keep PID integral slightly positive and stable |
+| FR-48 | System SHALL disable fixed supply mode while continuing pool circulation during pool-to-radiator transition |
 
-### 4.7 Dashboard & UI
+### 4.7 Radiator Preheat Before Pool Heating
+
+| ID | Requirement |
+|----|-------------|
+| FR-49 | System SHALL raise comfort wheel setpoint by 3°C (max 30°C) 15 minutes before first pool heating block |
+| FR-50 | System SHALL store original comfort wheel value before preheat and restore it when pool heating starts |
+| FR-51 | System SHALL include preheat slot electricity cost in first block cost calculation for schedule optimization |
+| FR-52 | System SHALL timeout preheat after 20 minutes if pool heating hasn't started |
+| FR-53 | System SHALL skip preheat if comfort wheel is already at or above maximum (30°C) |
+
+### 4.8 Dashboard & UI
 
 | ID | Requirement |
 |----|-------------|
@@ -173,6 +185,25 @@ Pool heating is expensive and typically runs at fixed times regardless of electr
 - Pool water temperature sensor not available (uses condenser temps instead)
 - Thermia integration occasionally freezes (requires periodic reload)
 - No direct heat pump control (uses relay to enable/disable circuit)
+
+### 6.7 Pool Temperature Control Parameters
+- **Target Offset:** 0.5°C (fixed target = supply - 0.5°C)
+- **Adjustment Interval:** 5 minutes
+- **Safety Check Interval:** 1 minute
+- **Maximum Duration:** 60 minutes (hard timeout)
+- **Minimum Setpoint:** 28°C (never go below)
+- **Maximum Setpoint:** 45°C (never go above)
+- **Absolute Minimum Supply:** 32°C (FR-44 safety threshold)
+- **Relative Drop Maximum:** 15°C (FR-45 safety threshold)
+- **Minimum Compressor Gear:** 6 (prevents gear hunting)
+- **Rationale:** Parameters tuned to keep PID integral near zero while providing adequate pool heating
+
+### 6.8 Radiator Preheat Parameters
+- **Preheat Duration:** 15 minutes (1 slot)
+- **Comfort Wheel Boost:** +3°C
+- **Maximum Comfort Wheel:** 30°C
+- **Preheat Timeout:** 20 minutes
+- **Rationale:** Pre-warms condenser and radiators before pool heating starts, ensuring sufficient thermal mass
 
 ## 7. Success Metrics
 
