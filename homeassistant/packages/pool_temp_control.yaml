@@ -252,51 +252,8 @@ automation:
         target:
           entity_id: input_boolean.pool_heating_safety_fallback
 
-  # Preheat radiators 15 minutes before each heating block
-  # Uses template trigger to check if we're 15 min before any enabled block
-  - id: pool_temp_control_preheat
-    alias: "Pool Temp Control: Preheat Radiators"
-    description: "Raise comfort wheel 15 min before pool heating to preheat radiators"
-    trigger:
-      # Check every minute
-      - platform: time_pattern
-        minutes: "/1"
-    condition:
-      - condition: state
-        entity_id: input_boolean.pool_heating_enabled
-        state: "on"
-      - condition: state
-        entity_id: input_boolean.pool_heating_preheat_active
-        state: "off"
-      - condition: state
-        entity_id: binary_sensor.pool_heating_active
-        state: "off"
-      # Check if we're exactly 15 minutes before any enabled block
-      - condition: template
-        value_template: >
-          {% set preheat_minutes = 15 %}
-          {% for i in range(1, 11) %}
-            {% set enabled = states('input_boolean.pool_heat_block_' ~ i ~ '_enabled') == 'on' %}
-            {% set start_str = states('input_datetime.pool_heat_block_' ~ i ~ '_start') %}
-            {% if enabled and start_str not in ['unknown', 'unavailable', ''] %}
-              {% set block_start = as_datetime(start_str) %}
-              {% if block_start %}
-                {% set preheat_time = block_start - timedelta(minutes=preheat_minutes) %}
-                {% if now().replace(second=0, microsecond=0) == preheat_time.replace(second=0, microsecond=0) %}
-                  {{ true }}
-                {% endif %}
-              {% endif %}
-            {% endif %}
-          {% endfor %}
-          {{ false }}
-    action:
-      - service: pyscript.pool_temp_control_preheat
-        continue_on_error: true
-      - service: logbook.log
-        data:
-          name: "Pool Temp Control"
-          message: "Preheat started - comfort wheel raised by 3°C"
-          entity_id: input_boolean.pool_heating_preheat_active
+  # NOTE: Preheat is now handled by script.pool_heating_block_start in pool_heating.yaml
+  # The block start sequence is: preheat → wait 15min → temp control → switches on
 
   # Clear preheat if pool heating doesn't start within 20 minutes (safety)
   - id: pool_temp_control_preheat_timeout

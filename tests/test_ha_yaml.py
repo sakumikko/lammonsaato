@@ -215,7 +215,11 @@ class TestYAMLStructure:
         assert 'script' in yaml_config
         assert 'pool_heating_block_start' in yaml_config['script']
         assert 'pool_heating_block_stop' in yaml_config['script']
-        assert 'pool_heating_stop' in yaml_config['script']
+        assert 'pool_heating_emergency_stop' in yaml_config['script']
+        # Modular scripts for manual testing
+        assert 'pool_heating_preheat' in yaml_config['script']
+        assert 'pool_heating_switches_on' in yaml_config['script']
+        assert 'pool_heating_start_temp_control' in yaml_config['script']
 
     def test_automations_have_conditions(self, yaml_config):
         """All start and stop automations should have conditions."""

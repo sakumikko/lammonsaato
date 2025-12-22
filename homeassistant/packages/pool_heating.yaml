@@ -1210,13 +1210,40 @@ automation:
 # ============================================
 
 script:
-  pool_heating_block_start:
-    alias: "Pool Heating Block Start"
-    description: "Start a heating block - disables prevention, enables circulation"
-    fields:
-      block_number:
-        description: "Block number (1-10)"
-        example: 1
+  # ============================================
+  # MODULAR SCRIPTS - Can be called individually from Developer Tools
+  # ============================================
+
+  pool_heating_preheat:
+    alias: "Pool Heating: Preheat Radiators"
+    description: "Raise comfort wheel by 3°C to preheat radiators before pool heating"
+    icon: mdi:radiator
+    sequence:
+      - service: pyscript.pool_temp_control_preheat
+        continue_on_error: true
+      - service: logbook.log
+        data:
+          name: "Pool Heating"
+          message: "Preheat started - comfort wheel raised by 3°C"
+          entity_id: input_boolean.pool_heating_preheat_active
+
+  pool_heating_start_temp_control:
+    alias: "Pool Heating: Start Temperature Control"
+    description: "Enable fixed supply mode and start PID management"
+    icon: mdi:thermostat
+    sequence:
+      - service: pyscript.pool_temp_control_start
+        continue_on_error: true
+      - service: logbook.log
+        data:
+          name: "Pool Heating"
+          message: "Temperature control started - fixed supply enabled"
+          entity_id: switch.enable_fixed_system_supply_set_point
+
+  pool_heating_switches_on:
+    alias: "Pool Heating: Switches ON"
+    description: "Turn on pool heating switches (prevention OFF, circulation ON)"
+    icon: mdi:power
     sequence:
       # Log start - continue even if Thermia unavailable
       - service: pyscript.log_heating_start
@@ -1252,18 +1279,76 @@ script:
       - service: logbook.log
         data:
           name: "Pool Heating"
-          message: "Block {{ block_number }} started"
+          message: "Switches activated - heating started"
           entity_id: binary_sensor.pool_heating_active
 
-  pool_heating_block_stop:
-    alias: "Pool Heating Block Stop"
-    description: "Stop heating, log energy, run circulation 15min for mixing, then log final temp"
+  pool_heating_switches_off:
+    alias: "Pool Heating: Switches OFF"
+    description: "Turn off pool heating switches (prevention ON, circulation OFF after delay)"
+    icon: mdi:power-off
     sequence:
       # Turn ON the heating prevention switch (stops heat pump from heating pool)
       - service: switch.turn_on
         target:
           entity_id: switch.altaan_lammityksen_esto
-      # Log session end NOW - captures accurate heating duration and energy
+        continue_on_error: true
+      - service: logbook.log
+        data:
+          name: "Pool Heating"
+          message: "Switches deactivated - heating stopped"
+          entity_id: binary_sensor.pool_heating_active
+
+  pool_heating_stop_temp_control:
+    alias: "Pool Heating: Stop Temperature Control"
+    description: "Disable fixed supply mode and restore original settings"
+    icon: mdi:thermostat-off
+    sequence:
+      - service: pyscript.pool_temp_control_stop
+        continue_on_error: true
+      - service: logbook.log
+        data:
+          name: "Pool Heating"
+          message: "Temperature control stopped - reverted to heating curve"
+          entity_id: switch.enable_fixed_system_supply_set_point
+
+  # ============================================
+  # ORCHESTRATOR SCRIPTS - Full sequences
+  # ============================================
+
+  pool_heating_block_start:
+    alias: "Pool Heating: Full Block Start Sequence"
+    description: "Complete sequence: preheat → wait 15min → temp control → switches ON"
+    icon: mdi:play-circle
+    fields:
+      block_number:
+        description: "Block number (1-10)"
+        example: 1
+    sequence:
+      # Step 1: Preheat radiators
+      - service: script.pool_heating_preheat
+      # Step 2: Wait 15 minutes for radiators to warm
+      - delay:
+          minutes: 15
+      # Step 3: Start temperature control (fixed supply mode)
+      - service: script.pool_heating_start_temp_control
+      # Step 4: Turn on the switches
+      - service: script.pool_heating_switches_on
+      - service: logbook.log
+        data:
+          name: "Pool Heating"
+          message: "Block {{ block_number }} fully started (preheat complete)"
+          entity_id: binary_sensor.pool_heating_active
+
+  pool_heating_block_stop:
+    alias: "Pool Heating: Full Block Stop Sequence"
+    description: "Complete stop: temp control off → switches off → mix 15min → log final temp"
+    icon: mdi:stop-circle
+    sequence:
+      # Step 1: Stop temperature control (reverts to heating curve)
+      - service: script.pool_heating_stop_temp_control
+      # Step 2: Turn off switches
+      - service: script.pool_heating_switches_off
+      # Step 3: Log session end NOW - captures accurate heating duration and energy
       - service: pyscript.log_heating_end
         continue_on_error: true
       - service: logbook.log
@@ -1271,14 +1356,14 @@ script:
           name: "Pool Heating"
           message: "Heating stopped, circulation continues for mixing"
           entity_id: binary_sensor.pool_heating_active
-      # Keep circulation running for 15 minutes to mix water
+      # Step 4: Keep circulation running for 15 minutes to mix water
       - delay:
           minutes: 15
-      # Turn OFF the circulation pump
+      # Step 5: Turn OFF the circulation pump
       - service: switch.turn_off
         target:
           entity_id: switch.altaan_kiertovesipumppu
-      # Update final pool temp AFTER mixing
+      # Step 6: Update final pool temp AFTER mixing
       - service: pyscript.log_session_final_temp
         continue_on_error: true
       - service: logbook.log
@@ -1287,10 +1372,13 @@ script:
           message: "Block stopped, final pool temp logged after mixing"
           entity_id: binary_sensor.pool_heating_active
 
-  pool_heating_stop:
-    alias: "Pool Heating Emergency Stop"
-    description: "Emergency stop - immediately prevents heating"
+  pool_heating_emergency_stop:
+    alias: "Pool Heating: Emergency Stop"
+    description: "Emergency stop - immediately stops everything"
+    icon: mdi:alert-octagon
     sequence:
+      # Stop temp control immediately
+      - service: script.pool_heating_stop_temp_control
       # Turn ON the heating prevention switch (stops heating)
       - service: switch.turn_on
         target:
@@ -1302,6 +1390,11 @@ script:
       # Log end - continue even if Thermia unavailable
       - service: pyscript.log_heating_end
         continue_on_error: true
+      - service: logbook.log
+        data:
+          name: "Pool Heating"
+          message: "EMERGENCY STOP executed"
+          entity_id: binary_sensor.pool_heating_active
 
   pool_heating_manual_start:
     alias: "Pool Heating Manual Start (30 min)"
