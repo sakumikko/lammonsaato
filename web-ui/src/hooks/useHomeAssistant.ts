@@ -141,6 +141,7 @@ const ENTITIES = {
   systemSupplyCurveTarget: 'sensor.system_supply_line_calculated_set_point',
   systemSupplyFixedTarget: 'number.fixed_system_supply_set_point',
   systemSupplyFixedEnabled: 'switch.enable_fixed_system_supply_set_point',
+  comfortWheel: 'number.comfort_wheel_setting',
 } as const;
 
 // Block entities (1-10)
@@ -238,6 +239,7 @@ const defaultState: SystemState = {
     curveTarget: 0,
     fixedTarget: 30,
     fixedModeEnabled: false,
+    comfortWheel: 20,
   },
 };
 
@@ -345,6 +347,10 @@ export interface UseHomeAssistantReturn {
   // Peak power avoidance controls
   setPeakPowerSetting: (setting: PeakPowerSetting, value: number) => Promise<void>;
   setPeakPowerTime: (setting: PeakPowerTime, time: string) => Promise<void>;
+  // Fixed supply and comfort wheel controls
+  setFixedSupplyEnabled: (enabled: boolean) => Promise<void>;
+  setFixedSupplyTarget: (value: number) => Promise<void>;
+  setComfortWheel: (value: number) => Promise<void>;
 }
 
 export function useHomeAssistant(): UseHomeAssistantReturn {
@@ -511,6 +517,7 @@ export function useHomeAssistant(): UseHomeAssistantReturn {
       curveTarget: parseNumber(get(ENTITIES.systemSupplyCurveTarget)),
       fixedTarget: parseNumber(get(ENTITIES.systemSupplyFixedTarget)) || 30,
       fixedModeEnabled: parseBoolean(get(ENTITIES.systemSupplyFixedEnabled)),
+      comfortWheel: parseNumber(get(ENTITIES.comfortWheel)) || 20,
     };
 
     return { heatPump, poolHeating, valve, schedule, gearSettings, tapWater, hotGasSettings, heatingCurve, peakPower, systemSupply };
@@ -793,6 +800,26 @@ export function useHomeAssistant(): UseHomeAssistantReturn {
     });
   }, []);
 
+  const setFixedSupplyEnabled = useCallback(async (enabled: boolean) => {
+    await ws.current.callService('switch', enabled ? 'turn_on' : 'turn_off', {
+      entity_id: ENTITIES.systemSupplyFixedEnabled,
+    });
+  }, []);
+
+  const setFixedSupplyTarget = useCallback(async (value: number) => {
+    await ws.current.callService('number', 'set_value', {
+      entity_id: ENTITIES.systemSupplyFixedTarget,
+      value: value,
+    });
+  }, []);
+
+  const setComfortWheel = useCallback(async (value: number) => {
+    await ws.current.callService('number', 'set_value', {
+      entity_id: ENTITIES.comfortWheel,
+      value: value,
+    });
+  }, []);
+
   return {
     state,
     connected,
@@ -813,5 +840,8 @@ export function useHomeAssistant(): UseHomeAssistantReturn {
     isInHeatingWindow,
     setPeakPowerSetting,
     setPeakPowerTime,
+    setFixedSupplyEnabled,
+    setFixedSupplyTarget,
+    setComfortWheel,
   };
 }

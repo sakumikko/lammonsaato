@@ -11,10 +11,11 @@ import { GearSettingsCard } from './GearSettingsCard';
 import { TemperatureSettingsCard } from './TemperatureSettingsCard';
 import { PeakPowerSettingsCard } from './PeakPowerSettingsCard';
 import { TemperatureChart } from './TemperatureChart';
-import { Settings, Home, Waves, Droplet, Flame, TrendingUp } from 'lucide-react';
+import { Settings, Home, Waves, Droplet, Flame, TrendingUp, Thermometer } from 'lucide-react';
+import { Switch } from '@/components/ui/switch';
 import { useTranslation } from 'react-i18next';
 import { cn } from '@/lib/utils';
-import { GearSettings, TapWaterState, HotGasSettings, HeatingCurveSettings, HeatPumpState, PeakPowerSettings } from '@/types/heating';
+import { GearSettings, TapWaterState, HotGasSettings, HeatingCurveSettings, HeatPumpState, PeakPowerSettings, SystemSupplyState } from '@/types/heating';
 import {
   GearCircuit,
   GearLimitType,
@@ -32,6 +33,7 @@ interface SettingsSheetProps {
   heatingCurve: HeatingCurveSettings;
   peakPower: PeakPowerSettings;
   heatPump: HeatPumpState;
+  systemSupply: SystemSupplyState;
   currentGears?: {
     heating?: number;
     pool?: number;
@@ -43,6 +45,9 @@ interface SettingsSheetProps {
   onHeatingCurveChange: (setting: HeatingCurveSetting, value: number) => Promise<void>;
   onPeakPowerSettingChange: (setting: PeakPowerSetting, value: number) => Promise<void>;
   onPeakPowerTimeChange: (setting: PeakPowerTime, time: string) => Promise<void>;
+  onFixedSupplyEnabledChange: (enabled: boolean) => Promise<void>;
+  onFixedSupplyTargetChange: (value: number) => Promise<void>;
+  onComfortWheelChange: (value: number) => Promise<void>;
   className?: string;
   // External control (when rendered without trigger)
   open?: boolean;
@@ -66,6 +71,7 @@ export function SettingsSheet({
   heatingCurve,
   peakPower,
   heatPump,
+  systemSupply,
   currentGears,
   onGearLimitChange,
   onTapWaterChange,
@@ -73,6 +79,9 @@ export function SettingsSheet({
   onHeatingCurveChange,
   onPeakPowerSettingChange,
   onPeakPowerTimeChange,
+  onFixedSupplyEnabledChange,
+  onFixedSupplyTargetChange,
+  onComfortWheelChange,
   className,
   open: controlledOpen,
   onOpenChange: controlledOnOpenChange,
@@ -229,6 +238,62 @@ export function SettingsSheet({
               },
             ]}
           />
+
+          {/* Fixed Supply & Comfort Wheel */}
+          <div className="rounded-lg border bg-card p-4 space-y-4">
+            <div className="flex items-center gap-2">
+              <Thermometer className="w-5 h-5 text-primary" />
+              <h3 className="font-semibold">{t('settings.supplyControl')}</h3>
+            </div>
+
+            {/* Fixed Supply Enable Toggle */}
+            <div className="flex items-center justify-between">
+              <div className="space-y-0.5">
+                <label className="text-sm font-medium">{t('settings.fixedSupplyEnable')}</label>
+                <p className="text-xs text-muted-foreground">
+                  {t('settings.fixedSupplyDescription')}
+                </p>
+              </div>
+              <Switch
+                checked={systemSupply.fixedModeEnabled}
+                onCheckedChange={onFixedSupplyEnabledChange}
+              />
+            </div>
+
+            {/* Fixed Supply Target */}
+            <TemperatureSettingsCard
+              title={t('settings.fixedSupplyTarget')}
+              icon={Thermometer}
+              iconColorClass="text-primary"
+              currentValue={systemSupply.supplyTemp}
+              currentLabel={t('settings.current')}
+              settings={[
+                {
+                  label: t('settings.fixedTarget'),
+                  value: systemSupply.fixedTarget,
+                  onChange: onFixedSupplyTargetChange,
+                  min: 20,
+                  max: 55,
+                },
+              ]}
+            />
+
+            {/* Comfort Wheel */}
+            <TemperatureSettingsCard
+              title={t('settings.comfortWheel')}
+              icon={Home}
+              iconColorClass="text-hot"
+              settings={[
+                {
+                  label: t('settings.comfortWheelValue'),
+                  value: systemSupply.comfortWheel,
+                  onChange: onComfortWheelChange,
+                  min: 15,
+                  max: 30,
+                },
+              ]}
+            />
+          </div>
 
           {/* Peak Power Avoidance */}
           <PeakPowerSettingsCard

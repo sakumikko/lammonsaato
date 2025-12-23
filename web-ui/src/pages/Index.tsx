@@ -31,6 +31,9 @@ const Index = () => {
     isInHeatingWindow,
     setPeakPowerSetting,
     setPeakPowerTime,
+    setFixedSupplyEnabled,
+    setFixedSupplyTarget,
+    setComfortWheel,
   } = useHomeAssistant();
 
   return (
@@ -77,12 +80,16 @@ const Index = () => {
                 heatingCurve={state.heatingCurve}
                 peakPower={state.peakPower}
                 heatPump={state.heatPump}
+                systemSupply={state.systemSupply}
                 onGearLimitChange={setGearLimit}
                 onTapWaterChange={setTapWaterSetting}
                 onHotGasChange={setHotGasSetting}
                 onHeatingCurveChange={setHeatingCurveSetting}
                 onPeakPowerSettingChange={setPeakPowerSetting}
                 onPeakPowerTimeChange={setPeakPowerTime}
+                onFixedSupplyEnabledChange={setFixedSupplyEnabled}
+                onFixedSupplyTargetChange={setFixedSupplyTarget}
+                onComfortWheelChange={setComfortWheel}
                 currentGears={{
                   heating: state.heatPump.compressorGear,
                 }}

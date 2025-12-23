@@ -14,15 +14,15 @@ automation:
   - id: thermia_high_discharge_temp_reduce_gear
     alias: "Thermia: Reduce gear on high discharge temperature"
     description: >
-      When discharge pipe temperature exceeds 100°C for 2 minutes,
+      When discharge pipe temperature exceeds 105°C for 10 minutes,
       reduce the maximum allowed gear in heating by 1.
       This protects the compressor from overheating.
     trigger:
       - platform: numeric_state
         entity_id: sensor.discharge_pipe_temperature
-        above: 100
+        above: 105
         for:
-          minutes: 2
+          minutes: 10
     condition:
       - condition: numeric_state
         entity_id: number.maximum_allowed_gear_in_heating
@@ -55,6 +55,8 @@ automation:
       - platform: numeric_state
         entity_id: sensor.discharge_pipe_temperature
         above: 110
+        for:
+          minutes: 3
     action:
       - service: number.set_value
         target:
@@ -81,12 +83,12 @@ automation:
   - id: thermia_restore_gear_limits
     alias: "Thermia: Restore gear limits when temperature normalizes"
     description: >
-      When discharge pipe temperature drops below 85°C for 10 minutes,
+      When discharge pipe temperature drops below 95°C for 10 minutes,
       restore normal max gear limits.
     trigger:
       - platform: numeric_state
         entity_id: sensor.discharge_pipe_temperature
-        below: 85
+        below: 95
         for:
           minutes: 10
     condition:

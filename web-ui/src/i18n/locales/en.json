@@ -151,7 +151,14 @@
       "startTime": "Start Time",
       "heaterStart": "Heater Start Threshold",
       "heaterStop": "Heater Stop Threshold"
-    }
+    },
+    "supplyControl": "Supply Temperature Control",
+    "fixedSupplyEnable": "Fixed Supply Mode",
+    "fixedSupplyDescription": "Override heat curve with fixed target temperature",
+    "fixedSupplyTarget": "Fixed Supply Target",
+    "fixedTarget": "Target Temperature",
+    "comfortWheel": "Comfort Wheel",
+    "comfortWheelValue": "Room Temp Offset"
   },
   "temperatures": {
     "title": "Temperature Monitor",

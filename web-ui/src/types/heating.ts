@@ -109,6 +109,7 @@ export interface SystemSupplyState {
   curveTarget: number;          // Calculated target from heat curve
   fixedTarget: number;          // Fixed supply target setpoint
   fixedModeEnabled: boolean;    // Whether fixed mode is active
+  comfortWheel: number;         // Comfort wheel setting (room temp offset)
 }
 
 export interface SystemState {

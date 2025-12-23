@@ -151,7 +151,14 @@
       "startTime": "Alkamisaika",
       "heaterStart": "Lämmittimen käynnistysraja",
       "heaterStop": "Lämmittimen pysäytysraja"
-    }
+    },
+    "supplyControl": "Menoveden lämpötilan hallinta",
+    "fixedSupplyEnable": "Kiinteä menolämpötila",
+    "fixedSupplyDescription": "Ohita lämmityskäyrä kiinteällä tavoitelämpötilalla",
+    "fixedSupplyTarget": "Kiinteä menolämpötila",
+    "fixedTarget": "Tavoitelämpötila",
+    "comfortWheel": "Huonesäätö",
+    "comfortWheelValue": "Huonelämpötilan poikkeama"
   },
   "entityBrowser": {
     "title": "Entiteettien selain"

@@ -53,6 +53,58 @@ input_number:
     unit_of_measurement: "°C"
     icon: mdi:thermostat-box
 
+  # Pre-heating gear storage (for transition phase)
+  pool_heating_pre_heat_gear:
+    name: "Pre-Heat Gear"
+    min: 1
+    max: 10
+    step: 1
+    icon: mdi:cog-outline
+
+  # Transition parameters (adjustable)
+  pool_temp_transition_ramp_rate:
+    name: "Transition Ramp Rate"
+    min: 0.2
+    max: 2.0
+    step: 0.1
+    initial: 0.5
+    unit_of_measurement: "°C/min"
+    icon: mdi:speedometer
+
+  pool_temp_transition_tolerance:
+    name: "Transition Tolerance"
+    min: 0.5
+    max: 5.0
+    step: 0.5
+    initial: 2.0
+    unit_of_measurement: "°C"
+    icon: mdi:target-variant
+
+  pool_temp_transition_max_duration:
+    name: "Transition Max Duration"
+    min: 10
+    max: 60
+    step: 5
+    initial: 30
+    unit_of_measurement: "min"
+    icon: mdi:timer-outline
+
+  # Transition state storage
+  pool_temp_transition_start_supply:
+    name: "Transition Start Supply"
+    min: 20
+    max: 60
+    step: 0.1
+    unit_of_measurement: "°C"
+    icon: mdi:thermometer-lines
+
+input_datetime:
+  pool_temp_transition_start:
+    name: "Transition Start Time"
+    has_date: true
+    has_time: true
+    icon: mdi:clock-start
+
 input_boolean:
   pool_temp_control_active:
     name: "Pool Temp Control Active"
@@ -65,6 +117,10 @@ input_boolean:
   pool_heating_safety_fallback:
     name: "Pool Heating Safety Fallback"
     icon: mdi:alert-octagon
+
+  pool_temp_transition_active:
+    name: "Pool Temp Transition Active"
+    icon: mdi:transition
 
 input_text:
   pool_temp_control_log:
@@ -286,6 +342,47 @@ automation:
           name: "Pool Temp Control"
           message: "Preheat timeout - pool heating did not start, restored comfort wheel"
 
+  # ============================================
+  # TRANSITION AUTOMATIONS
+  # ============================================
+
+  # Adjust transition target every minute
+  - id: pool_temp_transition_adjust
+    alias: "Pool Temp Control: Transition Adjust"
+    description: "Ramp target toward curve during post-heating transition"
+    trigger:
+      - platform: time_pattern
+        minutes: "/1"
+    condition:
+      - condition: state
+        entity_id: input_boolean.pool_temp_transition_active
+        state: "on"
+    action:
+      - service: pyscript.pool_temp_control_adjust_transition
+        continue_on_error: true
+
+  # Interrupt transition if new pool heating block starts
+  - id: pool_temp_transition_interrupt
+    alias: "Pool Temp Control: Transition Interrupt"
+    description: "Stop transition if new pool heating block starts"
+    trigger:
+      - platform: state
+        entity_id: binary_sensor.pool_heating_active
+        to: "on"
+    condition:
+      - condition: state
+        entity_id: input_boolean.pool_temp_transition_active
+        state: "on"
+    action:
+      # Stop transition immediately - pool_temp_control_start will handle fixed mode
+      - service: input_boolean.turn_off
+        target:
+          entity_id: input_boolean.pool_temp_transition_active
+      - service: logbook.log
+        data:
+          name: "Pool Temp Control"
+          message: "Transition interrupted - new pool heating block started"
+
 # ============================================
 # RECORDER - Ensure data is logged
 # ============================================
@@ -297,9 +394,16 @@ recorder:
       - input_number.pool_heating_prev_supply_temp
       - input_number.pool_heating_original_min_gear
       - input_number.pool_heating_original_comfort_wheel
+      - input_number.pool_heating_pre_heat_gear
+      - input_number.pool_temp_transition_ramp_rate
+      - input_number.pool_temp_transition_tolerance
+      - input_number.pool_temp_transition_max_duration
+      - input_number.pool_temp_transition_start_supply
       - input_boolean.pool_temp_control_active
       - input_boolean.pool_heating_preheat_active
       - input_boolean.pool_heating_safety_fallback
+      - input_boolean.pool_temp_transition_active
+      - input_datetime.pool_temp_transition_start
       - sensor.pool_fixed_supply_delta
       - sensor.pool_supply_drop_rate
       - sensor.pool_temp_control_setpoint
