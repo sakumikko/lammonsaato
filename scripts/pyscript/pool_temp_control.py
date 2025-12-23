@@ -52,7 +52,7 @@ PID_GAIN = 0.10          # °C offset per unit of PID error
 MIN_CORRECTION = -1.0    # Max 1°C below supply (when PID too negative, need to raise PID)
 MAX_CORRECTION = 4.0     # Max 4°C above supply (when PID too positive, need to lower PID)
 MIN_SETPOINT = 28.0      # Minimum allowed fixed setpoint
-MAX_SETPOINT = 45.0      # Maximum allowed fixed setpoint
+MAX_SETPOINT = 60.0      # Maximum allowed fixed setpoint
 MIN_GEAR_POOL = 7        # Minimum compressor gear during pool heating (FR-46)
 
 # Legacy constants for backwards compatibility with tests (not used in new algorithm)
