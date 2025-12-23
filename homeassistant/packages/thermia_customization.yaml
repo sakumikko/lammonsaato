@@ -1,0 +1,41 @@
+# Thermia Sensor Customizations
+# Adds state_class: measurement to numeric sensors that are missing it
+# This enables line graphs in Home Assistant history views
+#
+# Why needed: Thermia integration doesn't set state_class on some sensors.
+# Without state_class or unit_of_measurement, HA treats values as categorical
+# states and displays them as colored bars instead of line graphs.
+
+homeassistant:
+  customize:
+    # PID values (no unit, need state_class for graphing)
+    sensor.p_value_for_gear_shifting_and_demand_calculation:
+      state_class: measurement
+    sensor.i_value_for_gear_shifting_and_demand_calculation:
+      state_class: measurement
+    sensor.d_value_for_gear_shifting_and_demand_calculation:
+      state_class: measurement
+    sensor.heating_season_integral_value:
+      state_class: measurement
+    sensor.cooling_season_integral_value:
+      state_class: measurement
+
+    # Gear values (no unit)
+    sensor.compressor_current_gear:
+      state_class: measurement
+    sensor.compressor_available_gears:
+      state_class: measurement
+    sensor.desired_gear_for_heating:
+      state_class: measurement
+    sensor.desired_gear_for_pool:
+      state_class: measurement
+    sensor.desired_gear_for_tap_water:
+      state_class: measurement
+    sensor.maximum_gear_out_of_all_the_currently_requested_gears:
+      state_class: measurement
+
+    # Other unitless numeric sensors
+    sensor.desired_temperature_distribution_circuit_mix_valve_1:
+      state_class: measurement
+    sensor.external_additional_heater_current_demand:
+      state_class: measurement
