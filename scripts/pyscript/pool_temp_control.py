@@ -297,7 +297,7 @@ try:
                      value=original_gear)
         service.call("number", "set_value",
                      entity_id=MIN_GEAR_ENTITY,
-                     value=MIN_GEAR_POOL)
+                     value=max(MIN_GEAR_POOL, _safe_get_float(PRE_HEAT_GEAR, MIN_GEAR_POOL)))
 
         # Get current supply and calculate initial setpoint
         current_supply = _safe_get_float(SUPPLY_TEMP_SENSOR, 40.0)
