@@ -153,24 +153,21 @@ export function SchedulePanel({
                 ) : (
                   <Clock className="w-3 h-3 text-marja" />
                 )}
-                {/* Two-phase visualization: Preheat (amber) → Heating (green) */}
-                <span className="flex items-center gap-1.5">
-                  {/* Preheat phase */}
+                {/* Compact time display: preheat start → heating range */}
+                <span className="flex items-center gap-1" data-testid="block-preheat">
                   <span
-                    data-testid="block-preheat"
                     className={cn(
-                      'font-mono text-xs px-1.5 py-0.5 rounded',
+                      'font-mono text-xs',
                       isPast
-                        ? 'bg-muted/50 text-muted-foreground'
+                        ? 'text-muted-foreground/60'
                         : isDisabled
-                          ? 'bg-amber-500/10 text-amber-600/50 line-through'
-                          : 'bg-amber-500/20 text-amber-600 dark:text-amber-400'
+                          ? 'text-amber-600/40'
+                          : 'text-amber-600 dark:text-amber-400'
                     )}
                   >
-                    {block.start} {t('schedule.preheat', { minutes: block.preheatDuration })}
+                    {block.start}
                   </span>
-                  <span className={cn('text-xs', isPast || isDisabled ? 'text-muted-foreground/50' : 'text-muted-foreground')}>→</span>
-                  {/* Heating phase */}
+                  <span className={cn('text-xs', isPast || isDisabled ? 'text-muted-foreground/40' : 'text-muted-foreground')}>→</span>
                   <span
                     data-testid="block-heating"
                     className={cn(
@@ -178,7 +175,7 @@ export function SchedulePanel({
                       isPast
                         ? 'text-muted-foreground'
                         : isDisabled
-                          ? 'text-foreground/70 line-through'
+                          ? 'text-foreground/50 line-through'
                           : 'text-foreground'
                     )}
                   >

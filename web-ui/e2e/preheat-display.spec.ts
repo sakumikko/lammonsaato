@@ -63,11 +63,10 @@ test.describe('Preheat Display', () => {
       const firstPreheat = preheatElements.first();
       await expect(firstPreheat).toBeVisible();
 
-      // Preheat text should contain time format (HH:MM)
+      // Preheat container should contain time format (HH:MM) and arrow
       const preheatText = await firstPreheat.textContent();
       expect(preheatText).toMatch(/\d{2}:\d{2}/);
-      // Should contain "m" for minutes (e.g., "15m preheat" or localized)
-      expect(preheatText).toMatch(/\d+m/);
+      expect(preheatText).toContain('→');
     } else {
       // No blocks - test passes (empty schedule is valid state)
       expect(count).toBe(0);

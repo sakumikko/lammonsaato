@@ -172,8 +172,8 @@ export function useScheduleEditor({
         </div>
       )}
 
-      {/* All controls in one row */}
-      <div className="flex items-end gap-2">
+      {/* Row 1: Block duration settings */}
+      <div className="flex items-end gap-2 mb-2">
         <div className="flex-1 min-w-0">
           <label className="text-[10px] text-muted-foreground mb-1 block uppercase tracking-wide">
             {t('schedule.editor.minBlock')}
@@ -246,6 +246,10 @@ export function useScheduleEditor({
             </SelectContent>
           </Select>
         </div>
+      </div>
+
+      {/* Row 2: Time and cost settings */}
+      <div className="flex items-end gap-2">
         <div className="flex-1 min-w-0">
           <label className="text-[10px] text-muted-foreground mb-1 block uppercase tracking-wide">
             {t('schedule.editor.totalHours')}
