@@ -96,6 +96,7 @@ const ENTITIES = {
   maxBlockDuration: 'input_number.pool_heating_max_block_duration',
   totalHours: 'input_number.pool_heating_total_hours',
   maxCostEur: 'input_number.pool_heating_max_cost_eur',
+  minBreakDuration: 'input_number.pool_heating_min_break_duration',
   totalCost: 'input_number.pool_heating_total_cost',
   costLimitApplied: 'input_boolean.pool_heating_cost_limit_applied',
 
@@ -147,12 +148,16 @@ const ENTITIES = {
 // Block entities (1-10)
 const getBlockEntities = (n: number) => ({
   start: `input_datetime.pool_heat_block_${n}_start`,
+  heatingStart: `input_datetime.pool_heat_block_${n}_heating_start`,
   end: `input_datetime.pool_heat_block_${n}_end`,
   price: `input_number.pool_heat_block_${n}_price`,
   cost: `input_number.pool_heat_block_${n}_cost`,
   enabled: `input_boolean.pool_heat_block_${n}_enabled`,
   costExceeded: `input_boolean.pool_heat_block_${n}_cost_exceeded`,
 });
+
+// Fixed preheat duration (15 minutes before heating starts)
+const PREHEAT_DURATION = 15;
 
 // Default state when disconnected or entities unavailable
 const defaultState: SystemState = {
@@ -203,6 +208,7 @@ const defaultState: SystemState = {
       maxBlockDuration: 45,
       totalHours: 2,
       maxCostEur: null,
+      minBreakDuration: 60,
     },
   },
   gearSettings: {
@@ -419,24 +425,28 @@ export function useHomeAssistant(): UseHomeAssistantReturn {
     const blocks: PriceBlock[] = [];
     for (let n = 1; n <= 10; n++) {
       const blockEntities = getBlockEntities(n);
-      const start = parseTime(get(blockEntities.start));
+      const start = parseTime(get(blockEntities.start));  // Preheat start time
+      const heatingStart = parseTime(get(blockEntities.heatingStart));  // Actual heating start
       const end = parseTime(get(blockEntities.end));
       const endDateTime = parseDateTime(get(blockEntities.end));
       const price = parseNumber(get(blockEntities.price));
       const costEur = parseNumber(get(blockEntities.cost));
       const enabled = parseBoolean(get(blockEntities.enabled));
       const costExceeded = parseBoolean(get(blockEntities.costExceeded));
-      const duration = calculateBlockDuration(start, end);
+      // Duration is heating time only (heatingStart to end), preheat is separate
+      const duration = heatingStart && end ? calculateBlockDuration(heatingStart, end) : calculateBlockDuration(start, end);
 
       // Only include blocks with valid times (non-empty start/end and valid duration)
       if (start && end && duration > 0) {
         blocks.push({
           start,
+          heatingStart: heatingStart || start,  // Fallback to start if heatingStart not available
           end,
           endDateTime,
           price,
           costEur,
           duration,
+          preheatDuration: PREHEAT_DURATION,
           enabled,
           costExceeded,
         });
@@ -450,6 +460,7 @@ export function useHomeAssistant(): UseHomeAssistantReturn {
       maxBlockDuration: parseNumber(get(ENTITIES.maxBlockDuration)) || 45,
       totalHours: parseNumber(get(ENTITIES.totalHours)) || 2,
       maxCostEur: maxCostVal > 0 ? maxCostVal : null,
+      minBreakDuration: parseNumber(get(ENTITIES.minBreakDuration)) || 60,
     };
 
     const schedule: ScheduleState = {

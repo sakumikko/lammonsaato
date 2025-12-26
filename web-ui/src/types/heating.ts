@@ -38,21 +38,24 @@ export interface ValveState {
 }
 
 export interface PriceBlock {
-  start: string;      // Display time HH:MM
-  end: string;        // Display time HH:MM
-  endDateTime: string; // Full ISO datetime for comparison
+  start: string;          // Display time HH:MM - preheat start (15 min before heating)
+  heatingStart: string;   // Display time HH:MM - actual heating start
+  end: string;            // Display time HH:MM - heating end
+  endDateTime: string;    // Full ISO datetime for comparison
   price: number;
-  duration: number;
+  duration: number;       // Heating duration in minutes (not including preheat)
+  preheatDuration: number; // Preheat duration in minutes (15)
   enabled: boolean;
-  costEur: number;        // Cost of this block in EUR
+  costEur: number;        // Cost of this block in EUR (heating only, preheat is FREE)
   costExceeded: boolean;  // True if disabled due to cost limit
 }
 
 export interface ScheduleParameters {
-  minBlockDuration: number;  // 30, 45, or 60 minutes
-  maxBlockDuration: number;  // 30, 45, or 60 minutes
+  minBlockDuration: number;  // 30, 45, or 60 minutes (heating duration, preheat added automatically)
+  maxBlockDuration: number;  // 30, 45, or 60 minutes (heating duration, preheat added automatically)
   totalHours: number;        // 0 to 6 in 0.5 steps
   maxCostEur: number | null; // Maximum cost limit in EUR, null = no limit
+  minBreakDuration: number;  // 60, 75, 90, 105, or 120 minutes between blocks
 }
 
 export interface ScheduleState {

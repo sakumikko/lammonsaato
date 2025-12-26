@@ -20,7 +20,7 @@ automation:
     trigger:
       - platform: numeric_state
         entity_id: sensor.discharge_pipe_temperature
-        above: 105
+        above: 107
         for:
           minutes: 10
     condition:

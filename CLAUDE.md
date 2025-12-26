@@ -134,27 +134,27 @@ Auto-generated dashboards show toggle that can disable Thermia.
 
 ## Development Workflow
 
+**IMPORTANT:** Always use `make` commands instead of running `npx`, `npm test`, etc. directly. The Makefile targets have pre-approved permissions.
+
 ```bash
 # Activate virtualenv
 source env/bin/activate
 
 # Run tests
-make test              # Unit tests
+make test              # Unit tests (Python)
+make e2e-test          # E2E tests (Playwright) - auto-starts servers
 make test-thermia      # Test Modbus connection
 make test-nordpool     # Test price API
 
-# Test templates (requires HA_URL and HA_TOKEN)
-export HA_URL=http://homeassistant.local:8123
-export HA_TOKEN=your_token
-python scripts/standalone/test_templates.py
+# Test a specific E2E file
+make e2e-test-file FILE=e2e/preheat-display.spec.ts
+
+# Manual E2E server control (rarely needed)
+make test-servers-start  # Start mock HA + web dev servers
+make test-servers-stop   # Stop servers
 
 # Build distribution package
 make build             # Creates dist/ folder
-
-# E2E Testing (web-ui)
-make mock-server       # Start mock HA server (uses real Python algorithm)
-make web-dev           # Start web UI dev server
-make e2e-test          # Run Playwright E2E tests
 
 # Deploy to Home Assistant (via Samba)
 # Copy dist/ contents to HA /config/ folder

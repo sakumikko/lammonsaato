@@ -76,10 +76,12 @@
     "blockPast": "This block has already completed",
     "cost": "Cost",
     "costLimitReached": "Cost limit €{{limit}} reached - {{disabled}} blocks disabled",
+    "preheat": "{{minutes}}m preheat",
     "editor": {
       "title": "Schedule Parameters",
       "minBlock": "Min Block",
       "maxBlock": "Max Block",
+      "minBreak": "Min Break",
       "totalHours": "Total Heating",
       "hours": "h",
       "disabled": "Disabled",

@@ -32,6 +32,7 @@ interface ScheduleEditorProps {
 
 // Valid options for dropdowns
 const BLOCK_DURATIONS = [30, 45, 60];
+const BREAK_DURATIONS = [60, 75, 90, 105, 120];
 // Max 5h (300min) due to heating window constraint (21:00-07:00 = 600min)
 // With breaks equal to block duration, 5.5h+ doesn't fit
 const MAX_TOTAL_MINUTES = 300;
@@ -216,6 +217,28 @@ export function useScheduleEditor({
             </SelectTrigger>
             <SelectContent>
               {BLOCK_DURATIONS.map((d) => (
+                <SelectItem key={d} value={d.toString()} className="text-xs font-mono">
+                  {d}m
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="flex-1 min-w-0">
+          <label className="text-[10px] text-muted-foreground mb-1 block uppercase tracking-wide">
+            {t('schedule.editor.minBreak')}
+          </label>
+          <Select
+            value={editParams.minBreakDuration.toString()}
+            onValueChange={(v) =>
+              setEditParams((p) => ({ ...p, minBreakDuration: parseInt(v) }))
+            }
+          >
+            <SelectTrigger data-testid="select-min-break" className="h-8 text-xs font-mono">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {BREAK_DURATIONS.map((d) => (
                 <SelectItem key={d} value={d.toString()} className="text-xs font-mono">
                   {d}m
                 </SelectItem>

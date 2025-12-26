@@ -396,10 +396,22 @@ async def calculate_schedule(request: CalculateRequest = None):
     cost_result = apply_cost_constraint(schedule, max_cost_eur)
 
     # Convert to JSON-serializable format with cost data
+    # Note: block['start'] is the heating start time, preheat is 15 min before
+    PREHEAT_MINUTES = 15
     state.schedule_blocks = []
     for i, block in enumerate(cost_result['blocks']):
+        heating_start = block['start']
+        # Calculate preheat start (15 min before heating)
+        if hasattr(heating_start, 'isoformat'):
+            preheat_start = heating_start - timedelta(minutes=PREHEAT_MINUTES)
+            preheat_start_str = preheat_start.isoformat()
+            heating_start_str = heating_start.isoformat()
+        else:
+            preheat_start_str = heating_start  # Fallback
+            heating_start_str = heating_start
         state.schedule_blocks.append({
-            'start': block['start'].isoformat() if hasattr(block['start'], 'isoformat') else block['start'],
+            'start': preheat_start_str,  # Preheat start (15 min before heating)
+            'heatingStart': heating_start_str,  # Actual heating start
             'end': block['end'].isoformat() if hasattr(block['end'], 'isoformat') else block['end'],
             'duration': block['duration_minutes'],
             'price': round(block['avg_price'] * 100, 2),  # Convert to cents

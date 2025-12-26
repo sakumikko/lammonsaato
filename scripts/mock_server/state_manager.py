@@ -391,7 +391,7 @@ class MockStateManager:
         Update block entities from schedule calculation.
 
         Args:
-            blocks: List of block dicts with start, end, price, cost, enabled, costExceeded
+            blocks: List of block dicts with start, heatingStart, end, price, cost, enabled, costExceeded
         """
         # Update block count
         self.set_state("sensor.pool_heating_block_count", str(len(blocks)))
@@ -402,7 +402,8 @@ class MockStateManager:
         for i in range(1, 11):
             if i <= len(blocks):
                 block = blocks[i - 1]
-                start = block.get("start", "")
+                start = block.get("start", "")  # Preheat start
+                heating_start = block.get("heatingStart", start)  # Actual heating start
                 end = block.get("end", "")
                 price = block.get("price", 0)
                 cost = block.get("costEur", 0)
@@ -410,6 +411,7 @@ class MockStateManager:
                 cost_exceeded = block.get("costExceeded", False)
 
                 self.set_state(f"input_datetime.pool_heat_block_{i}_start", str(start))
+                self.set_state(f"input_datetime.pool_heat_block_{i}_heating_start", str(heating_start))
                 self.set_state(f"input_datetime.pool_heat_block_{i}_end", str(end))
                 self.set_state(f"input_number.pool_heat_block_{i}_price", str(price))
                 self.set_state(f"input_number.pool_heat_block_{i}_cost", str(cost))
@@ -420,18 +422,20 @@ class MockStateManager:
             else:
                 # Clear unused blocks
                 self.set_state(f"input_datetime.pool_heat_block_{i}_start", "")
+                self.set_state(f"input_datetime.pool_heat_block_{i}_heating_start", "")
                 self.set_state(f"input_datetime.pool_heat_block_{i}_end", "")
                 self.set_state(f"input_number.pool_heat_block_{i}_price", "0")
                 self.set_state(f"input_number.pool_heat_block_{i}_cost", "0")
                 self.set_state(f"input_boolean.pool_heat_block_{i}_enabled", "off")
                 self.set_state(f"input_boolean.pool_heat_block_{i}_cost_exceeded", "off")
 
-    def update_schedule_parameters(self, min_block: int, max_block: int, total_hours: float, max_cost: float | None):
+    def update_schedule_parameters(self, min_block: int, max_block: int, total_hours: float, max_cost: float | None, min_break: int = 60):
         """Update schedule parameter entities."""
         self.set_state("input_number.pool_heating_min_block_duration", str(min_block))
         self.set_state("input_number.pool_heating_max_block_duration", str(max_block))
         self.set_state("input_number.pool_heating_total_hours", str(total_hours))
         self.set_state("input_number.pool_heating_max_cost_eur", str(max_cost or 0))
+        self.set_state("input_number.pool_heating_min_break_duration", str(min_break))
 
     def update_cost_state(self, total_cost: float, cost_limit_applied: bool):
         """Update cost-related entities."""

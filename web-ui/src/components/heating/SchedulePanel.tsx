@@ -153,17 +153,37 @@ export function SchedulePanel({
                 ) : (
                   <Clock className="w-3 h-3 text-marja" />
                 )}
-                <span
-                  className={cn(
-                    'font-mono text-sm',
-                    isPast
-                      ? 'text-muted-foreground'
-                      : isDisabled
-                        ? 'text-foreground/70 line-through'
-                        : 'text-foreground'
-                  )}
-                >
-                  {block.start} - {block.end}
+                {/* Two-phase visualization: Preheat (amber) → Heating (green) */}
+                <span className="flex items-center gap-1.5">
+                  {/* Preheat phase */}
+                  <span
+                    data-testid="block-preheat"
+                    className={cn(
+                      'font-mono text-xs px-1.5 py-0.5 rounded',
+                      isPast
+                        ? 'bg-muted/50 text-muted-foreground'
+                        : isDisabled
+                          ? 'bg-amber-500/10 text-amber-600/50 line-through'
+                          : 'bg-amber-500/20 text-amber-600 dark:text-amber-400'
+                    )}
+                  >
+                    {block.start} {t('schedule.preheat', { minutes: block.preheatDuration })}
+                  </span>
+                  <span className={cn('text-xs', isPast || isDisabled ? 'text-muted-foreground/50' : 'text-muted-foreground')}>→</span>
+                  {/* Heating phase */}
+                  <span
+                    data-testid="block-heating"
+                    className={cn(
+                      'font-mono text-sm',
+                      isPast
+                        ? 'text-muted-foreground'
+                        : isDisabled
+                          ? 'text-foreground/70 line-through'
+                          : 'text-foreground'
+                    )}
+                  >
+                    {block.heatingStart}-{block.end}
+                  </span>
                 </span>
                 {isPast && (
                   <span className="text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground font-medium">

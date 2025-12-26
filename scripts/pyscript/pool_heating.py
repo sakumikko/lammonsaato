@@ -26,8 +26,15 @@ DEFAULT_MAX_BLOCK_MINUTES = 45       # Maximum consecutive heating duration
 # Power consumption for cost calculation
 POWER_KW = 5.0  # Heat pump electrical draw during pool heating
 
-# Preheat optimization - include comfort wheel preheat period in cost calculation
-PREHEAT_SLOTS = 1  # Number of 15-min slots for preheat (15 min before first block)
+# Preheat duration - preheat is FREE (uses minimal power, not charged)
+# Block start time = preheat start, heating_start = preheat + 15 min
+PREHEAT_MINUTES = 15  # Fixed preheat duration before each heating block
+PREHEAT_SLOTS = PREHEAT_MINUTES // SLOT_DURATION_MINUTES  # 1 slot
+
+# Minimum break duration between heating blocks (independent of block duration)
+# Radiators need time to stabilize between heating cycles
+DEFAULT_MIN_BREAK_DURATION = 60  # Default 60 minutes
+VALID_BREAK_DURATIONS = [60, 75, 90, 105, 120]  # Valid options in minutes
 
 # Valid ranges for schedule parameters
 VALID_BLOCK_DURATIONS = [30, 45, 60]  # minutes
@@ -37,6 +44,7 @@ VALID_TOTAL_HOURS = [x * 0.5 for x in range(0, 11)]  # 0, 0.5, 1.0, ..., 5.0
 PARAM_MIN_BLOCK_DURATION = "input_number.pool_heating_min_block_duration"
 PARAM_MAX_BLOCK_DURATION = "input_number.pool_heating_max_block_duration"
 PARAM_TOTAL_HOURS = "input_number.pool_heating_total_hours"
+PARAM_MIN_BREAK_DURATION = "input_number.pool_heating_min_break_duration"
 
 # Entity IDs
 # IMPORTANT: Update this if your Nordpool sensor has a different entity ID
@@ -52,60 +60,70 @@ CIRCULATION_PUMP_SWITCH = "switch.altaan_kiertovesipumppu"
 # Heating block entities (supports up to 10 blocks)
 BLOCK_ENTITIES = [
     {"start": "input_datetime.pool_heat_block_1_start",
+     "heating_start": "input_datetime.pool_heat_block_1_heating_start",
      "end": "input_datetime.pool_heat_block_1_end",
      "price": "input_number.pool_heat_block_1_price",
      "cost": "input_number.pool_heat_block_1_cost",
      "enabled": "input_boolean.pool_heat_block_1_enabled",
      "cost_exceeded": "input_boolean.pool_heat_block_1_cost_exceeded"},
     {"start": "input_datetime.pool_heat_block_2_start",
+     "heating_start": "input_datetime.pool_heat_block_2_heating_start",
      "end": "input_datetime.pool_heat_block_2_end",
      "price": "input_number.pool_heat_block_2_price",
      "cost": "input_number.pool_heat_block_2_cost",
      "enabled": "input_boolean.pool_heat_block_2_enabled",
      "cost_exceeded": "input_boolean.pool_heat_block_2_cost_exceeded"},
     {"start": "input_datetime.pool_heat_block_3_start",
+     "heating_start": "input_datetime.pool_heat_block_3_heating_start",
      "end": "input_datetime.pool_heat_block_3_end",
      "price": "input_number.pool_heat_block_3_price",
      "cost": "input_number.pool_heat_block_3_cost",
      "enabled": "input_boolean.pool_heat_block_3_enabled",
      "cost_exceeded": "input_boolean.pool_heat_block_3_cost_exceeded"},
     {"start": "input_datetime.pool_heat_block_4_start",
+     "heating_start": "input_datetime.pool_heat_block_4_heating_start",
      "end": "input_datetime.pool_heat_block_4_end",
      "price": "input_number.pool_heat_block_4_price",
      "cost": "input_number.pool_heat_block_4_cost",
      "enabled": "input_boolean.pool_heat_block_4_enabled",
      "cost_exceeded": "input_boolean.pool_heat_block_4_cost_exceeded"},
     {"start": "input_datetime.pool_heat_block_5_start",
+     "heating_start": "input_datetime.pool_heat_block_5_heating_start",
      "end": "input_datetime.pool_heat_block_5_end",
      "price": "input_number.pool_heat_block_5_price",
      "cost": "input_number.pool_heat_block_5_cost",
      "enabled": "input_boolean.pool_heat_block_5_enabled",
      "cost_exceeded": "input_boolean.pool_heat_block_5_cost_exceeded"},
     {"start": "input_datetime.pool_heat_block_6_start",
+     "heating_start": "input_datetime.pool_heat_block_6_heating_start",
      "end": "input_datetime.pool_heat_block_6_end",
      "price": "input_number.pool_heat_block_6_price",
      "cost": "input_number.pool_heat_block_6_cost",
      "enabled": "input_boolean.pool_heat_block_6_enabled",
      "cost_exceeded": "input_boolean.pool_heat_block_6_cost_exceeded"},
     {"start": "input_datetime.pool_heat_block_7_start",
+     "heating_start": "input_datetime.pool_heat_block_7_heating_start",
      "end": "input_datetime.pool_heat_block_7_end",
      "price": "input_number.pool_heat_block_7_price",
      "cost": "input_number.pool_heat_block_7_cost",
      "enabled": "input_boolean.pool_heat_block_7_enabled",
      "cost_exceeded": "input_boolean.pool_heat_block_7_cost_exceeded"},
     {"start": "input_datetime.pool_heat_block_8_start",
+     "heating_start": "input_datetime.pool_heat_block_8_heating_start",
      "end": "input_datetime.pool_heat_block_8_end",
      "price": "input_number.pool_heat_block_8_price",
      "cost": "input_number.pool_heat_block_8_cost",
      "enabled": "input_boolean.pool_heat_block_8_enabled",
      "cost_exceeded": "input_boolean.pool_heat_block_8_cost_exceeded"},
     {"start": "input_datetime.pool_heat_block_9_start",
+     "heating_start": "input_datetime.pool_heat_block_9_heating_start",
      "end": "input_datetime.pool_heat_block_9_end",
      "price": "input_number.pool_heat_block_9_price",
      "cost": "input_number.pool_heat_block_9_cost",
      "enabled": "input_boolean.pool_heat_block_9_enabled",
      "cost_exceeded": "input_boolean.pool_heat_block_9_cost_exceeded"},
     {"start": "input_datetime.pool_heat_block_10_start",
+     "heating_start": "input_datetime.pool_heat_block_10_heating_start",
      "end": "input_datetime.pool_heat_block_10_end",
      "price": "input_number.pool_heat_block_10_price",
      "cost": "input_number.pool_heat_block_10_cost",
@@ -162,15 +180,16 @@ def find_best_heating_schedule(
     total_minutes: int = 120,
     min_block_minutes: int = 30,
     max_block_minutes: int = 45,
-    slot_minutes: int = 15
+    slot_minutes: int = 15,
+    min_break_minutes: int = None
 ) -> list:
     """
     Find optimal heating schedule using 15-minute price intervals.
 
     Constraints:
-    - Total heating time: 2 hours (120 minutes)
-    - Each heating block: 30-45 minutes (2-3 slots)
-    - Break between blocks: at least equal to preceding block duration
+    - Total heating time: configurable (default 2 hours / 120 minutes)
+    - Each heating block: 30-60 minutes (configurable)
+    - Break between blocks: at least min_break_minutes (default: 60 minutes)
 
     Args:
         prices_today: List of 15-minute prices for today (96 slots)
@@ -181,6 +200,7 @@ def find_best_heating_schedule(
         min_block_minutes: Minimum consecutive heating (default 30)
         max_block_minutes: Maximum consecutive heating (default 45)
         slot_minutes: Duration per price slot (default 15)
+        min_break_minutes: Minimum break between blocks in minutes (default 60)
 
     Returns:
         List of dicts with 'start' (datetime), 'end' (datetime),
@@ -253,6 +273,11 @@ def find_best_heating_schedule(
     max_block_slots = max_block_minutes // slot_minutes  # 3 slots = 45 min
     total_slots_needed = total_minutes // slot_minutes   # 8 slots = 120 min
 
+    # Calculate minimum break in slots (default 60 minutes = 4 slots)
+    if min_break_minutes is None:
+        min_break_minutes = DEFAULT_MIN_BREAK_DURATION
+    min_break_slots_val = min_break_minutes // slot_minutes  # 4 slots = 60 min
+
     # Find optimal combination of heating blocks
     # Strategy: Try different block configurations and pick cheapest total
     best_schedule = None
@@ -268,8 +293,9 @@ def find_best_heating_schedule(
 
     # For each combination of block sizes, find optimal placement
     # Pass preheat_prices so the optimization includes preheat cost
+    # Pass min_break_slots for configurable break duration between blocks
     for block_sizes in block_combinations:
-        schedule = _find_best_placement(slots, block_sizes, slot_minutes, preheat_prices)
+        schedule = _find_best_placement(slots, block_sizes, slot_minutes, preheat_prices, min_break_slots_val)
         if schedule:
             total_cost = 0
             for b in schedule:
@@ -310,11 +336,11 @@ def _find_block_combinations(remaining, min_size, max_size, current, results):
         current.pop()
 
 
-def _find_best_placement(slots, block_sizes, slot_minutes, preheat_prices=None):
+def _find_best_placement(slots, block_sizes, slot_minutes, preheat_prices=None, min_break_slots=None):
     """
     Find the best placement of heating blocks with given sizes.
 
-    Each block must be followed by a break of at least equal duration.
+    Each block must be followed by a break of at least min_break_slots duration.
 
     Args:
         slots: List of slot dicts with 'price', 'datetime', etc.
@@ -322,6 +348,7 @@ def _find_best_placement(slots, block_sizes, slot_minutes, preheat_prices=None):
         slot_minutes: Duration of each slot in minutes
         preheat_prices: List of prices for preheat slots (before first block)
                        If provided, preheat cost is added to first block's cost
+        min_break_slots: Minimum break duration in slots (default: use block size for backwards compat)
     """
     n_slots = len(slots)
     n_blocks = len(block_sizes)
@@ -399,8 +426,9 @@ def _find_best_placement(slots, block_sizes, slot_minutes, preheat_prices=None):
                 continue
 
             # Calculate minimum start for next block
-            # Break must be at least equal to this block's duration
-            next_min_start = start_idx + block_size + block_size  # block + equal break
+            # Break must be at least min_break_slots (or block_size for backwards compat)
+            actual_break_slots = min_break_slots if min_break_slots is not None else block_size
+            next_min_start = start_idx + block_size + actual_break_slots  # block + required break
 
             current_schedule.append(block_info)
             search(block_idx + 1, next_min_start, current_schedule, new_cost)
@@ -505,12 +533,13 @@ def get_schedule_parameters():
     - min_block > max_block (conflict)
 
     Returns:
-        dict with keys: min_block_minutes, max_block_minutes, total_minutes
+        dict with keys: min_block_minutes, max_block_minutes, total_minutes, min_break_minutes
     """
     params = {
         'min_block_minutes': DEFAULT_MIN_BLOCK_MINUTES,
         'max_block_minutes': DEFAULT_MAX_BLOCK_MINUTES,
         'total_minutes': DEFAULT_TOTAL_HEATING_MINUTES,
+        'min_break_minutes': DEFAULT_MIN_BREAK_DURATION,
     }
 
     fallback_used = []
@@ -561,6 +590,20 @@ def get_schedule_parameters():
     except (ValueError, TypeError) as e:
         fallback_used.append(f"total_hours parse error: {e}")
 
+    # Get min break duration between blocks
+    try:
+        min_break_val = state.get(PARAM_MIN_BREAK_DURATION)
+        if min_break_val not in ['unknown', 'unavailable', None]:
+            min_break = int(float(min_break_val))
+            if min_break in VALID_BREAK_DURATIONS:
+                params['min_break_minutes'] = min_break
+            else:
+                fallback_used.append(f"min_break={min_break} not in {VALID_BREAK_DURATIONS}")
+        else:
+            fallback_used.append("min_break entity unavailable")
+    except (ValueError, TypeError) as e:
+        fallback_used.append(f"min_break parse error: {e}")
+
     # Validate min <= max constraint
     if params['min_block_minutes'] > params['max_block_minutes']:
         log.warning(f"min_block ({params['min_block_minutes']}) > max_block ({params['max_block_minutes']}), using defaults")
@@ -572,7 +615,8 @@ def get_schedule_parameters():
         log.info(f"Parameter fallbacks used: {', '.join(fallback_used)}")
 
     log.info(f"Schedule parameters: min={params['min_block_minutes']}min, "
-             f"max={params['max_block_minutes']}min, total={params['total_minutes']}min")
+             f"max={params['max_block_minutes']}min, total={params['total_minutes']}min, "
+             f"break={params['min_break_minutes']}min")
 
     return params
 
@@ -627,6 +671,8 @@ def calculate_pool_heating_schedule():
             service.call("input_datetime", "set_datetime",
                         entity_id=block_entity["start"], datetime=past_date.isoformat())
             service.call("input_datetime", "set_datetime",
+                        entity_id=block_entity["heating_start"], datetime=past_date.isoformat())
+            service.call("input_datetime", "set_datetime",
                         entity_id=block_entity["end"], datetime=past_date.isoformat())
             service.call("input_number", "set_value",
                         entity_id=block_entity["price"], value=0)
@@ -656,7 +702,8 @@ def calculate_pool_heating_schedule():
         total_minutes=params['total_minutes'],
         min_block_minutes=params['min_block_minutes'],
         max_block_minutes=params['max_block_minutes'],
-        slot_minutes=SLOT_DURATION_MINUTES
+        slot_minutes=SLOT_DURATION_MINUTES,
+        min_break_minutes=params['min_break_minutes']
     )
 
     if not schedule:
@@ -748,14 +795,25 @@ def calculate_pool_heating_schedule():
     for i, block_entity in enumerate(BLOCK_ENTITIES):
         if i < len(schedule):
             block = schedule[i]
-            # Set start time
+            # Calculate preheat start (15 minutes before heating starts)
+            preheat_start = block['start'] - timedelta(minutes=PREHEAT_MINUTES)
+            heating_start = block['start']  # Actual heating start time
+
+            # Set start time (preheat start - when automation should trigger)
             service.call(
                 "input_datetime",
                 "set_datetime",
                 entity_id=block_entity["start"],
-                datetime=block['start'].isoformat()
+                datetime=preheat_start.isoformat()
             )
-            # Set end time
+            # Set heating_start time (actual heating start, after preheat)
+            service.call(
+                "input_datetime",
+                "set_datetime",
+                entity_id=block_entity["heating_start"],
+                datetime=heating_start.isoformat()
+            )
+            # Set end time (heating end)
             service.call(
                 "input_datetime",
                 "set_datetime",
@@ -795,6 +853,12 @@ def calculate_pool_heating_schedule():
                 "input_datetime",
                 "set_datetime",
                 entity_id=block_entity["start"],
+                datetime=past_date.isoformat()
+            )
+            service.call(
+                "input_datetime",
+                "set_datetime",
+                entity_id=block_entity["heating_start"],
                 datetime=past_date.isoformat()
             )
             service.call(

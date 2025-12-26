@@ -76,10 +76,12 @@
     "blockPast": "Tämä lohko on jo suoritettu",
     "cost": "Kustannus",
     "costLimitReached": "Kustannusraja €{{limit}} saavutettu - {{disabled}} lohkoa poistettu käytöstä",
+    "preheat": "{{minutes}}m esilämm.",
     "editor": {
       "title": "Aikataulun asetukset",
       "minBlock": "Min lohko",
       "maxBlock": "Max lohko",
+      "minBreak": "Min. tauko",
       "totalHours": "Lämmitysaika",
       "hours": "t",
       "disabled": "Pois käytöstä",

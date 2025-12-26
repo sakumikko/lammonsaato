@@ -112,6 +112,11 @@ input_datetime:
     has_date: true
     has_time: true
     icon: mdi:clock-end
+  pool_heat_block_1_heating_start:
+    name: "Block 1 Heating Start"
+    has_date: true
+    has_time: true
+    icon: mdi:radiator
 
   # Block 2 - Start and End times
   pool_heat_block_2_start:
@@ -124,6 +129,11 @@ input_datetime:
     has_date: true
     has_time: true
     icon: mdi:clock-end
+  pool_heat_block_2_heating_start:
+    name: "Block 2 Heating Start"
+    has_date: true
+    has_time: true
+    icon: mdi:radiator
 
   # Block 3 - Start and End times
   pool_heat_block_3_start:
@@ -136,6 +146,11 @@ input_datetime:
     has_date: true
     has_time: true
     icon: mdi:clock-end
+  pool_heat_block_3_heating_start:
+    name: "Block 3 Heating Start"
+    has_date: true
+    has_time: true
+    icon: mdi:radiator
 
   # Block 4 - Start and End times
   pool_heat_block_4_start:
@@ -148,6 +163,11 @@ input_datetime:
     has_date: true
     has_time: true
     icon: mdi:clock-end
+  pool_heat_block_4_heating_start:
+    name: "Block 4 Heating Start"
+    has_date: true
+    has_time: true
+    icon: mdi:radiator
 
   # Block 5 - Start and End times
   pool_heat_block_5_start:
@@ -160,6 +180,11 @@ input_datetime:
     has_date: true
     has_time: true
     icon: mdi:clock-end
+  pool_heat_block_5_heating_start:
+    name: "Block 5 Heating Start"
+    has_date: true
+    has_time: true
+    icon: mdi:radiator
 
   # Block 6 - Start and End times
   pool_heat_block_6_start:
@@ -172,6 +197,11 @@ input_datetime:
     has_date: true
     has_time: true
     icon: mdi:clock-end
+  pool_heat_block_6_heating_start:
+    name: "Block 6 Heating Start"
+    has_date: true
+    has_time: true
+    icon: mdi:radiator
 
   # Block 7 - Start and End times
   pool_heat_block_7_start:
@@ -184,6 +214,11 @@ input_datetime:
     has_date: true
     has_time: true
     icon: mdi:clock-end
+  pool_heat_block_7_heating_start:
+    name: "Block 7 Heating Start"
+    has_date: true
+    has_time: true
+    icon: mdi:radiator
 
   # Block 8 - Start and End times
   pool_heat_block_8_start:
@@ -196,6 +231,11 @@ input_datetime:
     has_date: true
     has_time: true
     icon: mdi:clock-end
+  pool_heat_block_8_heating_start:
+    name: "Block 8 Heating Start"
+    has_date: true
+    has_time: true
+    icon: mdi:radiator
 
   # Block 9 - Start and End times
   pool_heat_block_9_start:
@@ -208,6 +248,11 @@ input_datetime:
     has_date: true
     has_time: true
     icon: mdi:clock-end
+  pool_heat_block_9_heating_start:
+    name: "Block 9 Heating Start"
+    has_date: true
+    has_time: true
+    icon: mdi:radiator
 
   # Block 10 - Start and End times
   pool_heat_block_10_start:
@@ -220,6 +265,11 @@ input_datetime:
     has_date: true
     has_time: true
     icon: mdi:clock-end
+  pool_heat_block_10_heating_start:
+    name: "Block 10 Heating Start"
+    has_date: true
+    has_time: true
+    icon: mdi:radiator
 
   # Thermal calibration timestamps
   pool_last_calibration_time:
@@ -413,6 +463,17 @@ input_number:
     step: 0.01
     unit_of_measurement: "€"
     icon: mdi:cash-lock
+
+  # Minimum break duration between heating blocks (60-120 min)
+  # This is independent of block duration - radiators need time to stabilize
+  pool_heating_min_break_duration:
+    name: "Min Break Duration"
+    min: 60
+    max: 120
+    step: 15
+    unit_of_measurement: "min"
+    icon: mdi:clock-pause
+    initial: 60
 
   # Total scheduled cost (sum of enabled blocks)
   pool_heating_total_cost:
