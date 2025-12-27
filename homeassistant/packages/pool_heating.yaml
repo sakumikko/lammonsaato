@@ -430,6 +430,32 @@ input_number:
     unit_of_measurement: "°C"
     icon: mdi:thermometer
 
+  # Pool true temperature calibration values
+  # These are set by pyscript record_true_pool_temp() and used by estimate_true_pool_temp()
+  pool_true_temp_pre_heating:
+    name: "Pool True Temp (Pre-Heating)"
+    min: 15
+    max: 40
+    step: 0.1
+    unit_of_measurement: "°C"
+    icon: mdi:thermometer-water
+
+  pool_true_temp_post_heating:
+    name: "Pool True Temp (Post-Heating)"
+    min: 15
+    max: 40
+    step: 0.1
+    unit_of_measurement: "°C"
+    icon: mdi:thermometer-water
+
+  pool_true_temp_daytime:
+    name: "Pool True Temp (Daytime)"
+    min: 15
+    max: 40
+    step: 0.1
+    unit_of_measurement: "°C"
+    icon: mdi:thermometer-water
+
   # Schedule calculation parameters
   pool_heating_min_block_duration:
     name: "Min Block Duration"

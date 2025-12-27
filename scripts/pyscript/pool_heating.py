@@ -1644,6 +1644,23 @@ def record_true_pool_temp(measurement_type="pre_heating"):
         log.warning(f"Cannot record true temp - sensor unavailable")
         return
 
+    # Map measurement type to input_number entity
+    entity_map = {
+        "pre_heating": "input_number.pool_true_temp_pre_heating",
+        "post_heating": "input_number.pool_true_temp_post_heating",
+        "daytime": "input_number.pool_true_temp_daytime"
+    }
+
+    # Set the appropriate input_number entity
+    entity_id = entity_map.get(measurement_type)
+    if entity_id:
+        service.call(
+            "input_number", "set_value",
+            entity_id=entity_id,
+            value=round(sensor_temp, 1)
+        )
+        log.info(f"Set {entity_id} to {round(sensor_temp, 1)}°C")
+
     # Fire event to update the trigger-based template sensor
     # This sensor has state_class=measurement for long-term statistics
     event.fire("pool_true_temp_updated",
@@ -1736,7 +1753,8 @@ def estimate_true_pool_temp():
         baseline_type = "pre_heating"
 
     if baseline_temp == 0:
-        log.warning("No valid baseline temperature")
+        # Expected on fresh system or after reset - will self-heal after first calibration
+        log.info("No baseline temperature yet - waiting for first calibration cycle")
         return
 
     # Apply cooling model: T(t) = T_room + (T_0 - T_room) * e^(-t/τ)
