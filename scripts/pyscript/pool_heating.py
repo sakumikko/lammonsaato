@@ -637,6 +637,15 @@ def calculate_pool_heating_schedule():
     """
     log.info("Calculating pool heating schedule...")
 
+    # Reset night complete flag FIRST - allows heating for new night
+    # This must happen before any early returns to prevent stale blocks
+    service.call(
+        "input_boolean",
+        "turn_off",
+        entity_id=NIGHT_COMPLETE_FLAG
+    )
+    log.info("Reset night complete flag for new schedule")
+
     # Get prices from Nordpool sensor
     nordpool_state = state.get(NORDPOOL_SENSOR)
     if nordpool_state in ['unknown', 'unavailable']:
@@ -753,14 +762,6 @@ def calculate_pool_heating_schedule():
         # No cost limit - all blocks enabled
         for b in schedule:
             b['cost_exceeded'] = False
-
-    # Reset night complete flag for new schedule (new night session)
-    service.call(
-        "input_boolean",
-        "turn_off",
-        entity_id=NIGHT_COMPLETE_FLAG
-    )
-    log.info("Reset night complete flag for new schedule")
 
     # Calculate window average price for baseline savings calculation
     # This needs to be captured NOW before Nordpool prices roll over
