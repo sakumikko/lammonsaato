@@ -76,7 +76,7 @@
     "blockPast": "This block has already completed",
     "cost": "Cost",
     "costLimitReached": "Cost limit €{{limit}} reached - {{disabled}} blocks disabled",
-    "preheat": "{{minutes}}m preheat",
+    "preheat": "Preheat:",
     "editor": {
       "title": "Schedule Parameters",
       "minBlock": "Min Block",

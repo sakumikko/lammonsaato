@@ -76,7 +76,7 @@
     "blockPast": "Tämä lohko on jo suoritettu",
     "cost": "Kustannus",
     "costLimitReached": "Kustannusraja €{{limit}} saavutettu - {{disabled}} lohkoa poistettu käytöstä",
-    "preheat": "{{minutes}}m esilämm.",
+    "preheat": "Esilämm:",
     "editor": {
       "title": "Aikataulun asetukset",
       "minBlock": "Min lohko",

@@ -124,7 +124,7 @@ export function SchedulePanel({
               data-block-price={block.price}
               data-cost-exceeded={block.costExceeded || false}
               className={cn(
-                'flex items-center justify-between p-2 rounded-lg transition-colors',
+                'flex flex-col gap-1 p-2 rounded-lg transition-colors',
                 isPast
                   ? 'bg-muted/20 border border-muted/30'
                   : isDisabled
@@ -132,42 +132,29 @@ export function SchedulePanel({
                     : 'bg-muted/30 hover:bg-muted/50'
               )}
             >
-              <div className="flex items-center gap-2">
-                {onBlockEnabledChange && (
-                  <Switch
-                    checked={block.enabled}
-                    onCheckedChange={(checked) => onBlockEnabledChange(index + 1, checked)}
-                    disabled={isPast}
-                    className={cn(
-                      'scale-75',
-                      isPast && 'opacity-30 cursor-not-allowed',
-                      isDisabled && !isPast && 'data-[state=unchecked]:bg-marja'
-                    )}
-                    title={isPast ? t('schedule.blockPast') : undefined}
-                  />
-                )}
-                {isPast ? (
-                  <History className="w-3 h-3 text-muted-foreground" />
-                ) : block.enabled ? (
-                  <Clock className="w-3 h-3 text-primary" />
-                ) : (
-                  <Clock className="w-3 h-3 text-marja" />
-                )}
-                {/* Compact time display: preheat start → heating range */}
-                <span className="flex items-center gap-1" data-testid="block-preheat">
-                  <span
-                    className={cn(
-                      'font-mono text-xs',
-                      isPast
-                        ? 'text-muted-foreground/60'
-                        : isDisabled
-                          ? 'text-amber-600/40'
-                          : 'text-amber-600 dark:text-amber-400'
-                    )}
-                  >
-                    {block.start}
-                  </span>
-                  <span className={cn('text-xs', isPast || isDisabled ? 'text-muted-foreground/40' : 'text-muted-foreground')}>→</span>
+              {/* Row 1: Toggle, icon, heating time range */}
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  {onBlockEnabledChange && (
+                    <Switch
+                      checked={block.enabled}
+                      onCheckedChange={(checked) => onBlockEnabledChange(index + 1, checked)}
+                      disabled={isPast}
+                      className={cn(
+                        'scale-75',
+                        isPast && 'opacity-30 cursor-not-allowed',
+                        isDisabled && !isPast && 'data-[state=unchecked]:bg-marja'
+                      )}
+                      title={isPast ? t('schedule.blockPast') : undefined}
+                    />
+                  )}
+                  {isPast ? (
+                    <History className="w-3 h-3 text-muted-foreground" />
+                  ) : block.enabled ? (
+                    <Clock className="w-3 h-3 text-primary" />
+                  ) : (
+                    <Clock className="w-3 h-3 text-marja" />
+                  )}
                   <span
                     data-testid="block-heating"
                     className={cn(
@@ -181,46 +168,71 @@ export function SchedulePanel({
                   >
                     {block.heatingStart}-{block.end}
                   </span>
-                </span>
-                {isPast && (
-                  <span className="text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground font-medium">
-                    {t('schedule.completed')}
-                  </span>
-                )}
-              </div>
-              <div className="flex items-center gap-3">
-                <span className={cn('text-xs', isPast ? 'text-muted-foreground/60' : 'text-muted-foreground')}>
-                  {block.duration}min
-                </span>
-                <span
-                  className={cn(
-                    'font-mono text-sm',
-                    isPast
-                      ? 'text-muted-foreground/60'
-                      : isDisabled
-                        ? 'text-foreground/50 line-through'
-                        : block.price < 2
-                          ? 'text-success'
-                          : block.price < 5
-                            ? 'text-warning'
-                            : 'text-destructive'
+                  {isPast && (
+                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground font-medium">
+                      {t('schedule.completed')}
+                    </span>
                   )}
-                >
-                  {block.price.toFixed(2)} c
-                </span>
+                </div>
+              </div>
+              {/* Row 2: Preheat time, duration, price, cost */}
+              <div className="flex items-center justify-between" data-testid="block-preheat">
                 <span
-                  data-testid="block-cost"
                   className={cn(
                     'font-mono text-xs',
                     isPast
                       ? 'text-muted-foreground/60'
                       : isDisabled
-                        ? 'text-foreground/50 line-through'
-                        : 'text-muted-foreground'
+                        ? 'text-amber-600/40'
+                        : 'text-amber-600 dark:text-amber-400'
                   )}
                 >
-                  €{block.costEur?.toFixed(2) ?? '0.00'}
+                  {t('schedule.preheat')} {block.start}
                 </span>
+                <div className="flex items-center gap-3">
+                  <span
+                    data-testid="block-duration"
+                    className={cn(
+                      'font-mono text-xs',
+                      isPast
+                        ? 'text-muted-foreground/60'
+                        : isDisabled
+                          ? 'text-foreground/40'
+                          : 'text-muted-foreground'
+                    )}
+                  >
+                    {block.duration}{t('schedule.min')}
+                  </span>
+                  <span
+                    className={cn(
+                      'font-mono text-sm',
+                      isPast
+                        ? 'text-muted-foreground/60'
+                        : isDisabled
+                          ? 'text-foreground/50 line-through'
+                          : block.price < 2
+                            ? 'text-success'
+                            : block.price < 5
+                              ? 'text-warning'
+                              : 'text-destructive'
+                    )}
+                  >
+                    {block.price.toFixed(2)} c
+                  </span>
+                  <span
+                    data-testid="block-cost"
+                    className={cn(
+                      'font-mono text-xs',
+                      isPast
+                        ? 'text-muted-foreground/60'
+                        : isDisabled
+                          ? 'text-foreground/50 line-through'
+                          : 'text-muted-foreground'
+                    )}
+                  >
+                    €{block.costEur?.toFixed(2) ?? '0.00'}
+                  </span>
+                </div>
               </div>
             </div>
           );
