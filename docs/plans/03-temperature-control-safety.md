@@ -13,14 +13,14 @@ Instead of toggling fixed supply mode 10 times per night (once per block), enabl
 
 ### New Automations (pool_temp_control.yaml or pool_heating.yaml)
 
-#### 1. Cold Weather Window Start (21:00)
+#### 1. Cold Weather Window Start (from input_datetime)
 
 ```yaml
 automation:
   - alias: pool_cold_weather_window_start
     trigger:
       - platform: time
-        at: "21:00:00"
+        at: input_datetime.pool_heating_cold_window_start  # Configurable!
     condition:
       - condition: state
         entity_id: input_boolean.pool_heating_enabled
@@ -32,13 +32,13 @@ automation:
       - service: pyscript.pool_cold_weather_start
 ```
 
-#### 2. Cold Weather Window End (07:00)
+#### 2. Cold Weather Window End (from input_datetime)
 
 ```yaml
   - alias: pool_cold_weather_window_end
     trigger:
       - platform: time
-        at: "07:00:00"
+        at: input_datetime.pool_heating_cold_window_end  # Configurable!
     condition:
       - condition: state
         entity_id: input_boolean.pool_heating_cold_weather_mode
@@ -55,10 +55,18 @@ automation:
 2. Store original min gear (`ORIGINAL_MIN_GEAR`)
 3. Store original comfort wheel (`ORIGINAL_COMFORT_WHEEL`)
 4. Enable fixed supply mode with conservative setpoint: `curve_target - 2.0`
-5. Set min gear to `MIN_GEAR_POOL` (7)
+5. Set min gear to `max(9, MIN_GEAR_ENTITY, live_compressor_gear)` -- **not fixed 7!**
 6. Optionally raise comfort wheel by +1C (mild boost, not the +3C of normal mode)
 7. Mark `CONTROL_ACTIVE = on`
 8. Log action
+
+```python
+# Gear formula: max of 9, current MIN_GEAR setting, and live compressor gear
+COMPRESSOR_GEAR_SENSOR = "sensor.compressor_gear"  # or actual entity ID
+cold_weather_min_gear = max(9,
+    _safe_get_float(MIN_GEAR_ENTITY, 1),
+    _safe_get_float(COMPRESSOR_GEAR_SENSOR, 1))
+```
 
 Total Modbus writes: 4 (setpoint, enable, gear, comfort wheel)
 
@@ -81,7 +89,7 @@ Add cold weather thresholds as constants:
 ```python
 # Cold weather safety thresholds (tighter than normal)
 COLD_WEATHER_MIN_SUPPLY = 38.0      # vs 32.0 normal (FR-44-CW)
-COLD_WEATHER_RELATIVE_DROP = 8.0    # vs 15.0 normal (FR-45-CW)
+COLD_WEATHER_RELATIVE_DROP = 12.0   # vs 15.0 normal (FR-45-CW) -- per user feedback
 ```
 
 Modify `check_safety_conditions()` to accept a `cold_weather` parameter:
@@ -132,9 +140,14 @@ def test_cold_weather_safety_tighter_absolute():
     assert not safe
 
 def test_cold_weather_safety_tighter_relative():
-    """FR-45-CW: safety triggers at 8C drop (not 15C)."""
-    safe, _ = check_safety_conditions(41.0, 50.0, cold_weather=True)
-    assert not safe
+    """FR-45-CW: safety triggers at 12C drop (not 15C)."""
+    safe, _ = check_safety_conditions(37.0, 50.0, cold_weather=True)
+    assert not safe  # 50 - 37 = 13 > 12 relative max
+
+def test_cold_weather_safety_relative_passes():
+    """FR-45-CW: 11C drop is OK."""
+    safe, _ = check_safety_conditions(39.0, 50.0, cold_weather=True)
+    assert safe  # 50 - 39 = 11 < 12 relative max
 
 def test_normal_mode_safety_unchanged():
     """Normal mode uses original thresholds."""

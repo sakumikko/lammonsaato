@@ -1,131 +1,207 @@
-# Implementation Plan 02: Cold Weather Schedule Algorithm
+# Implementation Plan 02: Cold Weather Schedule Algorithm (SIMPLIFIED)
 
 **Depends on:** Plan 01 (entities exist)
-**Findings source:** Review 01
+**Findings source:** Review 01, GitHub PR feedback
 
 ## Goal
 
-Add `find_cold_weather_schedule()` to both `scripts/lib/schedule_optimizer.py` and `scripts/pyscript/pool_heating.py`. This is a separate algorithm path -- the existing `find_best_heating_schedule()` is not modified.
+Add simple cold weather schedule generation to `scripts/pyscript/pool_heating.py` only. **No changes to `scripts/lib/schedule_optimizer.py`** -- that file is for normal mode price optimization only.
 
-## Algorithm: find_cold_weather_schedule()
+Cold weather mode uses fixed timing (no price optimization) to keep implementation dead simple.
+
+## Algorithm: generate_cold_weather_schedule()
+
+**Design principle:** Keep it dead simple. No price optimization.
 
 **Input:**
-- `prices_today`: list of 96 floats (15-min slot prices for today)
-- `prices_tomorrow`: list of 96 floats (15-min slot prices for tomorrow)
-- `block_duration_minutes`: int (5, 10, or 15)
-- `pre_circ_minutes`: int (0-10, default 5)
-- `post_circ_minutes`: int (0-10, default 5)
+- `window_start`: time from `input_datetime.pool_heating_cold_window_start`
+- `window_end`: time from `input_datetime.pool_heating_cold_window_end`
+- `block_duration_minutes`: int from `input_number.pool_heating_cold_block_duration` (5, 10, or 15)
 
 **Logic:**
-1. Build the slot list for the heating window (21:00-07:00) -- reuse existing `_build_slot_list()` / `build_heating_window_slots()`.
-2. Group slots into hours (4 slots per hour, 10 hours = 10 groups).
-3. For each hour, pick the cheapest 15-min slot.
-4. For each selected slot, create a block:
-   - `start` = slot start time (block heating starts at this time; pre-circ is handled by the HA script before this)
-   - `end` = start + block_duration_minutes
-   - `duration_minutes` = block_duration_minutes
-   - `avg_price` = slot price (single slot, so avg = that slot's price)
-   - `cost_eur` = POWER_KW * (block_duration_minutes / 60) * avg_price
-5. All blocks are enabled (no cost constraint in cold weather).
-6. Return list of blocks (up to 10).
+1. Read window start/end times from separate cold weather entities
+2. For each hour in the window, create a block at **:05 past the hour** (hardcoded)
+3. Block end = block start + block_duration_minutes
+4. All blocks are enabled (no cost constraint)
+5. Return list of blocks
 
-**Output:** Same structure as `find_best_heating_schedule()` -- list of block dicts.
+**Output:** List of block dicts with keys: `start`, `end`, `duration_minutes`, `enabled`
 
 ## Files to Change
 
-### scripts/lib/schedule_optimizer.py
+### scripts/pyscript/pool_heating.py ONLY
 
-Add after existing constants (~line 32):
+**No changes to `scripts/lib/schedule_optimizer.py`** -- keep normal mode code untouched.
+
+Add constants after existing ones (~line 33):
 
 ```python
 COLD_WEATHER_VALID_DURATIONS = [5, 10, 15]  # minutes
+COLD_WEATHER_BLOCK_OFFSET = 5  # Minutes past hour (hardcoded :05)
 ```
 
-Add new function (~line 350, after `apply_cost_constraint`):
+Add new function:
 
 ```python
-def find_cold_weather_schedule(
-    prices_today: list,
-    prices_tomorrow: list,
-    block_duration_minutes: int = 5,
-    heating_window_start: int = HEATING_WINDOW_START,
-    heating_window_end: int = HEATING_WINDOW_END,
-) -> list:
-    """Place one short block per hour in the cheapest 15-min slot.
+def generate_cold_weather_schedule(window_start_time, window_end_time, block_duration_minutes):
+    """Generate fixed-time blocks for cold weather mode.
+
+    Places one block at :05 past each hour within the window.
+    No price optimization - keeps implementation simple.
 
     Args:
-        prices_today: 96 prices (15-min intervals) for today
-        prices_tomorrow: 96 prices for tomorrow
-        block_duration_minutes: Duration of each block (5, 10, or 15 min)
-        heating_window_start: Hour (21)
-        heating_window_end: Hour (7)
+        window_start_time: datetime.time from input_datetime entity
+        window_end_time: datetime.time from input_datetime entity
+        block_duration_minutes: 5, 10, or 15
 
     Returns:
-        List of block dicts with keys: start, end, duration_minutes, avg_price, cost_eur
+        List of block dicts with keys: start, end, duration_minutes, enabled
     """
+    blocks = []
+
+    # Validate duration
+    if block_duration_minutes not in COLD_WEATHER_VALID_DURATIONS:
+        block_duration_minutes = 5
+
+    # Build schedule for tonight/tomorrow
+    now = datetime.now()
+    today = now.date()
+    tomorrow = today + timedelta(days=1)
+
+    # Determine which hours are in the window
+    # Window typically spans midnight (e.g., 21:00 - 07:00)
+    if window_start_time > window_end_time:
+        # Spans midnight: tonight's hours + tomorrow morning's hours
+        schedule_date_start = today
+        schedule_date_end = tomorrow
+    else:
+        # Same day window
+        schedule_date_start = today
+        schedule_date_end = today
+
+    # Generate blocks at :05 past each hour
+    current_hour = window_start_time.hour
+    end_hour = window_end_time.hour
+
+    # Handle midnight crossing
+    hours_list = []
+    if window_start_time > window_end_time:
+        # e.g., 21:00 - 07:00
+        for h in range(window_start_time.hour, 24):
+            hours_list.append((today, h))
+        for h in range(0, window_end_time.hour):
+            hours_list.append((tomorrow, h))
+    else:
+        for h in range(window_start_time.hour, window_end_time.hour):
+            hours_list.append((today, h))
+
+    for date, hour in hours_list:
+        block_start = datetime.combine(date, datetime.min.time().replace(
+            hour=hour, minute=COLD_WEATHER_BLOCK_OFFSET))
+        block_end = block_start + timedelta(minutes=block_duration_minutes)
+
+        blocks.append({
+            'start': block_start,
+            'end': block_end,
+            'duration_minutes': block_duration_minutes,
+            'enabled': True,  # All blocks enabled in cold weather
+            'avg_price': 0.0,  # No price tracking in cold weather
+            'cost_eur': 0.0,
+        })
+
+    return blocks
 ```
-
-Implementation steps inside the function:
-1. Validate `block_duration_minutes` is in `COLD_WEATHER_VALID_DURATIONS`.
-2. Build combined price list from today+tomorrow for the heating window (same slot-building as normal mode).
-3. Iterate hours in the window. For each hour, find the 4 slots, pick the one with lowest price.
-4. Create block dict for each hour. `cost_eur = POWER_KW * (block_duration_minutes / 60) * price`.
-5. Return sorted by start time.
-
-### scripts/pyscript/pool_heating.py
-
-Mirror the same function. Add after `VALID_BLOCK_DURATIONS` (~line 33):
-
-```python
-COLD_WEATHER_VALID_DURATIONS = [5, 10, 15]
-```
-
-Add the same `find_cold_weather_schedule()` function (pyscript version -- use explicit loops, no generators per Known Issue #2).
 
 Modify `calculate_pool_heating_schedule` service (~line 585):
-1. Read `input_boolean.pool_heating_cold_weather_mode` state.
-2. If cold weather mode ON:
-   - Read `input_number.pool_heating_cold_block_duration` (default 5).
-   - Call `find_cold_weather_schedule()` instead of `find_best_heating_schedule()`.
-   - Skip preheat cost addition.
-   - Skip cost constraint application.
-3. Write results to same block entities (`pool_heat_block_X_*`).
 
-### Schedule JSON overflow fix (pre-existing bug)
+```python
+@service
+def calculate_pool_heating_schedule():
+    """Calculate optimal pool heating schedule."""
 
-`input_text.pool_heating_schedule_json` has max_length 255 (pool_heating.yaml). With 10 blocks the JSON is ~800 chars. Fix: increase `max: 255` to `max: 1024` in the YAML entity definition. HA `input_text` supports up to 255 by default but can be set higher. Alternative: store JSON in a `pyscript` variable or use `input_text` with `max: 1024` (supported since HA 2023.x).
+    # Check if cold weather mode is enabled
+    cold_weather_mode = state.get("input_boolean.pool_heating_cold_weather_mode") == "on"
+
+    if cold_weather_mode:
+        # COLD WEATHER: Simple fixed-time schedule
+        window_start = state.get("input_datetime.pool_heating_cold_window_start")
+        window_end = state.get("input_datetime.pool_heating_cold_window_end")
+        block_duration = int(float(state.get("input_number.pool_heating_cold_block_duration") or 5))
+
+        # Parse time strings to time objects
+        start_time = datetime.strptime(window_start, "%H:%M:%S").time()
+        end_time = datetime.strptime(window_end, "%H:%M:%S").time()
+
+        blocks = generate_cold_weather_schedule(start_time, end_time, block_duration)
+
+        # Skip preheat cost, skip cost constraint
+        # Write directly to block entities
+
+    else:
+        # NORMAL MODE: Existing price optimization (unchanged)
+        # ... existing code ...
+
+    # Write blocks to HA entities (same for both modes)
+    write_blocks_to_entities(blocks)
+```
+
+## What Does NOT Change
+
+- `scripts/lib/schedule_optimizer.py` -- completely untouched
+- `find_best_heating_schedule()` -- normal mode only
+- `apply_cost_constraint()` -- normal mode only
+- Price optimization logic -- not used in cold weather
 
 ## Unit Tests (tests/test_cold_weather.py)
 
 Write BEFORE implementation (TDD):
 
 ```python
-def test_cold_weather_produces_10_blocks():
-    """10-hour window with 1 block/hour = 10 blocks."""
+def test_cold_weather_fixed_offset():
+    """All blocks start at :05 past the hour."""
+    blocks = generate_cold_weather_schedule(
+        time(21, 0), time(7, 0), block_duration_minutes=5)
+    for block in blocks:
+        assert block['start'].minute == 5
 
-def test_cold_weather_cheapest_quarter_per_hour():
-    """Each block placed in the cheapest 15-min slot of its hour."""
+def test_cold_weather_block_count():
+    """10-hour window (21:00-07:00) produces 10 blocks."""
+    blocks = generate_cold_weather_schedule(
+        time(21, 0), time(7, 0), block_duration_minutes=5)
+    assert len(blocks) == 10
 
-def test_cold_weather_block_duration_5min():
-    """All blocks have duration_minutes=5 when configured for 5."""
+def test_cold_weather_block_duration():
+    """Block duration matches configured value."""
+    blocks = generate_cold_weather_schedule(
+        time(21, 0), time(7, 0), block_duration_minutes=10)
+    for block in blocks:
+        assert block['duration_minutes'] == 10
+        delta = (block['end'] - block['start']).total_seconds() / 60
+        assert delta == 10
 
-def test_cold_weather_block_duration_15min():
-    """All blocks have duration_minutes=15 when configured for 15."""
+def test_cold_weather_all_enabled():
+    """All cold weather blocks are enabled (no cost constraint)."""
+    blocks = generate_cold_weather_schedule(
+        time(21, 0), time(7, 0), block_duration_minutes=5)
+    for block in blocks:
+        assert block['enabled'] == True
 
-def test_cold_weather_cost_calculation():
-    """cost = POWER_KW * (5/60) * price. At 5c/kWh: 5 * (5/60) * 0.05 = 0.0208 EUR."""
+def test_cold_weather_invalid_duration_fallback():
+    """Invalid duration falls back to 5 min."""
+    blocks = generate_cold_weather_schedule(
+        time(21, 0), time(7, 0), block_duration_minutes=20)
+    assert blocks[0]['duration_minutes'] == 5
 
-def test_cold_weather_blocks_sorted_by_time():
-    """Blocks returned in chronological order."""
-
-def test_cold_weather_no_cost_constraint():
-    """All blocks enabled regardless of price."""
-
-def test_cold_weather_invalid_duration_falls_back():
-    """Duration 20 falls back to 5."""
+def test_cold_weather_custom_window():
+    """Custom window hours work correctly."""
+    blocks = generate_cold_weather_schedule(
+        time(22, 0), time(6, 0), block_duration_minutes=5)
+    assert len(blocks) == 8  # 22, 23, 0, 1, 2, 3, 4, 5
 
 def test_normal_mode_unchanged():
-    """Existing find_best_heating_schedule still works identically."""
+    """Normal mode find_best_heating_schedule still works."""
+    # This is a regression test - import and call the existing function
+    # to ensure cold weather changes didn't break it
 ```
 
 Run tests BEFORE implementation -- all cold weather tests must FAIL. Then implement. Then all must PASS. Then run full regression (`make test`).
