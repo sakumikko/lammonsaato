@@ -345,8 +345,45 @@ cold_weather_min_gear = max(9,
 COLD_WEATHER_RELATIVE_DROP = 12.0  # Confirmed (was 8.0)
 ```
 
-### Plan 04: Web UI (unchanged scope)
+### Plan 04: Web UI
 
 - Add cold weather toggle
-- Show separate window time inputs
-- Compact block display for 10 blocks
+- Show 24-hour checkbox grid (not window time inputs)
+- Compact block display for many blocks
+
+---
+
+## Final Simplification (2026-02-03)
+
+**User request:** "In cold mode there should be no need for start and end of schedule. It can just be select box for every hour to tick on"
+
+**Clarification:** "The blocks can be any hour, not just between 21 - 07"
+
+### Changes Made
+
+1. **Removed window start/end entities entirely**
+   - ~~`input_datetime.pool_heating_cold_window_start`~~
+   - ~~`input_datetime.pool_heating_cold_window_end`~~
+
+2. **Added single text entity for enabled hours**
+   - `input_text.pool_heating_cold_enabled_hours` (comma-separated, e.g., "21,22,23,0,1,2,3,4,5,6")
+
+3. **UI: 24-hour checkbox grid**
+   - Grid of 24 checkboxes (0-23)
+   - User ticks which hours to run heating
+   - Any hour can be selected, not limited to nighttime
+
+4. **Algorithm: simplified further**
+   - Takes enabled_hours string as input
+   - Creates one block at :05 past each enabled hour
+   - No window calculation needed
+
+### Final Entity List (5 total)
+
+| Entity | Type | Default |
+|--------|------|---------|
+| `input_boolean.pool_heating_cold_weather_mode` | boolean | off |
+| `input_text.pool_heating_cold_enabled_hours` | text | "21,22,23,0,1,2,3,4,5,6" |
+| `input_number.pool_heating_cold_block_duration` | number (5/10/15) | 5 |
+| `input_number.pool_heating_cold_pre_circulation` | number (0-10 min) | 5 |
+| `input_number.pool_heating_cold_post_circulation` | number (0-10 min) | 5 |

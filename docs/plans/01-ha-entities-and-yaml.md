@@ -9,7 +9,7 @@ Add new HA entities for cold weather mode and modify block start/stop scripts to
 
 ## New Entities to Add (pool_heating.yaml)
 
-Add these in the `input_boolean:`, `input_datetime:`, and `input_number:` sections alongside existing entities:
+Add these in the `input_boolean:`, `input_text:`, and `input_number:` sections alongside existing entities:
 
 ```yaml
 input_boolean:
@@ -17,18 +17,13 @@ input_boolean:
     name: Pool Heating Cold Weather Mode
     icon: mdi:snowflake
 
-input_datetime:
-  pool_heating_cold_window_start:
-    name: Pool Cold Weather Window Start
-    has_date: false
-    has_time: true
-    icon: mdi:clock-start
-
-  pool_heating_cold_window_end:
-    name: Pool Cold Weather Window End
-    has_date: false
-    has_time: true
-    icon: mdi:clock-end
+input_text:
+  pool_heating_cold_enabled_hours:
+    name: Pool Cold Weather Enabled Hours
+    icon: mdi:clock-check
+    max: 100
+    # Format: comma-separated hours (0-23)
+    # Example: "21,22,23,0,1,2,3,4,5,6" = blocks at 21:05, 22:05, etc.
 
 input_number:
   pool_heating_cold_block_duration:

@@ -13,39 +13,40 @@ Instead of toggling fixed supply mode 10 times per night (once per block), enabl
 
 ### New Automations (pool_temp_control.yaml or pool_heating.yaml)
 
-#### 1. Cold Weather Window Start (from input_datetime)
+#### 1. Cold Weather Mode Enabled
+
+When user turns on cold weather mode, start window-level control:
 
 ```yaml
 automation:
-  - alias: pool_cold_weather_window_start
+  - alias: pool_cold_weather_mode_on
     trigger:
-      - platform: time
-        at: input_datetime.pool_heating_cold_window_start  # Configurable!
+      - platform: state
+        entity_id: input_boolean.pool_heating_cold_weather_mode
+        to: "on"
     condition:
       - condition: state
         entity_id: input_boolean.pool_heating_enabled
-        state: "on"
-      - condition: state
-        entity_id: input_boolean.pool_heating_cold_weather_mode
         state: "on"
     action:
       - service: pyscript.pool_cold_weather_start
 ```
 
-#### 2. Cold Weather Window End (from input_datetime)
+#### 2. Cold Weather Mode Disabled
+
+When user turns off cold weather mode, stop window-level control:
 
 ```yaml
-  - alias: pool_cold_weather_window_end
+  - alias: pool_cold_weather_mode_off
     trigger:
-      - platform: time
-        at: input_datetime.pool_heating_cold_window_end  # Configurable!
-    condition:
-      - condition: state
+      - platform: state
         entity_id: input_boolean.pool_heating_cold_weather_mode
-        state: "on"
+        to: "off"
     action:
       - service: pyscript.pool_cold_weather_stop
 ```
+
+**Note:** No window start/end times needed. User selects which hours to run via checkboxes in UI. Fixed supply mode stays enabled the entire time cold weather mode is ON.
 
 ### New Pyscript Services (pool_temp_control.py)
 

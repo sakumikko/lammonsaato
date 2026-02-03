@@ -11,9 +11,9 @@ Add a cold weather mode toggle that changes the entire heating behavior:
 | Aspect | Normal Mode | Cold Weather Mode |
 |--------|-------------|-------------------|
 | Block duration | 30-45 min | 5 min (configurable 5/10/15) |
-| Blocks per night | 2-6 | 1/hour within window |
-| Heating window | Hardcoded 21:00-07:00 | **Configurable via input_datetime** |
-| Block timing | Price-optimized | **Fixed :05 past each hour** |
+| Blocks per night | 2-6 | User selects which hours |
+| Heating window | Hardcoded 21:00-07:00 | **Checkbox per hour (0-23)** |
+| Block timing | Price-optimized | **Fixed :05 past each selected hour** |
 | Break between blocks | Equal to block | ~55 min (rest of hour) |
 | Pre-circulation | None (preheat instead) | 5 min pump-only (configurable) |
 | Post-circulation | 15 min mixing | 5 min mixing (configurable) |
@@ -40,16 +40,17 @@ Plans 02 and 03 can be implemented in parallel after Plan 01. Plan 04 depends on
 
 **Key simplification:** No changes to `scripts/lib/schedule_optimizer.py` -- cold weather uses a simple loop in pyscript only.
 
-## New Entities (6 total)
+## New Entities (5 total)
 
 | Entity | Type | Default |
 |--------|------|---------|
 | `input_boolean.pool_heating_cold_weather_mode` | boolean | off |
-| `input_datetime.pool_heating_cold_window_start` | time | 21:00 |
-| `input_datetime.pool_heating_cold_window_end` | time | 07:00 |
+| `input_text.pool_heating_cold_enabled_hours` | text | "21,22,23,0,1,2,3,4,5,6" |
 | `input_number.pool_heating_cold_block_duration` | number (5/10/15) | 5 |
 | `input_number.pool_heating_cold_pre_circulation` | number (0-10 min) | 5 |
 | `input_number.pool_heating_cold_post_circulation` | number (0-10 min) | 5 |
+
+**Enabled hours format:** Comma-separated list of hours (0-23). Example: "21,22,23,0,1,2,3,4,5,6" means blocks at 21:05, 22:05, 23:05, 00:05, 01:05, etc.
 
 No existing entities are modified. Entity ID stability is preserved.
 
