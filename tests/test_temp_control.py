@@ -43,7 +43,7 @@ except ImportError:
     MIN_CORRECTION = -1.0
     MAX_CORRECTION = 4.0
     MIN_SETPOINT = 28.0
-    MAX_SETPOINT = 45.0
+    MAX_SETPOINT = 55.0
     ABSOLUTE_MIN_SUPPLY = 32.0
     RELATIVE_DROP_MAX = 15.0
     MIN_GEAR_POOL = 7
@@ -161,10 +161,10 @@ class TestPIDFeedbackAlgorithm:
 
     def test_clamp_to_maximum(self):
         """Target should not exceed MAX_SETPOINT."""
-        current, prev = 50.0, 50.0  # Very high supply
+        current, prev = 65.0, 65.0  # Very high supply (above MAX_SETPOINT=60)
         new_target, _, _ = calculate_new_setpoint(current, prev, pid_30m=0.0)
 
-        assert new_target == MAX_SETPOINT  # 45.0
+        assert new_target == MAX_SETPOINT  # 60.0
 
     def test_first_reading_no_prev(self):
         """First reading with no previous should use 0 drop rate."""
@@ -313,7 +313,7 @@ class TestConfigurationConstants:
     def test_max_setpoint_reasonable(self):
         """MAX_SETPOINT should be within heat pump capability."""
         assert MAX_SETPOINT >= 40  # Should allow high targets
-        assert MAX_SETPOINT <= 55  # Heat pump limit
+        assert MAX_SETPOINT <= 65  # Heat pump limit (Thermia Mega supports up to 60+)
 
     def test_min_less_than_max(self):
         """MIN_SETPOINT must be less than MAX_SETPOINT."""
