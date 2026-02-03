@@ -160,7 +160,18 @@
     "fixedSupplyTarget": "Fixed Supply Target",
     "fixedTarget": "Target Temperature",
     "comfortWheel": "Comfort Wheel",
-    "comfortWheelValue": "Room Temp Offset"
+    "comfortWheelValue": "Room Temp Offset",
+    "externalHeater": "External Heater Control",
+    "extHeaterManualControl": "Manual Control",
+    "extHeaterManualControlDescription": "Disables automatic temperature-based control",
+    "extHeaterAlwaysTitle": "Extreme Cold (24/7)",
+    "extHeaterAlwaysEnable": "Enable Below",
+    "extHeaterAlwaysDisable": "Disable Above",
+    "extHeaterOffpeakTitle": "Off-Peak Hours",
+    "extHeaterOffpeakEnable": "Enable Below",
+    "extHeaterOffpeakDisable": "Disable Above",
+    "extHeaterDuration": "Duration Threshold",
+    "extHeaterDurationMinutes": "Sustained Duration"
   },
   "temperatures": {
     "title": "Temperature Monitor",

@@ -34,6 +34,8 @@ const Index = () => {
     setFixedSupplyEnabled,
     setFixedSupplyTarget,
     setComfortWheel,
+    setExternalHeaterSetting,
+    setExternalHeaterManualControl,
   } = useHomeAssistant();
 
   return (
@@ -90,6 +92,9 @@ const Index = () => {
                 onFixedSupplyEnabledChange={setFixedSupplyEnabled}
                 onFixedSupplyTargetChange={setFixedSupplyTarget}
                 onComfortWheelChange={setComfortWheel}
+                externalHeater={state.externalHeater}
+                onExternalHeaterSettingChange={setExternalHeaterSetting}
+                onExternalHeaterManualControlChange={setExternalHeaterManualControl}
                 currentGears={{
                   heating: state.heatPump.compressorGear,
                 }}

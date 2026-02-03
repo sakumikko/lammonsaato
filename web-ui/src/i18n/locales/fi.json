@@ -160,7 +160,18 @@
     "fixedSupplyTarget": "Kiinteä menolämpötila",
     "fixedTarget": "Tavoitelämpötila",
     "comfortWheel": "Huonesäätö",
-    "comfortWheelValue": "Huonelämpötilan poikkeama"
+    "comfortWheelValue": "Huonelämpötilan poikkeama",
+    "externalHeater": "Lisälämmittimen ohjaus",
+    "extHeaterManualControl": "Manuaalinen ohjaus",
+    "extHeaterManualControlDescription": "Poistaa automaattisen lämpötilaohjauksen käytöstä",
+    "extHeaterAlwaysTitle": "Äärimmäinen pakkanen (24/7)",
+    "extHeaterAlwaysEnable": "Käynnistä alle",
+    "extHeaterAlwaysDisable": "Sammuta yli",
+    "extHeaterOffpeakTitle": "Halpa-ajat",
+    "extHeaterOffpeakEnable": "Käynnistä alle",
+    "extHeaterOffpeakDisable": "Sammuta yli",
+    "extHeaterDuration": "Keston kynnys",
+    "extHeaterDurationMinutes": "Jatkuva kesto"
   },
   "entityBrowser": {
     "title": "Entiteettien selain"

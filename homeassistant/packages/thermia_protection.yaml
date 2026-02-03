@@ -20,7 +20,7 @@ automation:
     trigger:
       - platform: numeric_state
         entity_id: sensor.discharge_pipe_temperature
-        above: 107
+        above: 120
         for:
           minutes: 10
     condition:
@@ -54,7 +54,7 @@ automation:
     trigger:
       - platform: numeric_state
         entity_id: sensor.discharge_pipe_temperature
-        above: 110
+        above: 123
         for:
           minutes: 3
     action:
@@ -62,12 +62,12 @@ automation:
         target:
           entity_id: number.maximum_allowed_gear_in_heating
         data:
-          value: 5
+          value: 7
       - service: number.set_value
         target:
           entity_id: number.maximum_allowed_gear_in_tap_water
         data:
-          value: 5
+          value: 7
       - service: persistent_notification.create
         data:
           title: "⚠️ Thermia Critical Temperature!"
@@ -83,29 +83,29 @@ automation:
   - id: thermia_restore_gear_limits
     alias: "Thermia: Restore gear limits when temperature normalizes"
     description: >
-      When discharge pipe temperature drops below 95°C for 10 minutes,
+      When discharge pipe temperature drops below 100°C for 10 minutes,
       restore normal max gear limits.
     trigger:
       - platform: numeric_state
         entity_id: sensor.discharge_pipe_temperature
-        below: 95
+        below: 100
         for:
           minutes: 10
     condition:
       - condition: numeric_state
         entity_id: number.maximum_allowed_gear_in_heating
-        below: 9  # Only restore if currently limited
+        below: 10  # Only restore if currently limited
     action:
       - service: number.set_value
         target:
           entity_id: number.maximum_allowed_gear_in_heating
         data:
-          value: 9
+          value: 10
       - service: number.set_value
         target:
           entity_id: number.maximum_allowed_gear_in_tap_water
         data:
-          value: 9
+          value: 10
       - service: persistent_notification.dismiss
         data:
           notification_id: thermia_high_temp_warning

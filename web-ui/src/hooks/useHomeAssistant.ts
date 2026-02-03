@@ -13,6 +13,7 @@ import {
   HeatingCurveSettings,
   PeakPowerSettings,
   SystemSupplyState,
+  ExternalHeaterSettings,
 } from '@/types/heating';
 import { getHAWebSocket, HAEntityState } from '@/lib/ha-websocket';
 
@@ -143,6 +144,14 @@ const ENTITIES = {
   systemSupplyFixedTarget: 'number.fixed_system_supply_set_point',
   systemSupplyFixedEnabled: 'switch.enable_fixed_system_supply_set_point',
   comfortWheel: 'number.comfort_wheel_setting',
+
+  // External heater control
+  extHeaterAlwaysEnableTemp: 'input_number.ext_heater_always_enable_temp',
+  extHeaterAlwaysDisableTemp: 'input_number.ext_heater_always_disable_temp',
+  extHeaterOffpeakEnableTemp: 'input_number.ext_heater_offpeak_enable_temp',
+  extHeaterOffpeakDisableTemp: 'input_number.ext_heater_offpeak_disable_temp',
+  extHeaterDuration: 'input_number.ext_heater_duration_minutes',
+  extHeaterManualControl: 'input_boolean.ext_heater_manual_control',
 } as const;
 
 // Block entities (1-10)
@@ -247,6 +256,14 @@ const defaultState: SystemState = {
     fixedModeEnabled: false,
     comfortWheel: 20,
   },
+  externalHeater: {
+    alwaysEnableTemp: -15,
+    alwaysDisableTemp: -10,
+    offpeakEnableTemp: -5,
+    offpeakDisableTemp: -2,
+    durationMinutes: 30,
+    manualControl: false,
+  },
 };
 
 // Helper to parse numeric state
@@ -330,6 +347,7 @@ export type HotGasSetting = 'pumpStartTemp' | 'lowerStopLimit' | 'upperStopLimit
 export type HeatingCurveSetting = 'maxLimitation' | 'minLimitation';
 export type PeakPowerSetting = 'daytimeHeaterStart' | 'daytimeHeaterStop' | 'nighttimeHeaterStart' | 'nighttimeHeaterStop';
 export type PeakPowerTime = 'daytimeStart' | 'nighttimeStart';
+export type ExternalHeaterSetting = 'alwaysEnableTemp' | 'alwaysDisableTemp' | 'offpeakEnableTemp' | 'offpeakDisableTemp' | 'durationMinutes';
 
 export interface UseHomeAssistantReturn {
   state: SystemState;
@@ -357,6 +375,9 @@ export interface UseHomeAssistantReturn {
   setFixedSupplyEnabled: (enabled: boolean) => Promise<void>;
   setFixedSupplyTarget: (value: number) => Promise<void>;
   setComfortWheel: (value: number) => Promise<void>;
+  // External heater controls
+  setExternalHeaterSetting: (setting: ExternalHeaterSetting, value: number) => Promise<void>;
+  setExternalHeaterManualControl: (enabled: boolean) => Promise<void>;
 }
 
 export function useHomeAssistant(): UseHomeAssistantReturn {
@@ -531,7 +552,17 @@ export function useHomeAssistant(): UseHomeAssistantReturn {
       comfortWheel: parseNumber(get(ENTITIES.comfortWheel)) || 20,
     };
 
-    return { heatPump, poolHeating, valve, schedule, gearSettings, tapWater, hotGasSettings, heatingCurve, peakPower, systemSupply };
+    // External heater settings
+    const externalHeater: ExternalHeaterSettings = {
+      alwaysEnableTemp: parseNumber(get(ENTITIES.extHeaterAlwaysEnableTemp)) || -15,
+      alwaysDisableTemp: parseNumber(get(ENTITIES.extHeaterAlwaysDisableTemp)) || -10,
+      offpeakEnableTemp: parseNumber(get(ENTITIES.extHeaterOffpeakEnableTemp)) || -5,
+      offpeakDisableTemp: parseNumber(get(ENTITIES.extHeaterOffpeakDisableTemp)) || -2,
+      durationMinutes: parseNumber(get(ENTITIES.extHeaterDuration)) || 30,
+      manualControl: parseBoolean(get(ENTITIES.extHeaterManualControl)),
+    };
+
+    return { heatPump, poolHeating, valve, schedule, gearSettings, tapWater, hotGasSettings, heatingCurve, peakPower, systemSupply, externalHeater };
   }, []);
 
   // Initial connection and state fetch
@@ -831,6 +862,26 @@ export function useHomeAssistant(): UseHomeAssistantReturn {
     });
   }, []);
 
+  const setExternalHeaterSetting = useCallback(async (setting: ExternalHeaterSetting, value: number) => {
+    const entityMap: Record<ExternalHeaterSetting, string> = {
+      alwaysEnableTemp: ENTITIES.extHeaterAlwaysEnableTemp,
+      alwaysDisableTemp: ENTITIES.extHeaterAlwaysDisableTemp,
+      offpeakEnableTemp: ENTITIES.extHeaterOffpeakEnableTemp,
+      offpeakDisableTemp: ENTITIES.extHeaterOffpeakDisableTemp,
+      durationMinutes: ENTITIES.extHeaterDuration,
+    };
+    await ws.current.callService('input_number', 'set_value', {
+      entity_id: entityMap[setting],
+      value: value,
+    });
+  }, []);
+
+  const setExternalHeaterManualControl = useCallback(async (enabled: boolean) => {
+    await ws.current.callService('input_boolean', enabled ? 'turn_on' : 'turn_off', {
+      entity_id: ENTITIES.extHeaterManualControl,
+    });
+  }, []);
+
   return {
     state,
     connected,
@@ -854,5 +905,7 @@ export function useHomeAssistant(): UseHomeAssistantReturn {
     setFixedSupplyEnabled,
     setFixedSupplyTarget,
     setComfortWheel,
+    setExternalHeaterSetting,
+    setExternalHeaterManualControl,
   };
 }

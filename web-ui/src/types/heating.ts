@@ -115,6 +115,15 @@ export interface SystemSupplyState {
   comfortWheel: number;         // Comfort wheel setting (room temp offset)
 }
 
+export interface ExternalHeaterSettings {
+  alwaysEnableTemp: number;     // Enable in extreme cold (-15°C default)
+  alwaysDisableTemp: number;    // Disable when warmer (-10°C default)
+  offpeakEnableTemp: number;    // Enable during off-peak (-5°C default)
+  offpeakDisableTemp: number;   // Disable during off-peak (-2°C default)
+  durationMinutes: number;      // Duration threshold (30 min default)
+  manualControl: boolean;       // Manual control mode (disables automations)
+}
+
 export interface SystemState {
   heatPump: HeatPumpState;
   poolHeating: PoolHeatingState;
@@ -126,4 +135,5 @@ export interface SystemState {
   heatingCurve: HeatingCurveSettings;
   peakPower: PeakPowerSettings;
   systemSupply: SystemSupplyState;
+  externalHeater: ExternalHeaterSettings;
 }

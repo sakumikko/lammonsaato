@@ -11,11 +11,11 @@ import { GearSettingsCard } from './GearSettingsCard';
 import { TemperatureSettingsCard } from './TemperatureSettingsCard';
 import { PeakPowerSettingsCard } from './PeakPowerSettingsCard';
 import { TemperatureChart } from './TemperatureChart';
-import { Settings, Home, Waves, Droplet, Flame, TrendingUp, Thermometer } from 'lucide-react';
+import { Settings, Home, Waves, Droplet, Flame, TrendingUp, Thermometer, Heater } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 import { useTranslation } from 'react-i18next';
 import { cn } from '@/lib/utils';
-import { GearSettings, TapWaterState, HotGasSettings, HeatingCurveSettings, HeatPumpState, PeakPowerSettings, SystemSupplyState } from '@/types/heating';
+import { GearSettings, TapWaterState, HotGasSettings, HeatingCurveSettings, HeatPumpState, PeakPowerSettings, SystemSupplyState, ExternalHeaterSettings } from '@/types/heating';
 import {
   GearCircuit,
   GearLimitType,
@@ -24,6 +24,7 @@ import {
   HeatingCurveSetting,
   PeakPowerSetting,
   PeakPowerTime,
+  ExternalHeaterSetting,
 } from '@/hooks/useHomeAssistant';
 
 interface SettingsSheetProps {
@@ -48,6 +49,10 @@ interface SettingsSheetProps {
   onFixedSupplyEnabledChange: (enabled: boolean) => Promise<void>;
   onFixedSupplyTargetChange: (value: number) => Promise<void>;
   onComfortWheelChange: (value: number) => Promise<void>;
+  // External heater
+  externalHeater: ExternalHeaterSettings;
+  onExternalHeaterSettingChange: (setting: ExternalHeaterSetting, value: number) => Promise<void>;
+  onExternalHeaterManualControlChange: (enabled: boolean) => Promise<void>;
   className?: string;
   // External control (when rendered without trigger)
   open?: boolean;
@@ -82,6 +87,10 @@ export function SettingsSheet({
   onFixedSupplyEnabledChange,
   onFixedSupplyTargetChange,
   onComfortWheelChange,
+  // External heater
+  externalHeater,
+  onExternalHeaterSettingChange,
+  onExternalHeaterManualControlChange,
   className,
   open: controlledOpen,
   onOpenChange: controlledOnOpenChange,
@@ -301,6 +310,91 @@ export function SettingsSheet({
             onSettingChange={onPeakPowerSettingChange}
             onTimeChange={onPeakPowerTimeChange}
           />
+
+          {/* External Heater Control */}
+          <div className="rounded-lg border bg-card p-4 space-y-4">
+            <div className="flex items-center gap-2">
+              <Heater className="w-5 h-5 text-hot" />
+              <h3 className="font-semibold">{t('settings.externalHeater')}</h3>
+            </div>
+
+            {/* Manual Control Toggle */}
+            <div className="flex items-center justify-between">
+              <div className="space-y-0.5">
+                <label className="text-sm font-medium">{t('settings.extHeaterManualControl')}</label>
+                <p className="text-xs text-muted-foreground">
+                  {t('settings.extHeaterManualControlDescription')}
+                </p>
+              </div>
+              <Switch
+                checked={externalHeater.manualControl}
+                onCheckedChange={onExternalHeaterManualControlChange}
+              />
+            </div>
+
+            {/* Always Enable/Disable (24/7 extreme cold) */}
+            <TemperatureSettingsCard
+              title={t('settings.extHeaterAlwaysTitle')}
+              icon={Thermometer}
+              iconColorClass="text-cold"
+              settings={[
+                {
+                  label: t('settings.extHeaterAlwaysEnable'),
+                  value: externalHeater.alwaysEnableTemp,
+                  onChange: (v) => onExternalHeaterSettingChange('alwaysEnableTemp', v),
+                  min: -25,
+                  max: -5,
+                },
+                {
+                  label: t('settings.extHeaterAlwaysDisable'),
+                  value: externalHeater.alwaysDisableTemp,
+                  onChange: (v) => onExternalHeaterSettingChange('alwaysDisableTemp', v),
+                  min: -20,
+                  max: 0,
+                },
+              ]}
+            />
+
+            {/* Off-Peak Enable/Disable */}
+            <TemperatureSettingsCard
+              title={t('settings.extHeaterOffpeakTitle')}
+              icon={Thermometer}
+              iconColorClass="text-success"
+              settings={[
+                {
+                  label: t('settings.extHeaterOffpeakEnable'),
+                  value: externalHeater.offpeakEnableTemp,
+                  onChange: (v) => onExternalHeaterSettingChange('offpeakEnableTemp', v),
+                  min: -15,
+                  max: 0,
+                },
+                {
+                  label: t('settings.extHeaterOffpeakDisable'),
+                  value: externalHeater.offpeakDisableTemp,
+                  onChange: (v) => onExternalHeaterSettingChange('offpeakDisableTemp', v),
+                  min: -10,
+                  max: 5,
+                },
+              ]}
+            />
+
+            {/* Duration threshold */}
+            <TemperatureSettingsCard
+              title={t('settings.extHeaterDuration')}
+              icon={Thermometer}
+              iconColorClass="text-muted-foreground"
+              settings={[
+                {
+                  label: t('settings.extHeaterDurationMinutes'),
+                  value: externalHeater.durationMinutes,
+                  onChange: (v) => onExternalHeaterSettingChange('durationMinutes', v),
+                  min: 15,
+                  max: 60,
+                  unit: 'min',
+                },
+              ]}
+            />
+          </div>
 
           {/* Section divider */}
           <div className="border-t border-border pt-4">

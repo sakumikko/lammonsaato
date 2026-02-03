@@ -1,0 +1,234 @@
+# External Heater Temperature-Based Control
+#
+# Automatically controls switch.enable_external_additional_heater based on
+# outdoor temperature with different rules for peak vs off-peak hours.
+#
+# Logic:
+# - Always (24/7): Enable when temp <= -15C for 30min, disable when > -10C for 30min
+# - Off-peak only: Enable when temp <= -5C for 30min, disable when > -2C for 30min
+# - Peak hours: Mon-Fri 7:00-21:00 (Helen pricing)
+# - Manual control switch disables all automations when ON
+#
+# All thresholds are adjustable via input_number entities.
+
+# =============================================================================
+# INPUT ENTITIES - Configurable Settings
+# =============================================================================
+
+input_number:
+  # Extreme cold settings (always apply, 24/7)
+  ext_heater_always_enable_temp:
+    name: "Ext Heater: Always Enable Below"
+    min: -25
+    max: -5
+    step: 1
+    unit_of_measurement: "°C"
+    icon: mdi:thermometer-alert
+    initial: -15
+
+  ext_heater_always_disable_temp:
+    name: "Ext Heater: Always Disable Above"
+    min: -20
+    max: 0
+    step: 1
+    unit_of_measurement: "°C"
+    icon: mdi:thermometer
+    initial: -10
+
+  # Off-peak cold settings (only outside Mon-Fri 7:00-21:00)
+  ext_heater_offpeak_enable_temp:
+    name: "Ext Heater: Off-Peak Enable Below"
+    min: -15
+    max: 0
+    step: 1
+    unit_of_measurement: "°C"
+    icon: mdi:thermometer-low
+    initial: -5
+
+  ext_heater_offpeak_disable_temp:
+    name: "Ext Heater: Off-Peak Disable Above"
+    min: -10
+    max: 5
+    step: 1
+    unit_of_measurement: "°C"
+    icon: mdi:thermometer-high
+    initial: -2
+
+  # Duration threshold - how long temperature must be sustained
+  ext_heater_duration_minutes:
+    name: "Ext Heater: Duration Threshold"
+    min: 15
+    max: 60
+    step: 5
+    unit_of_measurement: "min"
+    icon: mdi:timer
+    initial: 30
+
+input_boolean:
+  # Manual control - when ON, all temperature automations are disabled
+  ext_heater_manual_control:
+    name: "Ext Heater: Manual Control"
+    icon: mdi:hand-back-right
+
+# =============================================================================
+# TEMPLATE SENSORS - State Tracking
+# =============================================================================
+
+template:
+  - binary_sensor:
+      # Peak hours: Mon-Fri 7:00-21:00
+      - name: "Peak Hours Active"
+        unique_id: ext_heater_peak_hours
+        state: >
+          {% set now_time = now().strftime('%H:%M') %}
+          {% set weekday = now().weekday() %}
+          {{ weekday < 5 and '07:00' <= now_time < '21:00' }}
+        icon: >
+          {{ 'mdi:clock-alert' if this.state == 'on' else 'mdi:clock-check' }}
+
+      # Extreme cold condition met (temp below "always enable" threshold)
+      - name: "Ext Heater Extreme Cold Met"
+        unique_id: ext_heater_extreme_cold
+        state: >
+          {{ states('sensor.outdoor_temperature') | float(0)
+             <= states('input_number.ext_heater_always_enable_temp') | float(-15) }}
+        availability: >
+          {{ states('sensor.outdoor_temperature') not in ['unknown', 'unavailable'] }}
+
+      # Off-peak cold condition met (temp below "off-peak enable" threshold)
+      - name: "Ext Heater Offpeak Cold Met"
+        unique_id: ext_heater_offpeak_cold
+        state: >
+          {{ states('sensor.outdoor_temperature') | float(0)
+             <= states('input_number.ext_heater_offpeak_enable_temp') | float(-5) }}
+        availability: >
+          {{ states('sensor.outdoor_temperature') not in ['unknown', 'unavailable'] }}
+
+      # Main decision sensor - should heater be enabled?
+      - name: "Ext Heater Should Be Enabled"
+        unique_id: ext_heater_should_enable
+        state: >
+          {% set manual = is_state('input_boolean.ext_heater_manual_control', 'on') %}
+          {% set peak = is_state('binary_sensor.peak_hours_active', 'on') %}
+          {% set duration_req = states('input_number.ext_heater_duration_minutes') | float(30) / 60 %}
+          {% set extreme_cold_hrs = states('sensor.ext_heater_extreme_cold_duration') | float(0) %}
+          {% set offpeak_cold_hrs = states('sensor.ext_heater_offpeak_cold_duration') | float(0) %}
+
+          {# If manual control is ON, automations are disabled #}
+          {% if manual %}
+            false
+          {% elif extreme_cold_hrs >= duration_req %}
+            true
+          {% elif not peak and offpeak_cold_hrs >= duration_req %}
+            true
+          {% else %}
+            false
+          {% endif %}
+        icon: mdi:radiator
+
+      # Should heater be disabled? (warmth threshold exceeded)
+      - name: "Ext Heater Should Disable"
+        unique_id: ext_heater_should_disable
+        state: >
+          {% set manual = is_state('input_boolean.ext_heater_manual_control', 'on') %}
+          {% set peak = is_state('binary_sensor.peak_hours_active', 'on') %}
+          {% set temp = states('sensor.outdoor_temperature') | float(-20) %}
+          {% set always_disable = states('input_number.ext_heater_always_disable_temp') | float(-10) %}
+          {% set offpeak_disable = states('input_number.ext_heater_offpeak_disable_temp') | float(-2) %}
+
+          {# If manual control is ON, automations are disabled #}
+          {% if manual %}
+            false
+          {% elif peak %}
+            {{ temp > always_disable }}
+          {% else %}
+            {{ temp > offpeak_disable }}
+          {% endif %}
+        availability: >
+          {{ states('sensor.outdoor_temperature') not in ['unknown', 'unavailable'] }}
+        icon: mdi:radiator-off
+
+# =============================================================================
+# HISTORY STATS - Duration Tracking
+# =============================================================================
+
+sensor:
+  # Track how long extreme cold condition has been met (hours, last 60 min)
+  - platform: history_stats
+    name: "Ext Heater Extreme Cold Duration"
+    entity_id: binary_sensor.ext_heater_extreme_cold_met
+    state: "on"
+    type: time
+    end: "{{ now() }}"
+    duration:
+      minutes: 60  # Fixed lookback - must be >= max ext_heater_duration_minutes (60)
+
+  # Track how long off-peak cold condition has been met (hours, last 60 min)
+  - platform: history_stats
+    name: "Ext Heater Offpeak Cold Duration"
+    entity_id: binary_sensor.ext_heater_offpeak_cold_met
+    state: "on"
+    type: time
+    end: "{{ now() }}"
+    duration:
+      minutes: 60  # Fixed lookback - must be >= max ext_heater_duration_minutes (60)
+
+# =============================================================================
+# AUTOMATIONS - Enable/Disable Heater
+# =============================================================================
+
+automation:
+  - id: ext_heater_enable
+    alias: "External Heater: Enable on Cold"
+    description: >-
+      Enable external heater when temperature conditions are met for the
+      configured duration. Respects manual control switch.
+    mode: single
+    trigger:
+      - platform: state
+        entity_id: binary_sensor.ext_heater_should_be_enabled
+        to: "on"
+    condition:
+      - condition: state
+        entity_id: input_boolean.ext_heater_manual_control
+        state: "off"
+      - condition: state
+        entity_id: switch.enable_external_additional_heater
+        state: "off"
+    action:
+      - service: switch.turn_on
+        target:
+          entity_id: switch.enable_external_additional_heater
+      - service: logbook.log
+        data:
+          name: "External Heater"
+          message: >-
+            Enabled - outdoor temp {{ states('sensor.outdoor_temperature') }}°C,
+            peak: {{ is_state('binary_sensor.peak_hours_active', 'on') }}
+
+  - id: ext_heater_disable
+    alias: "External Heater: Disable on Warm"
+    description: >-
+      Disable external heater when temperature rises above threshold for
+      the configured duration. Respects manual control switch.
+    mode: single
+    trigger:
+      - platform: state
+        entity_id: binary_sensor.ext_heater_should_disable
+        to: "on"
+        for:
+          minutes: "{{ states('input_number.ext_heater_duration_minutes') | int(30) }}"
+    condition:
+      - condition: state
+        entity_id: input_boolean.ext_heater_manual_control
+        state: "off"
+    action:
+      - service: switch.turn_off
+        target:
+          entity_id: switch.enable_external_additional_heater
+      - service: logbook.log
+        data:
+          name: "External Heater"
+          message: >-
+            Disabled - outdoor temp {{ states('sensor.outdoor_temperature') }}°C,
+            peak: {{ is_state('binary_sensor.peak_hours_active', 'on') }}
