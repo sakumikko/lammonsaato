@@ -152,6 +152,13 @@ const ENTITIES = {
   extHeaterOffpeakDisableTemp: 'input_number.ext_heater_offpeak_disable_temp',
   extHeaterDuration: 'input_number.ext_heater_duration_minutes',
   extHeaterManualControl: 'input_boolean.ext_heater_manual_control',
+
+  // Cold weather mode
+  coldWeatherMode: 'input_boolean.pool_heating_cold_weather_mode',
+  coldEnabledHours: 'input_text.pool_heating_cold_enabled_hours',
+  coldBlockDuration: 'input_number.pool_heating_cold_block_duration',
+  coldPreCirculation: 'input_number.pool_heating_cold_pre_circulation',
+  coldPostCirculation: 'input_number.pool_heating_cold_post_circulation',
 } as const;
 
 // Block entities (1-10)
@@ -218,6 +225,11 @@ const defaultState: SystemState = {
       totalHours: 2,
       maxCostEur: null,
       minBreakDuration: 60,
+      coldWeatherMode: false,
+      coldEnabledHours: '21,22,23,0,1,2,3,4,5,6',
+      coldBlockDuration: 5,
+      coldPreCirculation: 5,
+      coldPostCirculation: 5,
     },
   },
   gearSettings: {
@@ -482,6 +494,12 @@ export function useHomeAssistant(): UseHomeAssistantReturn {
       totalHours: parseNumber(get(ENTITIES.totalHours)) || 2,
       maxCostEur: maxCostVal > 0 ? maxCostVal : null,
       minBreakDuration: parseNumber(get(ENTITIES.minBreakDuration)) || 60,
+      // Cold weather mode
+      coldWeatherMode: parseBoolean(get(ENTITIES.coldWeatherMode)),
+      coldEnabledHours: get(ENTITIES.coldEnabledHours) || '21,22,23,0,1,2,3,4,5,6',
+      coldBlockDuration: parseNumber(get(ENTITIES.coldBlockDuration)) || 5,
+      coldPreCirculation: parseNumber(get(ENTITIES.coldPreCirculation)) || 5,
+      coldPostCirculation: parseNumber(get(ENTITIES.coldPostCirculation)) || 5,
     };
 
     const schedule: ScheduleState = {
@@ -791,6 +809,51 @@ export function useHomeAssistant(): UseHomeAssistantReturn {
         ws.current.callService('input_number', 'set_value', {
           entity_id: ENTITIES.maxCostEur,
           value: params.maxCostEur ?? 0,
+        })
+      );
+    }
+
+    // Cold weather mode parameters
+    if (params.coldWeatherMode !== undefined) {
+      calls.push(
+        ws.current.callService('input_boolean', params.coldWeatherMode ? 'turn_on' : 'turn_off', {
+          entity_id: ENTITIES.coldWeatherMode,
+        })
+      );
+    }
+
+    if (params.coldEnabledHours !== undefined) {
+      calls.push(
+        ws.current.callService('input_text', 'set_value', {
+          entity_id: ENTITIES.coldEnabledHours,
+          value: params.coldEnabledHours,
+        })
+      );
+    }
+
+    if (params.coldBlockDuration !== undefined) {
+      calls.push(
+        ws.current.callService('input_number', 'set_value', {
+          entity_id: ENTITIES.coldBlockDuration,
+          value: params.coldBlockDuration,
+        })
+      );
+    }
+
+    if (params.coldPreCirculation !== undefined) {
+      calls.push(
+        ws.current.callService('input_number', 'set_value', {
+          entity_id: ENTITIES.coldPreCirculation,
+          value: params.coldPreCirculation,
+        })
+      );
+    }
+
+    if (params.coldPostCirculation !== undefined) {
+      calls.push(
+        ws.current.callService('input_number', 'set_value', {
+          entity_id: ENTITIES.coldPostCirculation,
+          value: params.coldPostCirculation,
         })
       );
     }

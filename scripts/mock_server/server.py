@@ -235,6 +235,12 @@ class ScheduleParameters(BaseModel):
     maxBlockDuration: int = DEFAULT_MAX_BLOCK_MINUTES
     totalHours: float = 2.0
     maxCostEur: Optional[float] = None  # Cost limit in EUR, None = no limit
+    # Cold weather mode parameters
+    coldWeatherMode: bool = False
+    coldEnabledHours: str = "21,22,23,0,1,2,3,4,5,6"
+    coldBlockDuration: int = 5
+    coldPreCirculation: int = 5
+    coldPostCirculation: int = 5
 
 
 class CalculateRequest(BaseModel):
@@ -337,6 +343,61 @@ async def set_parameters(params: ScheduleParameters):
     }
 
 
+def generate_cold_weather_blocks(enabled_hours_str: str, block_duration: int, pre_circ: int, post_circ: int) -> list:
+    """Generate cold weather schedule blocks at :05 past each enabled hour."""
+    # Parse enabled hours
+    hours = set()
+    if enabled_hours_str:
+        for h in enabled_hours_str.split(','):
+            try:
+                parsed = int(h.strip())
+                if 0 <= parsed <= 23:
+                    hours.add(parsed)
+            except ValueError:
+                pass
+
+    if not hours:
+        return []
+
+    # Validate duration (5, 10, or 15)
+    if block_duration not in [5, 10, 15]:
+        block_duration = 5
+
+    # Sort hours: overnight schedule (21-23 before 0-7)
+    overnight_hours = sorted([h for h in hours if h >= 21])
+    morning_hours = sorted([h for h in hours if h < 21])
+    sorted_hours = overnight_hours + morning_hours
+
+    # Generate blocks
+    blocks = []
+    now = datetime.now()
+    today = now.date()
+    tomorrow = today + timedelta(days=1)
+
+    for hour in sorted_hours:
+        # Determine date based on hour (21-23 is today, 0-20 is tomorrow)
+        block_date = today if hour >= 21 else tomorrow
+        # Block starts at :05 past the hour
+        heating_start = datetime.combine(block_date, datetime.min.time().replace(hour=hour, minute=5))
+        # Pre-circulation before heating
+        circ_start = heating_start - timedelta(minutes=pre_circ)
+        # Heating ends after block_duration
+        heating_end = heating_start + timedelta(minutes=block_duration)
+
+        blocks.append({
+            'start': circ_start.isoformat(),
+            'heatingStart': heating_start.isoformat(),
+            'end': heating_end.isoformat(),
+            'duration': block_duration,
+            'price': 0.0,  # No price optimization for cold weather
+            'costEur': 0.0,
+            'enabled': True,
+            'costExceeded': False,
+        })
+
+    return blocks
+
+
 @app.post("/api/calculate")
 async def calculate_schedule(request: CalculateRequest = None):
     """Calculate optimal schedule using the real algorithm."""
@@ -348,11 +409,21 @@ async def calculate_schedule(request: CalculateRequest = None):
         max_block = request.parameters.maxBlockDuration
         total_hours = request.parameters.totalHours
         max_cost_eur = request.parameters.maxCostEur
+        cold_weather_mode = request.parameters.coldWeatherMode
+        cold_enabled_hours = request.parameters.coldEnabledHours
+        cold_block_duration = request.parameters.coldBlockDuration
+        cold_pre_circ = request.parameters.coldPreCirculation
+        cold_post_circ = request.parameters.coldPostCirculation
     else:
         min_block = state.min_block_duration
         max_block = state.max_block_duration
         total_hours = state.total_hours
         max_cost_eur = state.max_cost_eur
+        cold_weather_mode = False
+        cold_enabled_hours = "21,22,23,0,1,2,3,4,5,6"
+        cold_block_duration = 5
+        cold_pre_circ = 5
+        cold_post_circ = 5
 
     # Get scenario
     if request and request.scenario:
@@ -361,11 +432,49 @@ async def calculate_schedule(request: CalculateRequest = None):
         except ValueError:
             raise HTTPException(400, f"Invalid scenario: {request.scenario}")
 
-    # Validate parameters
-    validated = validate_schedule_parameters(min_block, max_block, total_hours)
-
     # Get prices
     prices = state.get_prices()
+
+    # Cold weather mode - generate fixed-time blocks
+    if cold_weather_mode:
+        state.schedule_blocks = generate_cold_weather_blocks(
+            cold_enabled_hours,
+            cold_block_duration,
+            cold_pre_circ,
+            cold_post_circ
+        )
+        state.total_cost = 0.0
+        state.cost_limit_applied = False
+
+        # Update HA state manager
+        ha_state_manager.set_state("input_boolean.pool_heating_cold_weather_mode", "on")
+        ha_state_manager.set_state("input_text.pool_heating_cold_enabled_hours", cold_enabled_hours)
+        ha_state_manager.set_state("input_number.pool_heating_cold_block_duration", str(cold_block_duration))
+        ha_state_manager.set_state("input_number.pool_heating_cold_pre_circulation", str(cold_pre_circ))
+        ha_state_manager.set_state("input_number.pool_heating_cold_post_circulation", str(cold_post_circ))
+        ha_state_manager.update_schedule_blocks(state.schedule_blocks)
+
+        await broadcast_state()
+
+        return {
+            "success": True,
+            "schedule": state.schedule_blocks,
+            "stats": {
+                "block_count": len(state.schedule_blocks),
+                "total_minutes": len(state.schedule_blocks) * cold_block_duration,
+            },
+            "parameters": {
+                "coldWeatherMode": True,
+                "coldEnabledHours": cold_enabled_hours,
+                "coldBlockDuration": cold_block_duration,
+                "coldPreCirculation": cold_pre_circ,
+                "coldPostCirculation": cold_post_circ,
+            },
+            "message": f"Cold weather mode: {len(state.schedule_blocks)} blocks at :05 past selected hours"
+        }
+
+    # Normal mode - validate parameters
+    validated = validate_schedule_parameters(min_block, max_block, total_hours)
 
     # Handle disabled heating
     if validated['total_minutes'] == 0:
@@ -509,8 +618,8 @@ async def set_block_enabled(request: BlockEnabledRequest):
     """Enable/disable a heating block."""
     global state
 
-    if request.blockNumber < 1 or request.blockNumber > 4:
-        raise HTTPException(400, "Block number must be 1-4")
+    if request.blockNumber < 1 or request.blockNumber > 10:
+        raise HTTPException(400, "Block number must be 1-10")
 
     state.block_enabled[request.blockNumber] = request.enabled
 

@@ -56,6 +56,12 @@ export interface ScheduleParameters {
   totalHours: number;        // 0 to 6 in 0.5 steps
   maxCostEur: number | null; // Maximum cost limit in EUR, null = no limit
   minBreakDuration: number;  // 60, 75, 90, 105, or 120 minutes between blocks
+  // Cold weather mode parameters
+  coldWeatherMode: boolean;       // Toggle for cold weather mode
+  coldEnabledHours: string;       // Comma-separated hours (0-23), e.g., "21,22,23,0,1,2,3,4,5,6"
+  coldBlockDuration: number;      // 5, 10, or 15 minutes
+  coldPreCirculation: number;     // 0-10 minutes
+  coldPostCirculation: number;    // 0-10 minutes
 }
 
 export interface ScheduleState {

@@ -1,6 +1,6 @@
 import { cn } from '@/lib/utils';
 import { ScheduleState, ScheduleParameters } from '@/types/heating';
-import { Clock, Euro, Calendar, CheckCircle, History, AlertCircle, AlertTriangle } from 'lucide-react';
+import { Clock, Euro, Calendar, CheckCircle, History, AlertCircle, AlertTriangle, Snowflake } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 import { useTranslation } from 'react-i18next';
 import { useScheduleEditor } from './ScheduleEditor';
@@ -48,8 +48,11 @@ export function SchedulePanel({
       })
     : null;
 
+  // Check if cold weather mode is active
+  const isColdWeather = schedule.parameters.coldWeatherMode;
+
   return (
-    <div data-testid="schedule-panel" className={cn('p-4 rounded-xl bg-card border border-border', className)}>
+    <div data-testid="schedule-panel" data-cold-weather={isColdWeather || undefined} className={cn('p-4 rounded-xl bg-card border border-border', isColdWeather && 'border-blue-500/30', className)}>
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
           <Calendar className="w-4 h-4 text-primary" />
@@ -111,11 +114,20 @@ export function SchedulePanel({
         <span className="font-mono text-lg text-warning">{schedule.currentPrice.toFixed(1)} {t('units.centsPerKwh')}</span>
       </div>
 
-      {/* Schedule blocks */}
-      <div data-testid="schedule-blocks" data-block-count={schedule.blocks.length} className="space-y-2">
+      {/* Schedule blocks - compact 2-column grid for cold weather with many blocks */}
+      <div
+        data-testid="schedule-blocks"
+        data-block-count={schedule.blocks.length}
+        className={cn(
+          isColdWeather && schedule.blocks.length > 6
+            ? 'grid grid-cols-2 gap-2'
+            : 'space-y-2'
+        )}
+      >
         {schedule.blocks.map((block, index) => {
           const isPast = isBlockInPast(block.endDateTime);
           const isDisabled = !block.enabled;
+          const isCompact = isColdWeather && schedule.blocks.length > 6;
 
           return (
             <div
@@ -129,13 +141,15 @@ export function SchedulePanel({
                   ? 'bg-muted/20 border border-muted/30'
                   : isDisabled
                     ? 'bg-marja/30 border border-marja/50'
-                    : 'bg-muted/30 hover:bg-muted/50'
+                    : isColdWeather
+                      ? 'bg-blue-500/10 border border-blue-500/30 hover:bg-blue-500/20'
+                      : 'bg-muted/30 hover:bg-muted/50'
               )}
             >
               {/* Row 1: Toggle, icon, heating time range */}
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  {onBlockEnabledChange && (
+                  {onBlockEnabledChange && !isCompact && (
                     <Switch
                       checked={block.enabled}
                       onCheckedChange={(checked) => onBlockEnabledChange(index + 1, checked)}
@@ -150,6 +164,8 @@ export function SchedulePanel({
                   )}
                   {isPast ? (
                     <History className="w-3 h-3 text-muted-foreground" />
+                  ) : isColdWeather ? (
+                    <Snowflake className={cn('w-3 h-3', block.enabled ? 'text-blue-400' : 'text-marja')} />
                   ) : block.enabled ? (
                     <Clock className="w-3 h-3 text-primary" />
                   ) : (
@@ -168,72 +184,88 @@ export function SchedulePanel({
                   >
                     {block.heatingStart}-{block.end}
                   </span>
-                  {isPast && (
+                  {isPast && !isCompact && (
                     <span className="text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground font-medium">
                       {t('schedule.completed')}
                     </span>
                   )}
                 </div>
-              </div>
-              {/* Row 2: Preheat time, duration, price, cost */}
-              <div className="flex items-center justify-between" data-testid="block-preheat">
-                <span
-                  className={cn(
-                    'font-mono text-xs',
-                    isPast
-                      ? 'text-muted-foreground/60'
-                      : isDisabled
-                        ? 'text-amber-600/40'
-                        : 'text-amber-600 dark:text-amber-400'
-                  )}
-                >
-                  {t('schedule.preheat')} {block.start}
-                </span>
-                <div className="flex items-center gap-3">
+                {/* Duration shown inline for compact mode */}
+                {isCompact && (
                   <span
                     data-testid="block-duration"
                     className={cn(
                       'font-mono text-xs',
-                      isPast
-                        ? 'text-muted-foreground/60'
-                        : isDisabled
-                          ? 'text-foreground/40'
-                          : 'text-muted-foreground'
+                      isPast ? 'text-muted-foreground/60' : 'text-muted-foreground'
                     )}
                   >
-                    {block.duration}{t('schedule.min')}
+                    {block.duration}m
                   </span>
+                )}
+              </div>
+              {/* Row 2: Preheat time, duration, price, cost - hidden in compact mode */}
+              {!isCompact && (
+                <div className="flex items-center justify-between" data-testid="block-preheat">
                   <span
-                    className={cn(
-                      'font-mono text-sm',
-                      isPast
-                        ? 'text-muted-foreground/60'
-                        : isDisabled
-                          ? 'text-foreground/50 line-through'
-                          : block.price < 2
-                            ? 'text-success'
-                            : block.price < 5
-                              ? 'text-warning'
-                              : 'text-destructive'
-                    )}
-                  >
-                    {block.price.toFixed(2)} c
-                  </span>
-                  <span
-                    data-testid="block-cost"
                     className={cn(
                       'font-mono text-xs',
                       isPast
                         ? 'text-muted-foreground/60'
                         : isDisabled
-                          ? 'text-foreground/50 line-through'
-                          : 'text-muted-foreground'
+                          ? 'text-amber-600/40'
+                          : isColdWeather
+                            ? 'text-blue-400/80'
+                            : 'text-amber-600 dark:text-amber-400'
                     )}
                   >
-                    €{block.costEur?.toFixed(2) ?? '0.00'}
+                    {isColdWeather ? t('schedule.circ') : t('schedule.preheat')} {block.start}
                   </span>
+                  <div className="flex items-center gap-3">
+                    <span
+                      data-testid="block-duration"
+                      className={cn(
+                        'font-mono text-xs',
+                        isPast
+                          ? 'text-muted-foreground/60'
+                          : isDisabled
+                            ? 'text-foreground/40'
+                            : 'text-muted-foreground'
+                      )}
+                    >
+                      {block.duration}{t('schedule.min')}
+                    </span>
+                    <span
+                      className={cn(
+                        'font-mono text-sm',
+                        isPast
+                          ? 'text-muted-foreground/60'
+                          : isDisabled
+                            ? 'text-foreground/50 line-through'
+                            : block.price < 2
+                              ? 'text-success'
+                              : block.price < 5
+                                ? 'text-warning'
+                                : 'text-destructive'
+                      )}
+                    >
+                      {block.price.toFixed(2)} c
+                    </span>
+                    <span
+                      data-testid="block-cost"
+                      className={cn(
+                        'font-mono text-xs',
+                        isPast
+                          ? 'text-muted-foreground/60'
+                          : isDisabled
+                            ? 'text-foreground/50 line-through'
+                            : 'text-muted-foreground'
+                      )}
+                    >
+                      €{block.costEur?.toFixed(2) ?? '0.00'}
+                    </span>
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
           );
         })}

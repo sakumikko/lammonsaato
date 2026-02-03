@@ -63,9 +63,13 @@ TARGET_OFFSET = 0.5
 PREHEAT_OFFSET = 3.0     # Degrees to raise comfort wheel before pool heating
 MAX_COMFORT_WHEEL = 30.0 # Maximum allowed comfort wheel setting (don't overshoot)
 
-# Safety thresholds
+# Safety thresholds (normal mode)
 ABSOLUTE_MIN_SUPPLY = 32.0  # Stop if supply drops below this (FR-44)
 RELATIVE_DROP_MAX = 15.0    # Stop if supply drops this much below original target (FR-45)
+
+# Cold weather safety thresholds (tighter)
+COLD_WEATHER_MIN_SUPPLY = 38.0      # Higher minimum for cold weather (FR-44-CW)
+COLD_WEATHER_RELATIVE_DROP = 12.0   # Tighter relative drop for cold weather (FR-45-CW)
 
 # Thermia entity IDs
 FIXED_SUPPLY_ENABLE = "switch.enable_fixed_system_supply_set_point"
@@ -161,30 +165,46 @@ def calculate_new_setpoint(current_supply: float, prev_supply: float, pid_30m: f
     return new_target, 0.0, pid_correction
 
 
-def check_safety_conditions(current_supply: float, original_curve: float) -> tuple:
+def check_safety_conditions(current_supply: float, original_curve: float, cold_weather: bool = False) -> tuple:
     """
     Check safety conditions for pool heating.
 
-    FR-44: Supply must not drop below ABSOLUTE_MIN_SUPPLY (32 deg C)
-    FR-45: Supply must not drop more than RELATIVE_DROP_MAX (15 deg C) below curve
+    Normal mode:
+        FR-44: Supply must not drop below ABSOLUTE_MIN_SUPPLY (32 deg C)
+        FR-45: Supply must not drop more than RELATIVE_DROP_MAX (15 deg C) below curve
+
+    Cold weather mode:
+        FR-44-CW: Supply must not drop below COLD_WEATHER_MIN_SUPPLY (38 deg C)
+        FR-45-CW: Supply must not drop more than COLD_WEATHER_RELATIVE_DROP (12 deg C) below curve
 
     Args:
         current_supply: Current system supply line temperature (deg C)
         original_curve: Original curve target at pool heating start (deg C)
+        cold_weather: If True, use tighter cold weather thresholds
 
     Returns:
         tuple: (safe, reason)
             safe: True if conditions are safe, False if fallback needed
             reason: Description of violation if not safe, None if safe
     """
+    # Select thresholds based on mode
+    if cold_weather:
+        min_supply = COLD_WEATHER_MIN_SUPPLY
+        relative_max = COLD_WEATHER_RELATIVE_DROP
+        mode_suffix = "-CW"
+    else:
+        min_supply = ABSOLUTE_MIN_SUPPLY
+        relative_max = RELATIVE_DROP_MAX
+        mode_suffix = ""
+
     # FR-44: Absolute minimum check
-    if current_supply < ABSOLUTE_MIN_SUPPLY:
-        return False, f"FR-44: Supply {current_supply} deg C below minimum {ABSOLUTE_MIN_SUPPLY} deg C"
+    if current_supply < min_supply:
+        return False, f"FR-44{mode_suffix}: Supply {current_supply} deg C below minimum {min_supply} deg C"
 
     # FR-45: Relative drop check
-    max_allowed_drop = original_curve - RELATIVE_DROP_MAX
+    max_allowed_drop = original_curve - relative_max
     if current_supply < max_allowed_drop:
-        return False, (f"FR-45: Supply {current_supply} deg C dropped >{RELATIVE_DROP_MAX} deg C "
+        return False, (f"FR-45{mode_suffix}: Supply {current_supply} deg C dropped >{relative_max} deg C "
                        f"below curve target {original_curve} deg C")
 
     return True, None
@@ -647,6 +667,109 @@ try:
                      value=original_gear)
 
         _log_action(f"Transition complete: gear restored to {original_gear}")
+
+
+    @service
+    def pool_cold_weather_start():
+        """
+        Enable window-level fixed supply mode for cold weather.
+
+        Called when cold weather mode is turned ON. Instead of per-block
+        toggling, this enables fixed supply once and leaves it on until
+        cold weather mode is disabled.
+
+        - Stores original curve target, min gear, comfort wheel
+        - Enables fixed supply with conservative setpoint
+        - Sets min gear to max(9, MIN_GEAR_ENTITY, live_compressor_gear)
+        - Marks control as active
+        """
+        # Check if fixed supply entities are available
+        fixed_enable_state = state.get(FIXED_SUPPLY_ENABLE)
+        if fixed_enable_state in ['unknown', 'unavailable', None]:
+            log.error(f"Fixed supply enable switch not available: {fixed_enable_state}")
+            return
+
+        # Store original values
+        original_curve = _safe_get_float(CURVE_TARGET_SENSOR, 40.0)
+        service.call("input_number", "set_value",
+                     entity_id=ORIGINAL_CURVE_TARGET,
+                     value=original_curve)
+
+        original_gear = _safe_get_float(MIN_GEAR_ENTITY, 1)
+        service.call("input_number", "set_value",
+                     entity_id=ORIGINAL_MIN_GEAR,
+                     value=original_gear)
+
+        original_comfort = _safe_get_float(COMFORT_WHEEL_ENTITY, 20.0)
+        service.call("input_number", "set_value",
+                     entity_id=ORIGINAL_COMFORT_WHEEL,
+                     value=original_comfort)
+
+        # Calculate cold weather min gear: max(9, MIN_GEAR_ENTITY, live_compressor_gear)
+        current_gear = _safe_get_float(COMPRESSOR_GEAR_SENSOR, 1)
+        cold_min_gear = max(9, original_gear, current_gear)
+
+        # Set minimum gear for cold weather
+        service.call("number", "set_value",
+                     entity_id=MIN_GEAR_ENTITY,
+                     value=cold_min_gear)
+
+        # Get current supply and set conservative fixed setpoint
+        current_supply = _safe_get_float(SUPPLY_TEMP_SENSOR, 40.0)
+        # Use curve target - 2C as conservative setpoint
+        initial_setpoint = max(MIN_SETPOINT, min(original_curve - 2.0, MAX_SETPOINT))
+
+        # Enable fixed supply mode
+        service.call("number", "set_value",
+                     entity_id=FIXED_SUPPLY_SETPOINT,
+                     value=initial_setpoint)
+        service.call("switch", "turn_on",
+                     entity_id=FIXED_SUPPLY_ENABLE)
+
+        # Store previous supply for tracking
+        service.call("input_number", "set_value",
+                     entity_id=PREV_SUPPLY_TEMP,
+                     value=current_supply)
+
+        # Mark control as active
+        service.call("input_boolean", "turn_on",
+                     entity_id=CONTROL_ACTIVE)
+
+        _log_action(f"Cold weather started: supply={current_supply:.1f}C, "
+                    f"target={initial_setpoint:.1f}C, gear->{cold_min_gear}")
+
+
+    @service
+    def pool_cold_weather_stop():
+        """
+        Disable fixed supply mode when cold weather mode is turned OFF.
+
+        - Disables fixed supply mode (returns to heating curve)
+        - Restores original min gear
+        - Restores original comfort wheel
+        - Marks control as inactive
+        """
+        # Disable fixed supply mode - return to curve
+        service.call("switch", "turn_off",
+                     entity_id=FIXED_SUPPLY_ENABLE)
+
+        # Restore original minimum gear
+        original_gear = _safe_get_float(ORIGINAL_MIN_GEAR, 1)
+        service.call("number", "set_value",
+                     entity_id=MIN_GEAR_ENTITY,
+                     value=original_gear)
+
+        # Restore original comfort wheel
+        original_comfort = _safe_get_float(ORIGINAL_COMFORT_WHEEL, 20.0)
+        service.call("number", "set_value",
+                     entity_id=COMFORT_WHEEL_ENTITY,
+                     value=original_comfort)
+
+        # Mark control as inactive
+        service.call("input_boolean", "turn_off",
+                     entity_id=CONTROL_ACTIVE)
+
+        _log_action(f"Cold weather stopped: gear restored to {original_gear}")
 
 
 except NameError:

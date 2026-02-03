@@ -81,6 +81,8 @@ class MockStateManager:
                 return "off"
             if "tomorrow_available" in entity_id:
                 return "on"
+            if "cold_weather_mode" in entity_id:
+                return "off"
             return "off"
 
         # Numeric entities
@@ -94,6 +96,14 @@ class MockStateManager:
                 return "2"
             if "max_cost" in entity_id:
                 return "0"
+
+            # Cold weather parameters
+            if "cold_block_duration" in entity_id:
+                return "5"
+            if "cold_pre_circulation" in entity_id:
+                return "5"
+            if "cold_post_circulation" in entity_id:
+                return "5"
 
             # Block data
             if "_price" in entity_id:
@@ -182,6 +192,8 @@ class MockStateManager:
             return "unknown"
         if "debug" in entity_id:
             return ""
+        if "cold_enabled_hours" in entity_id:
+            return "21,22,23,0,1,2,3,4,5,6"
 
         return "unknown"
 

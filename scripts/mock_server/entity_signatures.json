@@ -2133,6 +2133,97 @@
       ],
       "min_value": 1,
       "max_value": 9
+    },
+    {
+      "entity_id": "input_boolean.pool_heating_cold_weather_mode",
+      "domain": "input_boolean",
+      "state_type": "boolean",
+      "deployed": true,
+      "attributes": [
+        "editable",
+        "friendly_name",
+        "icon"
+      ]
+    },
+    {
+      "entity_id": "input_text.pool_heating_cold_enabled_hours",
+      "domain": "input_text",
+      "state_type": "string",
+      "deployed": true,
+      "attributes": [
+        "editable",
+        "friendly_name",
+        "icon",
+        "max",
+        "min",
+        "mode",
+        "pattern"
+      ],
+      "min_value": 0,
+      "max_value": 100
+    },
+    {
+      "entity_id": "input_number.pool_heating_cold_block_duration",
+      "domain": "input_number",
+      "state_type": "numeric",
+      "deployed": true,
+      "attributes": [
+        "editable",
+        "friendly_name",
+        "icon",
+        "initial",
+        "max",
+        "min",
+        "mode",
+        "step",
+        "unit_of_measurement"
+      ],
+      "unit_of_measurement": "min",
+      "min_value": 5,
+      "max_value": 15,
+      "step": 5
+    },
+    {
+      "entity_id": "input_number.pool_heating_cold_pre_circulation",
+      "domain": "input_number",
+      "state_type": "numeric",
+      "deployed": true,
+      "attributes": [
+        "editable",
+        "friendly_name",
+        "icon",
+        "initial",
+        "max",
+        "min",
+        "mode",
+        "step",
+        "unit_of_measurement"
+      ],
+      "unit_of_measurement": "min",
+      "min_value": 0,
+      "max_value": 10,
+      "step": 1
+    },
+    {
+      "entity_id": "input_number.pool_heating_cold_post_circulation",
+      "domain": "input_number",
+      "state_type": "numeric",
+      "deployed": true,
+      "attributes": [
+        "editable",
+        "friendly_name",
+        "icon",
+        "initial",
+        "max",
+        "min",
+        "mode",
+        "step",
+        "unit_of_measurement"
+      ],
+      "unit_of_measurement": "min",
+      "min_value": 0,
+      "max_value": 10,
+      "step": 1
     }
   ]
 }
