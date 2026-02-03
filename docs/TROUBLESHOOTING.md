@@ -68,11 +68,12 @@ This is a known bug in the `thermiagenesis` integration where Modbus polling sto
    - Look at browser URL: `.../config_entries/entry/<ENTRY_ID>`
    - Copy the entry ID and update `pool_heating.yaml`
 
-5. **Downgrade thermiagenesis (alternative):**
-   If the bug persists, consider rolling back to version 0.0.10:
-   - Download older version from GitHub
-   - Replace `/config/custom_components/thermiagenesis/`
+5. **Use forked thermiagenesis (recommended):**
+   Install the forked integration which includes stability fixes:
+   - Remove official integration: `rm -rf /config/custom_components/thermiagenesis`
+   - Clone fork: `git clone https://github.com/sakumikko/thermiagenesis.git /config/custom_components/thermiagenesis`
    - Restart Home Assistant
+   - See SETUP_GUIDE.md section 6.4 for HACS installation
 
 ### Shelly Switch Not Controllable
 

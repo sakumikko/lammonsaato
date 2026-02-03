@@ -92,6 +92,8 @@ asyncio.run(read_registers())
 
 ## References
 
-- [pythermiagenesis GitHub](https://github.com/CJNE/pythermiagenesis)
+- [pythermiagenesis GitHub](https://github.com/CJNE/pythermiagenesis) (original)
+- [pythermiagenesis Fork](https://github.com/sakumikko/pythermiagenesis) (with fixes)
+- [thermiagenesis Fork](https://github.com/sakumikko/thermiagenesis) (HA integration with fixes)
 - Thermia Mega Installation Manual (contact dealer)
 - Modbus TCP/IP Specification

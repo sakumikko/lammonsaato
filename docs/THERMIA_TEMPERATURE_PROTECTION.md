@@ -169,7 +169,9 @@ Restart to load the new package and automations.
 
 ## Further Reading
 
-- [pythermiagenesis GitHub](https://github.com/CJNE/pythermiagenesis)
-- [thermiagenesis Home Assistant integration](https://github.com/CJNE/thermiagenesis)
+- [pythermiagenesis GitHub](https://github.com/CJNE/pythermiagenesis) (original)
+- [pythermiagenesis Fork](https://github.com/sakumikko/pythermiagenesis) (with KeyError fix)
+- [thermiagenesis Home Assistant integration](https://github.com/CJNE/thermiagenesis) (original)
+- [thermiagenesis Fork](https://github.com/sakumikko/thermiagenesis) (with gear limit fix)
 - [Thermia Modbus Protocol PDF](https://www.thermia.fi/media/70526/protocol_doc-00079973.pdf)
 - [Understanding Heat Curves](https://www.imsheatpumps.co.uk/blog/understanding-your-heat-curve/)

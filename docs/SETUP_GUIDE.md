@@ -372,31 +372,45 @@ The auto-generated dashboard shows toggle switches for integrations like "Pannuh
    - The package includes `thermia_auto_recovery` automation
    - If Thermia sensors go stale, it reloads the integration automatically
 
-### 6.4 Thermia Integration - Patch Required for KeyError Bug
+### 6.4 Thermia Integration - Use Forked Version (Required)
 
-The official `pythermiagenesis` library has a bug that causes `KeyError` crashes when `fixed_system_supply_set_point` register is not available on the heat pump. **You must patch the thermiagenesis integration** to use the forked library.
+The official `thermiagenesis` integration and `pythermiagenesis` library have bugs:
+1. **KeyError crash** - When `fixed_system_supply_set_point` register is unavailable
+2. **Gear limit capped at 9** - Cannot set max gear to 10 (Thermia Mega supports 10)
 
-**Patch the integration:**
+**Use the forked integration** which fixes both issues:
+
+**Installation via HACS (Recommended):**
+
+1. Open HACS in Home Assistant
+2. Go to **Integrations** > **3 dots menu** > **Custom repositories**
+3. Add repository:
+   ```
+   https://github.com/sakumikko/thermiagenesis
+   ```
+   Category: **Integration**
+4. Click **Add**
+5. Search for "Thermia Genesis" in HACS and install
+6. Restart Home Assistant
+
+**Manual Installation:**
 
 1. SSH into Home Assistant or use File Editor add-on
-2. Navigate to the thermiagenesis custom component:
+2. Remove the official integration if installed:
+   ```bash
+   rm -rf /config/custom_components/thermiagenesis
    ```
-   /config/custom_components/thermiagenesis/manifest.json
-   ```
-3. Find the `requirements` line and change it from:
-   ```json
-   "requirements": ["pythermiagenesis==2.1.0"],
-   ```
-   to:
-   ```json
-   "requirements": ["pythermiagenesis @ git+https://github.com/sakumikko/pythermiagenesis.git@fixed-system-supply-key-error"],
+3. Download the forked integration:
+   ```bash
+   cd /config/custom_components
+   git clone https://github.com/sakumikko/thermiagenesis.git
    ```
 4. Restart Home Assistant
 
-**Why this patch is required:**
-- The official library crashes with `KeyError` when optional Modbus registers are missing
-- The forked version adds graceful handling for missing registers
-- Without this fix, the integration crashes periodically
+**What the fork fixes:**
+- KeyError crash when optional Modbus registers are missing (pythermiagenesis fix)
+- Gear limit increased from 9 to 10 (allows max gear = 10 on Thermia Mega)
+- References fixed `pythermiagenesis` library automatically
 
 ### 6.5 Thermia Integration Stability (Known Issue)
 

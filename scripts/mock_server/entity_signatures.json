@@ -1390,7 +1390,7 @@
         "step"
       ],
       "min_value": 1,
-      "max_value": 9,
+      "max_value": 10,
       "step": 1
     },
     {
@@ -1407,7 +1407,7 @@
         "step"
       ],
       "min_value": 1,
-      "max_value": 9,
+      "max_value": 10,
       "step": 1
     },
     {
@@ -1424,7 +1424,7 @@
         "step"
       ],
       "min_value": 1,
-      "max_value": 9,
+      "max_value": 10,
       "step": 1
     },
     {
@@ -1441,7 +1441,7 @@
         "step"
       ],
       "min_value": 1,
-      "max_value": 9,
+      "max_value": 10,
       "step": 1
     },
     {
@@ -1458,7 +1458,7 @@
         "step"
       ],
       "min_value": 1,
-      "max_value": 9,
+      "max_value": 10,
       "step": 1
     },
     {
@@ -1475,7 +1475,7 @@
         "step"
       ],
       "min_value": 1,
-      "max_value": 9,
+      "max_value": 10,
       "step": 1
     },
     {
