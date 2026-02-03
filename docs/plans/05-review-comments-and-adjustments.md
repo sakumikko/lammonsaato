@@ -258,23 +258,95 @@ Based on GitHub feedback, cold weather mode becomes much simpler:
 
 ---
 
-## Questions for User Feedback
+## User Feedback Responses
 
-### Clarifications Needed on GitHub Feedback
+### Answers Received (2026-02-03)
 
-1. **Window hours (GH-1):** Should cold weather mode use the SAME window entities as normal mode, or separate `input_datetime.pool_heating_cold_window_start/end` entities?
+| # | Question | Answer |
+|---|----------|--------|
+| 1 | Window hours: same or separate entities? | **Separate** - cold weather uses its own `input_datetime` entities |
+| 2 | Fixed time offset: hardcoded or configurable? | **Hardcoded** to :05 past hour |
+| 3 | Gear formula: which current_gear? | **max of both** - `max(9, MIN_GEAR_ENTITY, live_sensor)` |
+| 4 | Compressor 3-min safety check? | **Not needed** - compressor always runs, we just switch valve positions |
+| 5 | Pre-circ timing: Option C acceptable? | **Yes** - trigger start automation early |
 
-2. **Fixed time offset (GH-4):** You mentioned ":05 past hour" as example. Should this be:
-   - A) Hardcoded to :05
-   - B) Configurable (e.g., `input_number.pool_heating_cold_offset_minutes`)
-   - C) User chooses which quarter (:00, :15, :30, :45)
+---
 
-3. **Gear formula (GH-2):** `max(9, current_gear)` -- is `current_gear` the value of `MIN_GEAR_ENTITY` at window start, or the live compressor gear sensor?
+## Final Plan Adjustments
 
-### Internal Review Questions
+Based on all feedback, here are the confirmed changes:
 
-4. **Compressor safety (Issue #3):** Should we add a 3-min minimum run time check? If the block is interrupted before 3 min, should we delay the stop?
+### Plan 01: HA Entities & YAML
 
-5. **Pre-circulation timing (Issue #6):** The proposed Option C means the start automation triggers at `block_start - pre_circ_minutes`. This changes how the schedule is interpreted. Is this acceptable?
+**New entities to add:**
+```yaml
+input_boolean:
+  pool_heating_cold_weather_mode:         # Toggle for cold weather mode
 
-6. **Thermia response time (Issue #7):** Do you have observations on how quickly Thermia responds to fixed supply mode changes? Should we add lead time?
+input_datetime:
+  pool_heating_cold_window_start:         # SEPARATE from normal mode
+    has_date: false
+    has_time: true
+  pool_heating_cold_window_end:
+    has_date: false
+    has_time: true
+
+input_number:
+  pool_heating_cold_block_duration:       # 5/10/15 min
+  pool_heating_cold_pre_circulation:      # minutes before heating
+  pool_heating_cold_post_circulation:     # minutes after heating
+```
+
+**Script changes:**
+- `pool_heating_block_start`: cold weather branch skips preheat, just runs pre-circ + switches
+- `pool_heating_block_stop`: cold weather branch runs post-circ (no 3-min safety needed)
+- Pre-circ timing: start automation triggers at `block_start - pre_circ` (Option C confirmed)
+
+**Fix pre-existing bug:**
+- `input_text.pool_heating_schedule_json`: increase `max` from 255 to 1024
+
+### Plan 02: Schedule Algorithm (SIMPLIFIED)
+
+**No changes to `scripts/lib/schedule_optimizer.py`** -- normal mode only.
+
+**Pyscript changes (`pool_heating.py`):**
+- Add simple loop for cold weather schedule generation
+- Read cold weather window from separate entities
+- Fixed time: blocks at **:05 past each hour** (hardcoded)
+- No price optimization
+
+```python
+def generate_cold_weather_schedule():
+    """Generate fixed-time blocks for cold weather mode."""
+    window_start = get_cold_window_start()  # From input_datetime
+    window_end = get_cold_window_end()
+    block_duration = get_cold_block_duration()
+
+    blocks = []
+    for hour in hours_in_window(window_start, window_end):
+        block_start = hour.replace(minute=5)  # Hardcoded :05
+        block_end = block_start + timedelta(minutes=block_duration)
+        blocks.append({'start': block_start, 'end': block_end, ...})
+    return blocks
+```
+
+### Plan 03: Temperature Control & Safety
+
+**Gear formula:**
+```python
+# max(9, MIN_GEAR_ENTITY, live_compressor_gear)
+cold_weather_min_gear = max(9,
+    _safe_get_float(MIN_GEAR_ENTITY, 1),
+    _safe_get_float(COMPRESSOR_GEAR_SENSOR, 1))
+```
+
+**Safety threshold:**
+```python
+COLD_WEATHER_RELATIVE_DROP = 12.0  # Confirmed (was 8.0)
+```
+
+### Plan 04: Web UI (unchanged scope)
+
+- Add cold weather toggle
+- Show separate window time inputs
+- Compact block display for 10 blocks
