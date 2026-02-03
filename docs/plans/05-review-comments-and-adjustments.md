@@ -1,5 +1,73 @@
 # Review Comments Summary & Plan Adjustments
 
+## GitHub PR Review Feedback (PR #2)
+
+### GH-1: Configurable Heating Window Hours
+**File:** `docs/plans/00-overview.md` line 14 (Blocks per night)
+**Comment:** "There should be an easy way to set the hours of for cold weather mode at any time of the day"
+
+**Impact:** Cold weather mode needs configurable start/end hours, not hardcoded 21:00-07:00.
+
+**Proposed Change:**
+- Add `input_datetime.pool_heating_cold_window_start` (time only)
+- Add `input_datetime.pool_heating_cold_window_end` (time only)
+- Algorithm uses these instead of hardcoded `HEATING_WINDOW_START/END`
+
+---
+
+### GH-2: Compressor Gear = max(9, current_gear)
+**File:** `docs/plans/00-overview.md` line 20 (Compressor gear)
+**Comment:** "has to be max(9, current_gear) for cold weather"
+
+**Impact:** Plan 03 sets `MIN_GEAR_POOL = 7`. For cold weather, use gear 9 minimum.
+
+**Proposed Change to Plan 03:**
+```python
+# Cold weather: use max(9, current_gear) instead of fixed 7
+cold_weather_min_gear = max(9, _safe_get_float(MIN_GEAR_ENTITY, 1))
+```
+
+---
+
+### GH-3: Safety Threshold = 12C Relative (not 8C)
+**File:** `docs/plans/00-overview.md` line 21 (Safety thresholds)
+**Comment:** "12C relative"
+
+**Impact:** Plan 03 proposes `COLD_WEATHER_RELATIVE_DROP = 8.0`. User wants 12C.
+
+**Proposed Change to Plan 03:**
+```python
+COLD_WEATHER_RELATIVE_DROP = 12.0  # Was 8.0
+```
+
+---
+
+### GH-4: No Price Optimization - Fixed Time (e.g., :05 past hour)
+**File:** `docs/plans/00-overview.md` line 23 (Price optimization)
+**Comment:** "this is problematic as there needs to be at leas one 55 mins between so it could always just be 5 past hour"
+
+**Impact:** The "cheapest quarter per hour" optimization is unnecessary complexity. Just run at a fixed offset each hour (e.g., HH:05).
+
+**Proposed Change to Plan 02:**
+- Remove `find_cold_weather_schedule()` price optimization logic
+- Use fixed schedule: blocks at :05 past each hour within the window
+- Simpler algorithm: `for hour in range(start_hour, end_hour): blocks.append(hour:05)`
+
+---
+
+### GH-5: Keep Cold Weather Mode Dead Simple
+**File:** `docs/plans/00-overview.md` line 33 (Plan 02)
+**Comment:** "what is the optimizer needed here? let's keep this dead simple as possible for cold weather mode"
+
+**Impact:** Reinforces GH-4. No schedule_optimizer.py changes needed for cold weather.
+
+**Proposed Change:**
+- Plan 02 becomes trivial: generate fixed-time blocks in pyscript only
+- No changes to `scripts/lib/schedule_optimizer.py` (normal mode only)
+- Cold weather schedule is just a simple loop, not an optimization problem
+
+---
+
 ## Discrepancies Found Between Reviews and Plans
 
 ### 1. Entity Type: input_select vs input_boolean
@@ -151,6 +219,18 @@ C) Both (mode selects base thresholds, outdoor temp adjusts further)
 
 ## Summary: Proposed Plan Adjustments
 
+### From GitHub PR Review
+
+| # | Issue | Adjustment | Affects |
+|---|-------|------------|---------|
+| GH-1 | Configurable window hours | ADD `input_datetime` for cold weather start/end times | Plan 01, Plan 02 |
+| GH-2 | Compressor gear | CHANGE from fixed 7 to `max(9, current_gear)` | Plan 03 |
+| GH-3 | Safety relative threshold | CHANGE from 8C to 12C | Plan 03 |
+| GH-4 | No price optimization | SIMPLIFY to fixed time (e.g., :05 past hour) | Plan 02 |
+| GH-5 | Keep it simple | REMOVE schedule_optimizer.py changes for cold weather | Plan 02 |
+
+### From Internal Review
+
 | # | Issue | Adjustment | Affects |
 |---|-------|------------|---------|
 | 1 | Entity type | Keep `input_boolean` (no change) | - |
@@ -164,15 +244,37 @@ C) Both (mode selects base thresholds, outdoor temp adjusts further)
 
 ---
 
+## Revised Cold Weather Mode Summary
+
+Based on GitHub feedback, cold weather mode becomes much simpler:
+
+| Aspect | Original Plan | Revised |
+|--------|---------------|---------|
+| Heating window | Hardcoded 21:00-07:00 | **Configurable via input_datetime** |
+| Block timing | Cheapest quarter per hour | **Fixed offset (e.g., :05 past hour)** |
+| Compressor gear | Set to 7 | **max(9, current_gear)** |
+| Safety relative drop | 8C | **12C** |
+| Algorithm complexity | New `find_cold_weather_schedule()` | **Simple loop in pyscript only** |
+
+---
+
 ## Questions for User Feedback
 
-1. **Compressor safety (Issue #3):** Should we add a 3-min minimum run time check? If the block is interrupted before 3 min, should we:
-   - Delay the stop by the remaining time?
-   - Log a warning but stop anyway?
-   - Something else?
+### Clarifications Needed on GitHub Feedback
 
-2. **Pre-circulation timing (Issue #6):** The proposed Option C means the start automation triggers at `block_start - pre_circ_minutes`. This changes how the schedule is interpreted. Is this acceptable, or do you prefer Option A (algorithm calculates wall-clock totals)?
+1. **Window hours (GH-1):** Should cold weather mode use the SAME window entities as normal mode, or separate `input_datetime.pool_heating_cold_window_start/end` entities?
 
-3. **Thermia response time (Issue #7):** Do you have observations on how quickly Thermia responds to fixed supply mode changes? Should we add lead time before the first block?
+2. **Fixed time offset (GH-4):** You mentioned ":05 past hour" as example. Should this be:
+   - A) Hardcoded to :05
+   - B) Configurable (e.g., `input_number.pool_heating_cold_offset_minutes`)
+   - C) User chooses which quarter (:00, :15, :30, :45)
 
-4. **Any other feedback** on the review findings or proposed adjustments?
+3. **Gear formula (GH-2):** `max(9, current_gear)` -- is `current_gear` the value of `MIN_GEAR_ENTITY` at window start, or the live compressor gear sensor?
+
+### Internal Review Questions
+
+4. **Compressor safety (Issue #3):** Should we add a 3-min minimum run time check? If the block is interrupted before 3 min, should we delay the stop?
+
+5. **Pre-circulation timing (Issue #6):** The proposed Option C means the start automation triggers at `block_start - pre_circ_minutes`. This changes how the schedule is interpreted. Is this acceptable?
+
+6. **Thermia response time (Issue #7):** Do you have observations on how quickly Thermia responds to fixed supply mode changes? Should we add lead time?
