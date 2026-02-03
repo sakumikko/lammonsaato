@@ -20,7 +20,7 @@ automation:
     trigger:
       - platform: numeric_state
         entity_id: sensor.discharge_pipe_temperature
-        above: 120
+        above: 123
         for:
           minutes: 10
     condition:
@@ -54,7 +54,7 @@ automation:
     trigger:
       - platform: numeric_state
         entity_id: sensor.discharge_pipe_temperature
-        above: 123
+        above: 125
         for:
           minutes: 3
     action:
@@ -88,7 +88,7 @@ automation:
     trigger:
       - platform: numeric_state
         entity_id: sensor.discharge_pipe_temperature
-        below: 100
+        below: 110
         for:
           minutes: 10
     condition:
