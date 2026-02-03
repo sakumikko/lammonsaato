@@ -154,6 +154,14 @@ class MockState:
     max_block_duration: int = DEFAULT_MAX_BLOCK_MINUTES
     total_hours: float = 2.0
     max_cost_eur: Optional[float] = None  # Cost limit, None = no limit
+    min_break_duration: int = 90  # Minimum break between blocks
+
+    # Cold weather mode parameters
+    cold_weather_mode: bool = False
+    cold_enabled_hours: str = "21,22,23,0,1,2,3,4,5,6"
+    cold_block_duration: int = 10
+    cold_pre_circulation: int = 5
+    cold_post_circulation: int = 5
 
     # Price scenario
     scenario: PriceScenario = PriceScenario.TYPICAL_WINTER
@@ -199,6 +207,12 @@ class MockState:
                 'maxBlockDuration': self.max_block_duration,
                 'totalHours': self.total_hours,
                 'maxCostEur': self.max_cost_eur,
+                'minBreakDuration': self.min_break_duration,
+                'coldWeatherMode': self.cold_weather_mode,
+                'coldEnabledHours': self.cold_enabled_hours,
+                'coldBlockDuration': self.cold_block_duration,
+                'coldPreCirculation': self.cold_pre_circulation,
+                'coldPostCirculation': self.cold_post_circulation,
             },
             'scenario': self.scenario.value,
             'currentPrice': self.current_price,

@@ -82,12 +82,16 @@ export function useMockServer(): UseMockServerReturn {
   const schedule: ScheduleState | null = rawState ? {
     blocks: rawState.blocks.map(block => {
       // Parse ISO datetime strings
+      const preheatDuration = 15;  // Default 15 minutes preheat
+      const startTime = block.start.split('T')[1]?.substring(0, 5) || block.start;
       return {
-        start: block.start.split('T')[1]?.substring(0, 5) || block.start,
+        start: startTime,
+        heatingStart: (block as { heatingStart?: string }).heatingStart || startTime,
         end: block.end.split('T')[1]?.substring(0, 5) || block.end,
         endDateTime: block.end,
         price: block.price,
         duration: block.duration,
+        preheatDuration: (block as { preheatDuration?: number }).preheatDuration ?? preheatDuration,
         enabled: block.enabled,
         costEur: block.costEur ?? 0,
         costExceeded: block.costExceeded ?? false,

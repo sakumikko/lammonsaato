@@ -73,30 +73,43 @@ const createLocalMockSchedule = (params: ScheduleParameters): ScheduleState => {
 
   let currentMinutes = 21 * 60;
 
+  const preheatDuration = 15;
+
   for (let i = 0; i < blockDurations.length; i++) {
     const duration = blockDurations[i];
-    const startTotalMinutes = currentMinutes;
-    const startHour = Math.floor(startTotalMinutes / 60) % 24;
-    const startMin = startTotalMinutes % 60;
-    const endTotalMinutes = startTotalMinutes + duration;
+    const heatingStartTotalMinutes = currentMinutes;
+    const preheatStartTotalMinutes = heatingStartTotalMinutes - preheatDuration;
+    const preheatStartHour = Math.floor(preheatStartTotalMinutes / 60) % 24;
+    const preheatStartMin = ((preheatStartTotalMinutes % 60) + 60) % 60;
+    const heatingStartHour = Math.floor(heatingStartTotalMinutes / 60) % 24;
+    const heatingStartMin = heatingStartTotalMinutes % 60;
+    const endTotalMinutes = heatingStartTotalMinutes + duration;
     const endHour = Math.floor(endTotalMinutes / 60) % 24;
     const endMin = endTotalMinutes % 60;
     const isEndNextDay = endTotalMinutes >= 24 * 60;
 
-    const startTime = `${String(startHour).padStart(2, '0')}:${String(startMin).padStart(2, '0')}`;
+    const preheatStartTime = `${String(preheatStartHour).padStart(2, '0')}:${String(preheatStartMin).padStart(2, '0')}`;
+    const heatingStartTime = `${String(heatingStartHour).padStart(2, '0')}:${String(heatingStartMin).padStart(2, '0')}`;
     const endTime = `${String(endHour).padStart(2, '0')}:${String(endMin).padStart(2, '0')}`;
 
     const blockDate = isEndNextDay ? tomorrow : today;
     const endDateTime = new Date(blockDate);
     endDateTime.setHours(endHour, endMin, 0, 0);
 
+    const price = 1.5 + i * 0.8;
+    const costEur = (price / 100) * 5 * (duration / 60);  // price (EUR) * power (kW) * hours
+
     blocks.push({
-      start: startTime,
+      start: preheatStartTime,
+      heatingStart: heatingStartTime,
       end: endTime,
       endDateTime: endDateTime.toISOString(),
-      price: 1.5 + i * 0.8,
+      price,
       duration,
+      preheatDuration,
       enabled: true,
+      costEur,
+      costExceeded: false,
     });
 
     currentMinutes = endTotalMinutes + duration;
@@ -147,6 +160,13 @@ const TestBench = () => {
     minBlockDuration: 30,
     maxBlockDuration: 45,
     totalHours: 2,
+    maxCostEur: null,
+    minBreakDuration: 90,
+    coldWeatherMode: false,
+    coldEnabledHours: '21,22,23,0,1,2,3,4,5,6',
+    coldBlockDuration: 10,
+    coldPreCirculation: 5,
+    coldPostCirculation: 5,
   });
   const [localSchedule, setLocalSchedule] = useState<ScheduleState>(() =>
     createLocalMockSchedule(localParams)
