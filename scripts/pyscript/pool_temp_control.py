@@ -71,6 +71,12 @@ TARGET_OFFSET = 0.5
 PREHEAT_OFFSET = 3.0     # Degrees to raise comfort wheel before pool heating
 MAX_COMFORT_WHEEL = 30.0 # Maximum allowed comfort wheel setting (don't overshoot)
 
+# Soft ramp transition parameters
+# Target = actual_supply + offset, where offset scales with gap to curve
+TRANSITION_MIN_OFFSET = 1.0  # Minimum offset above actual supply (°C)
+TRANSITION_MAX_OFFSET = 2.0  # Maximum offset above actual supply (°C)
+TRANSITION_OFFSET_FACTOR = 0.2  # offset = gap * factor, clamped to [min, max]
+
 # Safety thresholds (normal mode)
 ABSOLUTE_MIN_SUPPLY = 32.0  # Stop if supply drops below this (FR-44)
 RELATIVE_DROP_MAX = 15.0    # Stop if supply drops this much below original target (FR-45)
@@ -272,35 +278,47 @@ def check_safety_conditions(current_supply: float, original_curve: float, cold_w
 
 
 def calculate_transition_target(
-    start_supply: float,
+    current_supply: float,
     curve_target: float,
-    elapsed_minutes: float,
-    ramp_rate: float
-) -> float:
+    min_offset: float = TRANSITION_MIN_OFFSET,
+    max_offset: float = TRANSITION_MAX_OFFSET,
+    offset_factor: float = TRANSITION_OFFSET_FACTOR
+) -> tuple:
     """
-    Calculate ramped target during post-heating transition.
+    Calculate soft-ramp target during post-heating transition.
 
-    Uses fixed rate ramping from start_supply toward curve_target.
+    Soft ramp approach: target = actual_supply + offset
+    - Keeps target slightly ahead of natural recovery
+    - Offset scales with gap to curve (larger gap = more headroom)
+    - Heat pump always has ~1-2°C positive error, never straining
 
     Args:
-        start_supply: Supply temperature when transition started (deg C)
+        current_supply: Current actual supply temperature (deg C)
         curve_target: Target from heating curve (deg C)
-        elapsed_minutes: Minutes since transition started
-        ramp_rate: Ramp rate in deg C per minute
+        min_offset: Minimum offset above supply (default 1.0°C)
+        max_offset: Maximum offset above supply (default 2.0°C)
+        offset_factor: Multiplier for gap (default 0.2)
 
     Returns:
-        float: New target temperature, clamped to not exceed curve_target
+        tuple: (new_target, is_complete)
+            - new_target: Target temperature
+            - is_complete: True if supply is within tolerance of curve
     """
-    ramp_amount = ramp_rate * elapsed_minutes
+    gap = curve_target - current_supply
 
-    if curve_target > start_supply:
-        # Ramping up toward curve
-        new_target = min(curve_target, start_supply + ramp_amount)
-    else:
-        # Ramping down toward curve (rare case)
-        new_target = max(curve_target, start_supply - ramp_amount)
+    # Check if transition is complete (supply reached curve)
+    if gap <= 0.5:
+        return curve_target, True
 
-    return round(new_target, 1)
+    # Calculate offset: scales with gap, clamped to [min, max]
+    # Large gap → max offset (more headroom)
+    # Small gap → min offset (gentle approach)
+    offset = min(max_offset, max(min_offset, gap * offset_factor))
+
+    # Target = actual supply + offset, but never exceed curve
+    new_target = min(curve_target, current_supply + offset)
+
+    return round(new_target, 1), False
 
 
 # ============================================
@@ -649,11 +667,11 @@ try:
     @service
     def pool_temp_control_adjust_transition():
         """
-        Adjust fixed supply target during transition.
+        Adjust fixed supply target during transition using soft-ramp.
 
         Called every minute by automation when transition is active.
-        Ramps target from transition start supply toward curve target.
-        Exits transition when supply is within tolerance of curve.
+        Soft-ramp: target = actual_supply + offset (tracks natural recovery).
+        Exits transition when supply reaches curve target.
         """
         from datetime import datetime
 
@@ -662,14 +680,11 @@ try:
             return
 
         # Get parameters
-        start_supply = _safe_get_float(TRANSITION_START_SUPPLY, 40.0)
         curve_target = _safe_get_float(CURVE_TARGET_SENSOR, 50.0)
         current_supply = _safe_get_float(SUPPLY_TEMP_SENSOR, 40.0)
-        ramp_rate = _safe_get_float(TRANSITION_RAMP_RATE, 0.5)
-        tolerance = _safe_get_float(TRANSITION_TOLERANCE, 2.0)
         max_duration = _safe_get_float(TRANSITION_MAX_DURATION, 30.0)
 
-        # Calculate elapsed time
+        # Calculate elapsed time for timeout check
         start_str = state.get(TRANSITION_START_TIME)
         if start_str in ['unknown', 'unavailable', None, '']:
             log.warning("[PoolTempControl] Transition start time not available")
@@ -684,30 +699,30 @@ try:
             pool_temp_control_stop_transition()
             return
 
-        # Check exit conditions
-        # Use abs() - supply could be above or below curve target
-        if abs(current_supply - curve_target) <= tolerance:
-            _log_action(f"Transition complete: supply {current_supply:.1f}C within "
-                        f"{tolerance}C of curve {curve_target:.1f}C")
-            pool_temp_control_stop_transition()
-            return
-
         # Safety timeout
         if elapsed_min > max_duration:
             log.warning(f"[PoolTempControl] Transition timeout after {max_duration} min")
             pool_temp_control_stop_transition()
             return
 
-        # Calculate ramped target
-        new_target = calculate_transition_target(start_supply, curve_target, elapsed_min, ramp_rate)
+        # Calculate soft-ramp target (tracks actual supply + offset)
+        new_target, is_complete = calculate_transition_target(current_supply, curve_target)
+
+        if is_complete:
+            _log_action(f"Transition complete: supply {current_supply:.1f}C reached "
+                        f"curve {curve_target:.1f}C")
+            pool_temp_control_stop_transition()
+            return
 
         # Set the target (fixed supply mode stays ON during transition)
         service.call("number", "set_value",
                      entity_id=FIXED_SUPPLY_SETPOINT,
                      value=new_target)
 
-        _log_action(f"Transition: target={new_target:.1f}C, supply={current_supply:.1f}C, "
-                    f"curve={curve_target:.1f}C, elapsed={elapsed_min:.1f}min")
+        gap = curve_target - current_supply
+        offset = new_target - current_supply
+        _log_action(f"Transition: supply={current_supply:.1f}C +{offset:.1f}C -> "
+                    f"target={new_target:.1f}C (gap={gap:.1f}C, {elapsed_min:.0f}min)")
 
 
     @service
@@ -807,34 +822,29 @@ try:
     @service
     def pool_cold_weather_heating_stop():
         """
-        Disable fixed supply mode when cold weather heating is turned OFF.
+        End cold weather heating and start gradual transition to curve.
 
-        - Disables fixed supply mode (returns to heating curve)
-        - Restores original min gear
-        - Restores original comfort wheel
-        - Marks control as inactive
+        Instead of immediately returning to curve, starts soft-ramp
+        transition to prevent overshoot. The transition will:
+        1. Store current supply as start point
+        2. Set gear floor to pre-heat gear
+        3. Activate transition mode (automation runs adjust every minute)
+        4. Soft-ramp target toward curve until supply reaches curve
+        5. Then disable fixed supply and restore original gear
         """
-        # Disable fixed supply mode - return to curve
-        service.call("switch", "turn_off",
-                     entity_id=FIXED_SUPPLY_ENABLE)
-
-        # Restore original minimum gear
-        original_gear = _safe_get_float(ORIGINAL_MIN_GEAR, 1)
-        service.call("number", "set_value",
-                     entity_id=MIN_GEAR_ENTITY,
-                     value=original_gear)
-
-        # Restore original comfort wheel
-        original_comfort = _safe_get_float(ORIGINAL_COMFORT_WHEEL, 20.0)
-        service.call("number", "set_value",
-                     entity_id=COMFORT_WHEEL_ENTITY,
-                     value=original_comfort)
+        # Clear previous supply temp (no longer tracking drop rate)
+        service.call("input_number", "set_value",
+                     entity_id=PREV_SUPPLY_TEMP,
+                     value=0)
 
         # Mark control as inactive
         service.call("input_boolean", "turn_off",
                      entity_id=CONTROL_ACTIVE)
 
-        _log_action(f"Cold weather stopped: gear restored to {original_gear}")
+        # Start soft-ramp transition (same as normal pool heating)
+        pool_temp_control_start_transition()
+
+        _log_action("Cold weather heating ended, starting transition to curve")
 
 
 except NameError:

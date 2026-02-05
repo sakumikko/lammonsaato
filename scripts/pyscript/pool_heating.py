@@ -1383,9 +1383,6 @@ def log_heating_end():
              f"Avg Delta-T: {avg_delta_t:.1f}°C, Electrical: {electrical_kwh:.2f}kWh, "
              f"Cost: {estimated_cost_eur:.3f}€")
 
-    # Store session data for local logging
-    # This fires an event that firebase_sync.py (local logger) listens to
-    event.fire("pool_heating_session_complete", session_data=session_data)
 
     # Update session entity for analytics
     # This creates a state change that gets stored in HA history
@@ -1922,8 +1919,6 @@ def _log_thermal_calibration(measurement_type, true_temp, outdoor_temp):
         "room_temp": ROOM_TEMP
     }
 
-    # Fire event for firebase_sync to pick up
-    event.fire("pool_thermal_calibration", data=log_data)
 
     log.info(f"Thermal calibration logged: {measurement_type} = {true_temp}°C "
              f"(outdoor: {outdoor_temp}°C)")
