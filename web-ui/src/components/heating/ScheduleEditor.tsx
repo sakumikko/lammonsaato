@@ -1,7 +1,8 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { cn } from '@/lib/utils';
 import { ScheduleParameters } from '@/types/heating';
-import { Scissors, X, Save, AlertTriangle, Loader2, Euro } from 'lucide-react';
+import { Scissors, X, Save, AlertTriangle, Loader2, Euro, Snowflake } from 'lucide-react';
+import { Switch } from '@/components/ui/switch';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -36,6 +37,30 @@ const BREAK_DURATIONS = [60, 75, 90, 105, 120];
 // Max 5h (300min) due to heating window constraint (21:00-07:00 = 600min)
 // With breaks equal to block duration, 5.5h+ doesn't fit
 const MAX_TOTAL_MINUTES = 300;
+
+// Cold weather mode options
+const COLD_BLOCK_DURATIONS = [5, 10, 15];
+const HOURS = Array.from({ length: 24 }, (_, i) => i);
+
+// Parse enabled hours from comma-separated string to Set
+const parseEnabledHours = (str: string | undefined | null): Set<number> => {
+  const hours = new Set<number>();
+  // Handle undefined, null, or non-string values
+  if (str && typeof str === 'string') {
+    for (const h of str.split(',')) {
+      const parsed = parseInt(h.trim());
+      if (!isNaN(parsed) && parsed >= 0 && parsed <= 23) {
+        hours.add(parsed);
+      }
+    }
+  }
+  return hours;
+};
+
+// Convert Set to sorted comma-separated string
+const hoursToString = (hours: Set<number>): string => {
+  return Array.from(hours).sort((a, b) => a - b).join(',');
+};
 
 // Generate all valid total hours as multiples of min block duration
 // This prevents schedule calculation failures when total minutes % block size != 0
@@ -140,7 +165,8 @@ export function useScheduleEditor({
   }, [doSaveAndRecalculate]);
 
   // Button component - Scissors icon for "cost cutting" 💰✂️
-  const EditorButton = (
+  // In cold weather mode, don't show the editor toggle (controls are always visible)
+  const EditorButton = editParams.coldWeatherMode ? null : (
     <Button
       data-testid="schedule-editor-toggle"
       variant="ghost"
@@ -172,7 +198,10 @@ export function useScheduleEditor({
         </div>
       )}
 
-      {/* Row 1: Block duration settings */}
+      {/* Cold weather mode controls - this section is empty now, controls moved to ColdWeatherControls */}
+      {editParams.coldWeatherMode ? null : (
+        <>
+          {/* Row 1: Block duration settings */}
       <div className="flex items-end gap-2 mb-2">
         <div className="flex-1 min-w-0">
           <label className="text-[10px] text-muted-foreground mb-1 block uppercase tracking-wide">
@@ -327,11 +356,13 @@ export function useScheduleEditor({
         </Button>
       </div>
 
-      {/* Validation error */}
-      {!isValid && (
-        <p className="text-[10px] text-destructive mt-2">
-          {t('schedule.editor.minMaxError')}
-        </p>
+          {/* Validation error */}
+          {!isValid && (
+            <p className="text-[10px] text-destructive mt-2">
+              {t('schedule.editor.minMaxError')}
+            </p>
+          )}
+        </>
       )}
     </div>
   ) : null;
@@ -359,10 +390,169 @@ export function useScheduleEditor({
     </AlertDialog>
   );
 
+  // Handle cold weather mode toggle from outside the editor panel
+  const setColdWeatherMode = useCallback(async (enabled: boolean) => {
+    setIsLoading(true);
+    try {
+      // Update the parameter - ensure coldEnabledHours has a valid default if not set
+      const newParams = {
+        ...parameters,
+        coldWeatherMode: enabled,
+        // Use server default hours if not already set in parameters
+        coldEnabledHours: parameters.coldEnabledHours || '21,22,23,0,1,2,3,4,5,6',
+      };
+      await onSave(newParams);
+      // Recalculate schedule with new mode
+      await onRecalculate();
+      // Update local state
+      setEditParams(prev => ({ ...prev, coldWeatherMode: enabled }));
+    } catch (error) {
+      console.error('Failed to toggle cold weather mode:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [parameters, onSave, onRecalculate]);
+
+  // Cold weather controls - always visible when cold weather mode is active
+  const ColdWeatherControls = (
+    <div data-testid="cold-weather-controls" className="p-3 rounded-lg bg-blue-500/5 border border-blue-500/20 mb-4">
+      {/* Hour selection grid */}
+      <div className="mb-3">
+        <label className="text-[10px] text-muted-foreground mb-2 block uppercase tracking-wide">
+          {t('schedule.editor.enabledHours')}
+        </label>
+        <div data-testid="cold-weather-hour-grid" className="grid grid-cols-6 gap-1">
+          {HOURS.map((hour) => {
+            const enabledHours = parseEnabledHours(parameters.coldEnabledHours);
+            const isSelected = enabledHours.has(hour);
+            return (
+              <button
+                key={hour}
+                data-testid={`hour-button-${hour}`}
+                data-selected={isSelected}
+                onClick={async () => {
+                  const newHours = new Set(enabledHours);
+                  if (newHours.has(hour)) {
+                    newHours.delete(hour);
+                  } else {
+                    newHours.add(hour);
+                  }
+                  const newParams = { ...parameters, coldEnabledHours: hoursToString(newHours) };
+                  setIsLoading(true);
+                  try {
+                    await onSave(newParams);
+                    await onRecalculate();
+                  } finally {
+                    setIsLoading(false);
+                  }
+                }}
+                className={cn(
+                  "h-7 text-xs font-mono rounded border transition-colors",
+                  isSelected
+                    ? "bg-blue-500 text-white border-blue-600"
+                    : "bg-muted/50 text-muted-foreground border-border hover:bg-muted"
+                )}
+              >
+                {hour.toString().padStart(2, '0')}
+              </button>
+            );
+          })}
+        </div>
+        <p className="text-[10px] text-muted-foreground mt-1">
+          {t('schedule.editor.blocksAtFive')}
+        </p>
+      </div>
+
+      {/* Cold weather settings row */}
+      <div className="flex items-end gap-2">
+        <div className="flex-1 min-w-0">
+          <label className="text-[10px] text-muted-foreground mb-1 block uppercase tracking-wide">
+            {t('schedule.editor.blockDuration')}
+          </label>
+          <Select
+            value={parameters.coldBlockDuration.toString()}
+            onValueChange={async (v) => {
+              const newParams = { ...parameters, coldBlockDuration: parseInt(v) };
+              setIsLoading(true);
+              try {
+                await onSave(newParams);
+                await onRecalculate();
+              } finally {
+                setIsLoading(false);
+              }
+            }}
+          >
+            <SelectTrigger data-testid="cold-weather-duration-select" className="h-8 text-xs font-mono">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {COLD_BLOCK_DURATIONS.map((d) => (
+                <SelectItem key={d} value={d.toString()} className="text-xs font-mono">
+                  {d} min
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="flex-1 min-w-0">
+          <label className="text-[10px] text-muted-foreground mb-1 block uppercase tracking-wide">
+            {t('schedule.editor.preCirc')}
+          </label>
+          <Input
+            data-testid="cold-weather-pre-circ"
+            type="number"
+            min={0}
+            max={10}
+            value={parameters.coldPreCirculation}
+            onChange={async (e) => {
+              const newValue = Math.max(0, Math.min(10, parseInt(e.target.value) || 0));
+              const newParams = { ...parameters, coldPreCirculation: newValue };
+              setIsLoading(true);
+              try {
+                await onSave(newParams);
+                await onRecalculate();
+              } finally {
+                setIsLoading(false);
+              }
+            }}
+            className="h-8 text-xs font-mono"
+          />
+        </div>
+        <div className="flex-1 min-w-0">
+          <label className="text-[10px] text-muted-foreground mb-1 block uppercase tracking-wide">
+            {t('schedule.editor.postCirc')}
+          </label>
+          <Input
+            data-testid="cold-weather-post-circ"
+            type="number"
+            min={0}
+            max={10}
+            value={parameters.coldPostCirculation}
+            onChange={async (e) => {
+              const newValue = Math.max(0, Math.min(10, parseInt(e.target.value) || 0));
+              const newParams = { ...parameters, coldPostCirculation: newValue };
+              setIsLoading(true);
+              try {
+                await onSave(newParams);
+                await onRecalculate();
+              } finally {
+                setIsLoading(false);
+              }
+            }}
+            className="h-8 text-xs font-mono"
+          />
+        </div>
+        {isLoading && <Loader2 className="w-4 h-4 animate-spin text-blue-400" />}
+      </div>
+    </div>
+  );
+
   return {
     isOpen,
     EditorButton,
     EditorPanel,
     WarningDialog,
+    setColdWeatherMode,
+    ColdWeatherControls,
   };
 }

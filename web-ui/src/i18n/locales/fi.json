@@ -77,6 +77,7 @@
     "cost": "Kustannus",
     "costLimitReached": "Kustannusraja €{{limit}} saavutettu - {{disabled}} lohkoa poistettu käytöstä",
     "preheat": "Esilämm:",
+    "coldWeatherMode": "Pakkastila",
     "editor": {
       "title": "Aikataulun asetukset",
       "minBlock": "Min lohko",
@@ -95,8 +96,15 @@
       "warningTitle": "Lämmitysikkuna aktiivinen",
       "warningDescription": "Lämmitysikkuna (21:00-07:00) on käynnissä. Uudelleenlaskenta korvaa tämän yön jäljellä olevan aikataulun. Käynnissä olevaan lohkoon voi vaikuttaa.",
       "applyNow": "Ota käyttöön nyt",
-      "costCutting": "Säästöleikkuri ✂️"
-    }
+      "costCutting": "Säästöleikkuri ✂️",
+      "coldWeatherMode": "Pakkastila",
+      "enabledHours": "Käytössä olevat tunnit",
+      "blocksAtFive": "Lohkot käynnistyvät :05 valittuina tunteina",
+      "blockDuration": "Kesto",
+      "preCirc": "Esi-kierto",
+      "postCirc": "Jälki-kierto"
+    },
+    "circ": "Kierto:"
   },
   "common": {
     "cancel": "Peruuta"

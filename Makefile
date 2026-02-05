@@ -11,11 +11,10 @@ THERMIA_HOST ?= 192.168.50.10
 HA_HOST ?= homeassistant.local
 HA_USER ?= root
 
-.PHONY: help install test test-unit test-thermia test-nordpool test-firebase \
-        test-integration test-ha test-ha-entities test-ha-schedule test-ha-workflow \
+.PHONY: help install test test-unit test-thermia test-ha test-ha-sensors test-ha-templates test-firebase \
         test-all lint clean deploy status validate-yaml validate-entities build build-web build-all dist \
         mock-server e2e-test e2e-test-file test-servers-start test-servers-stop web-dev web-dev-test ci deploy-webui \
-        sim-validate sim-analyze-p sim-benchmark sim-compare sim-plot
+        sim-validate sim-analyze-p sim-benchmark sim-compare sim-plot fetch-entities
 
 # Default target
 help:
@@ -32,17 +31,13 @@ help:
 	@echo "  test-yaml        Test HA YAML templates and conditions"
 	@echo ""
 	@echo "Live Integration Tests:"
-	@echo "  test-thermia     Test Thermia Modbus connection"
-	@echo "  test-nordpool    Test Nordpool API (live prices)"
-	@echo "  test-integration Full integration test (Thermia + Nordpool + Algorithm)"
+	@echo "  test-thermia     Test Thermia Modbus connection (direct register read)"
 	@echo ""
-	@echo "Home Assistant Tests (requires HA_URL and HA_TOKEN):"
-	@echo "  test-ha          Test HA connection"
-	@echo "  test-ha-entities List all pool heating entities"
-	@echo "  test-ha-schedule Test schedule calculation (calls pyscript)"
-	@echo "  test-ha-workflow Test full workflow (DRY RUN)"
-	@echo "  test-ha-monitor  Monitor heating session via WebSocket"
+	@echo "Home Assistant Tests (requires HA_TOKEN):"
+	@echo "  test-ha          Test HA connection (fetch analytics sensors)"
+	@echo "  test-ha-sensors  Test Thermia condenser sensors"
 	@echo "  test-ha-templates Test Jinja2 template compilation"
+	@echo "  fetch-entities   Fetch HA entities by pattern (PATTERN=pool_heating_cold)"
 	@echo ""
 	@echo "All Tests:"
 	@echo "  test-all         Run all tests (unit + integration + HA)"
@@ -126,51 +121,17 @@ test-yaml:
 # LIVE INTEGRATION TESTS
 # ============================================
 
-# Test Thermia Modbus connection
+# Test Thermia Modbus connection (direct register read)
 test-thermia:
-	$(PYTHON) scripts/standalone/test_live_integration.py --test thermia --thermia-host $(THERMIA_HOST)
-
-# Test Nordpool API
-test-nordpool:
-	$(PYTHON) scripts/standalone/test_live_integration.py --test nordpool
-
-# Test algorithm with live Nordpool data
-test-algorithm:
-	$(PYTHON) scripts/standalone/test_live_integration.py --test algorithm
-
-# Full integration test (Thermia + Nordpool + Algorithm)
-test-integration:
-	$(PYTHON) scripts/standalone/test_live_integration.py --test full --thermia-host $(THERMIA_HOST)
+	$(PYTHON) scripts/standalone/read_thermia_registers.py
 
 # ============================================
 # HOME ASSISTANT API TESTS
 # ============================================
 
-# Test HA connection
+# Test HA connection by fetching analytics sensors
 test-ha:
-	$(PYTHON) scripts/standalone/test_ha_automation.py --check
-
-# List pool heating entities
-test-ha-entities:
-	$(PYTHON) scripts/standalone/test_ha_automation.py --list-entities
-
-# Test schedule calculation (calls pyscript service)
-test-ha-schedule:
-	$(PYTHON) scripts/standalone/test_ha_automation.py --test-schedule
-
-# Test full workflow (DRY RUN - won't control hardware)
-test-ha-workflow:
-	$(PYTHON) scripts/standalone/test_ha_automation.py --test-workflow
-
-# Test full workflow with actual hardware control (CAREFUL!)
-test-ha-workflow-live:
-	@echo "WARNING: This will control actual hardware!"
-	@read -p "Are you sure? [y/N] " confirm && [ "$$confirm" = "y" ] || exit 1
-	$(PYTHON) scripts/standalone/test_ha_automation.py --test-workflow --no-dry-run
-
-# Monitor heating session via WebSocket
-test-ha-monitor:
-	$(PYTHON) scripts/standalone/test_ha_automation.py --monitor
+	$(PYTHON) scripts/standalone/fetch_analytics.py
 
 # Test Thermia condenser sensors (for energy calculation)
 test-ha-sensors:
@@ -180,14 +141,20 @@ test-ha-sensors:
 test-ha-templates:
 	$(PYTHON) scripts/standalone/test_templates.py
 
+# Fetch entities from HA matching a pattern (default: pool_heating_cold)
+# Usage: make fetch-entities PATTERN=pool_heating_cold
+PATTERN ?= pool_heating_cold
+fetch-entities:
+	$(PYTHON) scripts/standalone/fetch_entities.py $(PATTERN)
+
 # ============================================
 # ALL TESTS
 # ============================================
 
-test-all: test test-integration
+test-all: test
 	@if [ -n "$$HA_TOKEN" ]; then \
 		echo "\n=== Running HA Tests ==="; \
-		$(PYTHON) scripts/standalone/test_ha_automation.py --test-workflow; \
+		$(PYTHON) scripts/standalone/fetch_analytics.py; \
 	else \
 		echo "\n=== Skipping HA Tests (HA_TOKEN not set) ==="; \
 	fi
@@ -222,12 +189,7 @@ format:
 
 validate-yaml:
 	@echo "Validating YAML files..."
-	@$(PYTHON) -c "\
-import yaml;\
-yaml.add_constructor('!secret', lambda l,n: '<secret>', Loader=yaml.SafeLoader);\
-yaml.add_constructor('!include', lambda l,n: '<include>', Loader=yaml.SafeLoader);\
-yaml.safe_load(open('homeassistant/packages/pool_heating.yaml'));\
-print('  pool_heating.yaml: OK')" || echo "  pool_heating.yaml: FAILED"
+	@$(PYTHON) scripts/standalone/validate_yaml.py
 
 # Validate graph entities match config files
 validate-entities:
@@ -304,7 +266,7 @@ watch:
 
 # Interactive Python shell with project imports
 shell:
-	$(PYTHON) -i -c "import sys; sys.path.insert(0, 'scripts/standalone'); print('Imports available: ha_client, test_live_integration')"
+	$(PYTHON) -i -c "import sys; sys.path.insert(0, 'scripts/standalone'); print('Imports available: ha_client')"
 
 # Show documentation
 docs:

@@ -40,6 +40,17 @@ VALID_BREAK_DURATIONS = [60, 75, 90, 105, 120]  # Valid options in minutes
 VALID_BLOCK_DURATIONS = [30, 45, 60]  # minutes
 VALID_TOTAL_HOURS = [x * 0.5 for x in range(0, 11)]  # 0, 0.5, 1.0, ..., 5.0
 
+# Cold weather mode constants
+COLD_WEATHER_VALID_DURATIONS = [5, 10, 15]  # minutes
+COLD_WEATHER_BLOCK_OFFSET = 5  # blocks start at :05 past the hour
+
+# Cold weather mode entity IDs
+COLD_WEATHER_MODE = "input_boolean.pool_heating_cold_weather_mode"
+COLD_WEATHER_ENABLED_HOURS = "input_text.pool_heating_cold_enabled_hours"
+COLD_WEATHER_BLOCK_DURATION = "input_number.pool_heating_cold_block_duration"
+COLD_WEATHER_PRE_CIRCULATION = "input_number.pool_heating_cold_pre_circulation"
+COLD_WEATHER_POST_CIRCULATION = "input_number.pool_heating_cold_post_circulation"
+
 # Schedule parameter entity IDs
 PARAM_MIN_BLOCK_DURATION = "input_number.pool_heating_min_block_duration"
 PARAM_MAX_BLOCK_DURATION = "input_number.pool_heating_max_block_duration"
@@ -622,6 +633,90 @@ def get_schedule_parameters():
 
 
 # ============================================
+# COLD WEATHER SCHEDULE GENERATION
+# ============================================
+
+def generate_cold_weather_schedule(enabled_hours_str, block_duration_minutes,
+                                    pre_circulation_minutes=0, post_circulation_minutes=0):
+    """
+    Generate fixed-time blocks for cold weather mode.
+
+    Args:
+        enabled_hours_str: Comma-separated hours (0-23), e.g., "21,22,23,0,1,2,3,4,5,6"
+        block_duration_minutes: Duration of each block (5, 10, or 15)
+        pre_circulation_minutes: Minutes to start circulation before heating
+        post_circulation_minutes: Minutes to continue circulation after heating
+
+    Returns:
+        List of block dicts with start, heating_start, end, duration_minutes, enabled, price keys.
+        Blocks are sorted chronologically (overnight wrap handled).
+    """
+    blocks = []
+
+    # Validate duration - fall back to 5 if invalid
+    if block_duration_minutes not in COLD_WEATHER_VALID_DURATIONS:
+        block_duration_minutes = 5
+
+    # Parse enabled hours
+    enabled_hours = []
+    if enabled_hours_str:
+        for h in enabled_hours_str.split(','):
+            h = h.strip()
+            if h.isdigit():
+                hour = int(h)
+                if 0 <= hour <= 23:
+                    enabled_hours.append(hour)
+
+    # Deduplicate
+    enabled_hours = list(set(enabled_hours))
+
+    if not enabled_hours:
+        return []
+
+    # Get today and tomorrow dates for scheduling
+    today = date.today()
+    tomorrow = today + timedelta(days=1)
+
+    # Sort hours for overnight handling: evening hours (>=12) first, then morning hours (<12)
+    evening_hours = sorted([h for h in enabled_hours if h >= 12])
+    morning_hours = sorted([h for h in enabled_hours if h < 12])
+    sorted_hours = evening_hours + morning_hours
+
+    # Create blocks
+    for hour in sorted_hours:
+        # Determine the date for this hour
+        if hour >= 12:
+            # Evening hours: use today
+            block_date = today
+        else:
+            # Morning hours: use tomorrow
+            block_date = tomorrow
+
+        # Heating starts at :05 past the hour
+        heating_start = datetime.combine(block_date, datetime.min.time().replace(
+            hour=hour, minute=COLD_WEATHER_BLOCK_OFFSET))
+
+        # start = heating_start - pre_circulation (for pump warmup)
+        start_time = heating_start - timedelta(minutes=pre_circulation_minutes)
+
+        # end = heating_start + block_duration + post_circulation (for cooldown)
+        end_time = heating_start + timedelta(minutes=block_duration_minutes + post_circulation_minutes)
+
+        blocks.append({
+            'start': start_time,
+            'heating_start': heating_start,
+            'end': end_time,
+            'duration_minutes': block_duration_minutes,
+            'enabled': True,  # All cold weather blocks enabled (no cost constraint)
+            'price': 0.0,     # No price optimization
+            'cost': 0.0,
+            'cost_exceeded': False
+        })
+
+    return blocks
+
+
+# ============================================
 # PYSCRIPT SERVICES
 # ============================================
 
@@ -645,6 +740,131 @@ def calculate_pool_heating_schedule():
         entity_id=NIGHT_COMPLETE_FLAG
     )
     log.info("Reset night complete flag for new schedule")
+
+    # Check for cold weather mode
+    cold_weather_mode = state.get(COLD_WEATHER_MODE) == "on"
+
+    if cold_weather_mode:
+        log.info("Cold weather mode enabled, generating fixed-time schedule")
+
+        # Get cold weather parameters
+        enabled_hours_str = state.get(COLD_WEATHER_ENABLED_HOURS) or "21,22,23,0,1,2,3,4,5,6"
+        block_duration = int(float(state.get(COLD_WEATHER_BLOCK_DURATION) or 5))
+        pre_circulation = int(float(state.get(COLD_WEATHER_PRE_CIRCULATION) or 0))
+        post_circulation = int(float(state.get(COLD_WEATHER_POST_CIRCULATION) or 0))
+
+        # Generate cold weather schedule with circulation offsets
+        schedule = generate_cold_weather_schedule(
+            enabled_hours_str, block_duration, pre_circulation, post_circulation)
+
+        if not schedule:
+            log.warning("No hours enabled for cold weather mode")
+            # Clear all blocks
+            for block_entity in BLOCK_ENTITIES:
+                past_date = datetime.combine(date.today() - timedelta(days=7), datetime.min.time())
+                service.call("input_datetime", "set_datetime",
+                            entity_id=block_entity["start"], datetime=past_date.isoformat())
+                service.call("input_datetime", "set_datetime",
+                            entity_id=block_entity["heating_start"], datetime=past_date.isoformat())
+                service.call("input_datetime", "set_datetime",
+                            entity_id=block_entity["end"], datetime=past_date.isoformat())
+                service.call("input_number", "set_value",
+                            entity_id=block_entity["price"], value=0)
+                service.call("input_number", "set_value",
+                            entity_id=block_entity["cost"], value=0)
+                service.call("input_boolean", "turn_off",
+                            entity_id=block_entity["enabled"])
+                service.call("input_boolean", "turn_off",
+                            entity_id=block_entity["cost_exceeded"])
+            service.call("input_text", "set_value",
+                        entity_id=SCHEDULE_INFO, value="Cold weather: no hours enabled")
+            service.call("input_text", "set_value",
+                        entity_id=SCHEDULE_JSON, value="[]")
+            return
+
+        # Write cold weather schedule to entities
+        log.info(f"Cold weather: {len(schedule)} blocks scheduled")
+
+        total_minutes = 0
+        for i, block_entity in enumerate(BLOCK_ENTITIES):
+            if i < len(schedule):
+                block = schedule[i]
+                total_minutes += block['duration_minutes']
+
+                # For cold weather, start and heating_start are the same (no preheat)
+                service.call(
+                    "input_datetime",
+                    "set_datetime",
+                    entity_id=block_entity["start"],
+                    datetime=block['start'].isoformat()
+                )
+                service.call(
+                    "input_datetime",
+                    "set_datetime",
+                    entity_id=block_entity["heating_start"],
+                    datetime=block['heating_start'].isoformat()
+                )
+                service.call(
+                    "input_datetime",
+                    "set_datetime",
+                    entity_id=block_entity["end"],
+                    datetime=block['end'].isoformat()
+                )
+                service.call("input_number", "set_value",
+                            entity_id=block_entity["price"], value=0)
+                service.call("input_number", "set_value",
+                            entity_id=block_entity["cost"], value=0)
+                # All cold weather blocks are enabled
+                service.call("input_boolean", "turn_on",
+                            entity_id=block_entity["enabled"])
+                service.call("input_boolean", "turn_off",
+                            entity_id=block_entity["cost_exceeded"])
+            else:
+                # Clear unused block slots
+                past_date = datetime.combine(date.today() - timedelta(days=7), datetime.min.time())
+                service.call("input_datetime", "set_datetime",
+                            entity_id=block_entity["start"], datetime=past_date.isoformat())
+                service.call("input_datetime", "set_datetime",
+                            entity_id=block_entity["heating_start"], datetime=past_date.isoformat())
+                service.call("input_datetime", "set_datetime",
+                            entity_id=block_entity["end"], datetime=past_date.isoformat())
+                service.call("input_number", "set_value",
+                            entity_id=block_entity["price"], value=0)
+                service.call("input_number", "set_value",
+                            entity_id=block_entity["cost"], value=0)
+                service.call("input_boolean", "turn_off",
+                            entity_id=block_entity["enabled"])
+                service.call("input_boolean", "turn_off",
+                            entity_id=block_entity["cost_exceeded"])
+
+        # Clear cost totals (no cost tracking for cold weather)
+        service.call("input_number", "set_value",
+                    entity_id=PARAM_TOTAL_COST, value=0)
+        service.call("input_boolean", "turn_off",
+                    entity_id=PARAM_COST_LIMIT_APPLIED)
+
+        # Set info text
+        info_text = f"Cold weather: {len(schedule)} blocks, {total_minutes}min total"
+        service.call("input_text", "set_value",
+                    entity_id=SCHEDULE_INFO, value=info_text)
+
+        # Set schedule JSON
+        schedule_json_data = []
+        for block in schedule:
+            schedule_json_data.append({
+                "start": block['start'].strftime("%H:%M"),
+                "end": block['end'].strftime("%H:%M"),
+                "duration": block['duration_minutes'],
+                "price": 0,
+                "cost": 0,
+                "enabled": True
+            })
+        schedule_json = json.dumps(schedule_json_data)
+        service.call("input_text", "set_value",
+                    entity_id=SCHEDULE_JSON, value=schedule_json)
+
+        log.info(f"Cold weather schedule set: {info_text}")
+        return
 
     # Get prices from Nordpool sensor
     nordpool_state = state.get(NORDPOOL_SENSOR)
@@ -1163,9 +1383,6 @@ def log_heating_end():
              f"Avg Delta-T: {avg_delta_t:.1f}°C, Electrical: {electrical_kwh:.2f}kWh, "
              f"Cost: {estimated_cost_eur:.3f}€")
 
-    # Store session data for local logging
-    # This fires an event that firebase_sync.py (local logger) listens to
-    event.fire("pool_heating_session_complete", session_data=session_data)
 
     # Update session entity for analytics
     # This creates a state change that gets stored in HA history
@@ -1702,8 +1919,6 @@ def _log_thermal_calibration(measurement_type, true_temp, outdoor_temp):
         "room_temp": ROOM_TEMP
     }
 
-    # Fire event for firebase_sync to pick up
-    event.fire("pool_thermal_calibration", data=log_data)
 
     log.info(f"Thermal calibration logged: {measurement_type} = {true_temp}°C "
              f"(outdoor: {outdoor_temp}°C)")

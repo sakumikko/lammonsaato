@@ -229,13 +229,13 @@ automation:
       - service: pyscript.pool_temp_control_stop
         continue_on_error: true
 
-  # Adjust setpoint every 5 minutes during pool heating
+  # Adjust setpoint every 30 seconds during pool heating
   - id: pool_temp_control_adjust
     alias: "Pool Temp Control: Adjust Setpoint"
-    description: "Run PID-Feedback Target Control algorithm every 5 minutes"
+    description: "Run outdoor tracking algorithm every 30 seconds"
     trigger:
       - platform: time_pattern
-        minutes: "/5"
+        seconds: "/30"
     condition:
       - condition: state
         entity_id: input_boolean.pool_temp_control_active

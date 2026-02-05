@@ -77,6 +77,7 @@
     "cost": "Cost",
     "costLimitReached": "Cost limit €{{limit}} reached - {{disabled}} blocks disabled",
     "preheat": "Preheat:",
+    "coldWeatherMode": "Cold Weather Mode",
     "editor": {
       "title": "Schedule Parameters",
       "minBlock": "Min Block",
@@ -95,8 +96,15 @@
       "warningTitle": "Heating Window Active",
       "warningDescription": "The heating window (21:00-07:00) is currently active. Recalculating now will replace tonight's remaining schedule. Any block currently in progress will be affected.",
       "applyNow": "Apply Now",
-      "costCutting": "Cost Cutting ✂️"
-    }
+      "costCutting": "Cost Cutting ✂️",
+      "coldWeatherMode": "Cold Weather Mode",
+      "enabledHours": "Enabled Hours",
+      "blocksAtFive": "Blocks run at :05 past each selected hour",
+      "blockDuration": "Duration",
+      "preCirc": "Pre-Circ",
+      "postCirc": "Post-Circ"
+    },
+    "circ": "Circ:"
   },
   "common": {
     "cancel": "Cancel"

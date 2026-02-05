@@ -100,6 +100,11 @@ input_boolean:
     name: "Cost Limit Applied"
     icon: mdi:alert-circle-outline
 
+  # Cold weather mode toggle
+  pool_heating_cold_weather_mode:
+    name: "Cold Weather Mode"
+    icon: mdi:snowflake
+
 input_datetime:
   # Block 1 - Start and End times
   pool_heat_block_1_start:
@@ -510,6 +515,31 @@ input_number:
     unit_of_measurement: "€"
     icon: mdi:cash-check
 
+  # Cold weather mode parameters
+  pool_heating_cold_block_duration:
+    name: "Cold Weather Block Duration"
+    min: 5
+    max: 15
+    step: 5
+    unit_of_measurement: "min"
+    icon: mdi:timer-sand
+
+  pool_heating_cold_pre_circulation:
+    name: "Cold Weather Pre-Circulation"
+    min: 0
+    max: 15
+    step: 1
+    unit_of_measurement: "min"
+    icon: mdi:pump
+
+  pool_heating_cold_post_circulation:
+    name: "Cold Weather Post-Circulation"
+    min: 0
+    max: 15
+    step: 1
+    unit_of_measurement: "min"
+    icon: mdi:pump
+
 input_text:
   pool_heating_schedule_info:
     name: "Schedule Info"
@@ -519,6 +549,11 @@ input_text:
     name: "Schedule JSON"
     max: 255
     icon: mdi:code-json
+  # Cold weather mode - comma-separated hours (0-23) to run heating
+  pool_heating_cold_enabled_hours:
+    name: "Cold Weather Enabled Hours"
+    max: 100
+    icon: mdi:clock-check
   pool_heating_night_summary_data:
     name: "Pool Heating Night Summary Data"
     max: 255
@@ -963,6 +998,58 @@ automation:
           message: "Thermia sensors were stale for >10 min and integration was reloaded at {{ now().strftime('%H:%M') }}"
 
   # ----------------------------------------
+  # COLD WEATHER MODE
+  # ----------------------------------------
+
+  # When cold weather mode is turned ON, enable fixed supply mode and recalculate schedule
+  - id: pool_cold_weather_mode_on
+    alias: "Pool: Cold Weather Mode ON"
+    description: "Recalculate schedule for cold weather heating"
+    trigger:
+      - platform: state
+        entity_id: input_boolean.pool_heating_cold_weather_mode
+        to: "on"
+    condition:
+      - condition: state
+        entity_id: input_boolean.pool_heating_enabled
+        state: "on"
+    action:
+      # - service: pyscript.pool_cold_weather_start
+      #  continue_on_error: true
+      # Recalculate schedule with cold weather blocks
+      - service: pyscript.calculate_pool_heating_schedule
+        continue_on_error: true
+      - service: logbook.log
+        data:
+          name: "Pool Heating"
+          message: "Cold weather mode enabled - schedule recalculated"
+          entity_id: input_boolean.pool_heating_cold_weather_mode
+
+  # When cold weather mode is turned OFF, disable fixed supply mode and recalculate schedule
+  - id: pool_cold_weather_mode_off
+    alias: "Pool: Cold Weather Mode OFF"
+    description: "Disable fixed supply mode and recalculate normal schedule"
+    trigger:
+      - platform: state
+        entity_id: input_boolean.pool_heating_cold_weather_mode
+        to: "off"
+    condition:
+      - condition: state
+        entity_id: input_boolean.pool_heating_enabled
+        state: "on"
+    action:
+      #- service: pyscript.pool_cold_weather_stop
+      #  continue_on_error: true
+      # Recalculate schedule with normal blocks
+      - service: pyscript.calculate_pool_heating_schedule
+        continue_on_error: true
+      - service: logbook.log
+        data:
+          name: "Pool Heating"
+          message: "Cold weather mode disabled - schedule recalculated"
+          entity_id: input_boolean.pool_heating_cold_weather_mode
+
+  # ----------------------------------------
   # POOL HEATING SCHEDULE
   # ----------------------------------------
 
@@ -1404,60 +1491,127 @@ script:
 
   pool_heating_block_start:
     alias: "Pool Heating: Full Block Start Sequence"
-    description: "Complete sequence: preheat → wait 15min → temp control → switches ON"
+    description: "Complete sequence: preheat → wait 15min → temp control → switches ON (or cold weather short sequence)"
     icon: mdi:play-circle
+    mode: restart
     fields:
       block_number:
         description: "Block number (1-10)"
         example: 1
     sequence:
-      # Step 1: Preheat radiators
-      - service: script.pool_heating_preheat
-      # Step 2: Wait 15 minutes for radiators to warm
-      - delay:
-          minutes: 15
-      # Step 3: Start temperature control (fixed supply mode)
-      - service: script.pool_heating_start_temp_control
-      # Step 4: Turn on the switches
-      - service: script.pool_heating_switches_on
-      - service: logbook.log
-        data:
-          name: "Pool Heating"
-          message: "Block {{ block_number }} fully started (preheat complete)"
-          entity_id: binary_sensor.pool_heating_active
+      - choose:
+          # Cold weather mode: simplified sequence (no preheat, pre-circ only)
+          - conditions:
+              - condition: state
+                entity_id: input_boolean.pool_heating_cold_weather_mode
+                state: "on"
+            sequence:
+              # Step 1: Start circulation pump (pre-circulation)
+              - service: switch.turn_on
+                target:
+                  entity_id: switch.altaan_kiertovesipumppu
+              # Step 2: Wait for pre-circulation time
+              - delay:
+                  minutes: "{{ states('input_number.pool_heating_cold_pre_circulation') | int(5) }}"
+              # Step 3: Allow heating (prevention OFF)
+              - service: switch.turn_off
+                target:
+                  entity_id: switch.altaan_lammityksen_esto
+              - service: pyscript.pool_cold_weather_heating_start
+                continue_on_error: true
+              # Step 4: Log heating start
+              - service: pyscript.log_heating_start
+                continue_on_error: true
+              - service: logbook.log
+                data:
+                  name: "Pool Heating"
+                  message: "Cold weather block {{ block_number }} started"
+                  entity_id: binary_sensor.pool_heating_active
+        # Normal mode: full preheat sequence
+        default:
+          # Step 1: Preheat radiators
+          - service: script.pool_heating_preheat
+          # Step 2: Wait 15 minutes for radiators to warm
+          - delay:
+              minutes: 15
+          # Step 3: Start temperature control (fixed supply mode)
+          - service: script.pool_heating_start_temp_control
+          # Step 4: Turn on the switches
+          - service: script.pool_heating_switches_on
+          - service: logbook.log
+            data:
+              name: "Pool Heating"
+              message: "Block {{ block_number }} fully started (preheat complete)"
+              entity_id: binary_sensor.pool_heating_active
 
   pool_heating_block_stop:
     alias: "Pool Heating: Full Block Stop Sequence"
-    description: "Complete stop: temp control off → switches off → mix 15min → log final temp"
+    description: "Complete stop: temp control off → switches off → mix 15min → log final temp (or cold weather short sequence)"
     icon: mdi:stop-circle
+    mode: restart
     sequence:
-      # Step 1: Stop temperature control (reverts to heating curve)
-      - service: script.pool_heating_stop_temp_control
-      # Step 2: Turn off switches
-      - service: script.pool_heating_switches_off
-      # Step 3: Log session end NOW - captures accurate heating duration and energy
-      - service: pyscript.log_heating_end
-        continue_on_error: true
-      - service: logbook.log
-        data:
-          name: "Pool Heating"
-          message: "Heating stopped, circulation continues for mixing"
-          entity_id: binary_sensor.pool_heating_active
-      # Step 4: Keep circulation running for 15 minutes to mix water
-      - delay:
-          minutes: 15
-      # Step 5: Turn OFF the circulation pump
-      - service: switch.turn_off
-        target:
-          entity_id: switch.altaan_kiertovesipumppu
-      # Step 6: Update final pool temp AFTER mixing
-      - service: pyscript.log_session_final_temp
-        continue_on_error: true
-      - service: logbook.log
-        data:
-          name: "Pool Heating"
-          message: "Block stopped, final pool temp logged after mixing"
-          entity_id: binary_sensor.pool_heating_active
+      - choose:
+          # Cold weather mode: simplified sequence (no temp control, short post-circ)
+          - conditions:
+              - condition: state
+                entity_id: input_boolean.pool_heating_cold_weather_mode
+                state: "on"
+            sequence:
+              # Step 1: Stop heating (prevention ON)
+              - service: switch.turn_on
+                target:
+                  entity_id: switch.altaan_lammityksen_esto
+              - service: pyscript.pool_cold_weather_heating_stop
+                continue_on_error: true
+              # Step 2: Log heating end
+              - service: pyscript.log_heating_end
+                continue_on_error: true
+              - service: logbook.log
+                data:
+                  name: "Pool Heating"
+                  message: "Cold weather block stopped, post-circulation running"
+                  entity_id: binary_sensor.pool_heating_active
+              # Step 3: Keep circulation running for post-circulation time
+              - delay:
+                  minutes: "{{ states('input_number.pool_heating_cold_post_circulation') | int(5) }}"
+              # Step 4: Turn OFF the circulation pump
+              - service: switch.turn_off
+                target:
+                  entity_id: switch.altaan_kiertovesipumppu
+              - service: logbook.log
+                data:
+                  name: "Pool Heating"
+                  message: "Cold weather block complete, circulation stopped"
+                  entity_id: binary_sensor.pool_heating_active
+        # Normal mode: full stop sequence
+        default:
+          # Step 1: Stop temperature control (reverts to heating curve)
+          - service: script.pool_heating_stop_temp_control
+          # Step 2: Turn off switches
+          - service: script.pool_heating_switches_off
+          # Step 3: Log session end NOW - captures accurate heating duration and energy
+          - service: pyscript.log_heating_end
+            continue_on_error: true
+          - service: logbook.log
+            data:
+              name: "Pool Heating"
+              message: "Heating stopped, circulation continues for mixing"
+              entity_id: binary_sensor.pool_heating_active
+          # Step 4: Keep circulation running for 15 minutes to mix water
+          - delay:
+              minutes: 15
+          # Step 5: Turn OFF the circulation pump
+          - service: switch.turn_off
+            target:
+              entity_id: switch.altaan_kiertovesipumppu
+          # Step 6: Update final pool temp AFTER mixing
+          - service: pyscript.log_session_final_temp
+            continue_on_error: true
+          - service: logbook.log
+            data:
+              name: "Pool Heating"
+              message: "Block stopped, final pool temp logged after mixing"
+              entity_id: binary_sensor.pool_heating_active
 
   pool_heating_emergency_stop:
     alias: "Pool Heating: Emergency Stop"
