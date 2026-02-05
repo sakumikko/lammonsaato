@@ -527,7 +527,7 @@ input_number:
   pool_heating_cold_pre_circulation:
     name: "Cold Weather Pre-Circulation"
     min: 0
-    max: 10
+    max: 15
     step: 1
     unit_of_measurement: "min"
     icon: mdi:pump
@@ -535,7 +535,7 @@ input_number:
   pool_heating_cold_post_circulation:
     name: "Cold Weather Post-Circulation"
     min: 0
-    max: 10
+    max: 15
     step: 1
     unit_of_measurement: "min"
     icon: mdi:pump
@@ -547,7 +547,7 @@ input_text:
     icon: mdi:information
   pool_heating_schedule_json:
     name: "Schedule JSON"
-    max: 1024
+    max: 255
     icon: mdi:code-json
   # Cold weather mode - comma-separated hours (0-23) to run heating
   pool_heating_cold_enabled_hours:
@@ -1001,10 +1001,10 @@ automation:
   # COLD WEATHER MODE
   # ----------------------------------------
 
-  # When cold weather mode is turned ON, enable fixed supply mode
+  # When cold weather mode is turned ON, enable fixed supply mode and recalculate schedule
   - id: pool_cold_weather_mode_on
     alias: "Pool: Cold Weather Mode ON"
-    description: "Enable fixed supply mode for cold weather heating"
+    description: "Recalculate schedule for cold weather heating"
     trigger:
       - platform: state
         entity_id: input_boolean.pool_heating_cold_weather_mode
@@ -1014,29 +1014,39 @@ automation:
         entity_id: input_boolean.pool_heating_enabled
         state: "on"
     action:
-      - service: pyscript.pool_cold_weather_start
+      # - service: pyscript.pool_cold_weather_start
+      #  continue_on_error: true
+      # Recalculate schedule with cold weather blocks
+      - service: pyscript.calculate_pool_heating_schedule
         continue_on_error: true
       - service: logbook.log
         data:
           name: "Pool Heating"
-          message: "Cold weather mode enabled"
+          message: "Cold weather mode enabled - schedule recalculated"
           entity_id: input_boolean.pool_heating_cold_weather_mode
 
-  # When cold weather mode is turned OFF, disable fixed supply mode
+  # When cold weather mode is turned OFF, disable fixed supply mode and recalculate schedule
   - id: pool_cold_weather_mode_off
     alias: "Pool: Cold Weather Mode OFF"
-    description: "Disable fixed supply mode when leaving cold weather mode"
+    description: "Disable fixed supply mode and recalculate normal schedule"
     trigger:
       - platform: state
         entity_id: input_boolean.pool_heating_cold_weather_mode
         to: "off"
+    condition:
+      - condition: state
+        entity_id: input_boolean.pool_heating_enabled
+        state: "on"
     action:
-      - service: pyscript.pool_cold_weather_stop
+      #- service: pyscript.pool_cold_weather_stop
+      #  continue_on_error: true
+      # Recalculate schedule with normal blocks
+      - service: pyscript.calculate_pool_heating_schedule
         continue_on_error: true
       - service: logbook.log
         data:
           name: "Pool Heating"
-          message: "Cold weather mode disabled"
+          message: "Cold weather mode disabled - schedule recalculated"
           entity_id: input_boolean.pool_heating_cold_weather_mode
 
   # ----------------------------------------
@@ -1507,6 +1517,8 @@ script:
               - service: switch.turn_off
                 target:
                   entity_id: switch.altaan_lammityksen_esto
+              - service: pyscript.pool_cold_weather_heating_start
+                continue_on_error: true
               # Step 4: Log heating start
               - service: pyscript.log_heating_start
                 continue_on_error: true
@@ -1549,6 +1561,8 @@ script:
               - service: switch.turn_on
                 target:
                   entity_id: switch.altaan_lammityksen_esto
+              - service: pyscript.pool_cold_weather_heating_stop
+                continue_on_error: true
               # Step 2: Log heating end
               - service: pyscript.log_heating_end
                 continue_on_error: true

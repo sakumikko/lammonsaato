@@ -14,7 +14,7 @@ HA_USER ?= root
 .PHONY: help install test test-unit test-thermia test-ha test-ha-sensors test-ha-templates test-firebase \
         test-all lint clean deploy status validate-yaml validate-entities build build-web build-all dist \
         mock-server e2e-test e2e-test-file test-servers-start test-servers-stop web-dev web-dev-test ci deploy-webui \
-        sim-validate sim-analyze-p sim-benchmark sim-compare sim-plot
+        sim-validate sim-analyze-p sim-benchmark sim-compare sim-plot fetch-entities
 
 # Default target
 help:
@@ -37,6 +37,7 @@ help:
 	@echo "  test-ha          Test HA connection (fetch analytics sensors)"
 	@echo "  test-ha-sensors  Test Thermia condenser sensors"
 	@echo "  test-ha-templates Test Jinja2 template compilation"
+	@echo "  fetch-entities   Fetch HA entities by pattern (PATTERN=pool_heating_cold)"
 	@echo ""
 	@echo "All Tests:"
 	@echo "  test-all         Run all tests (unit + integration + HA)"
@@ -140,6 +141,12 @@ test-ha-sensors:
 test-ha-templates:
 	$(PYTHON) scripts/standalone/test_templates.py
 
+# Fetch entities from HA matching a pattern (default: pool_heating_cold)
+# Usage: make fetch-entities PATTERN=pool_heating_cold
+PATTERN ?= pool_heating_cold
+fetch-entities:
+	$(PYTHON) scripts/standalone/fetch_entities.py $(PATTERN)
+
 # ============================================
 # ALL TESTS
 # ============================================
@@ -182,12 +189,7 @@ format:
 
 validate-yaml:
 	@echo "Validating YAML files..."
-	@$(PYTHON) -c "\
-import yaml;\
-yaml.add_constructor('!secret', lambda l,n: '<secret>', Loader=yaml.SafeLoader);\
-yaml.add_constructor('!include', lambda l,n: '<include>', Loader=yaml.SafeLoader);\
-yaml.safe_load(open('homeassistant/packages/pool_heating.yaml'));\
-print('  pool_heating.yaml: OK')" || echo "  pool_heating.yaml: FAILED"
+	@$(PYTHON) scripts/standalone/validate_yaml.py
 
 # Validate graph entities match config files
 validate-entities:

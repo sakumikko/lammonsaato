@@ -343,6 +343,13 @@ async def set_parameters(params: ScheduleParameters):
     state.total_hours = validated['total_minutes'] / 60
     state.max_cost_eur = params.maxCostEur  # Can be None for no limit
 
+    # Save cold weather parameters
+    state.cold_weather_mode = params.coldWeatherMode
+    state.cold_enabled_hours = params.coldEnabledHours
+    state.cold_block_duration = params.coldBlockDuration
+    state.cold_pre_circulation = params.coldPreCirculation
+    state.cold_post_circulation = params.coldPostCirculation
+
     await broadcast_state()
 
     return {
@@ -352,6 +359,11 @@ async def set_parameters(params: ScheduleParameters):
             "maxBlockDuration": state.max_block_duration,
             "totalHours": state.total_hours,
             "maxCostEur": state.max_cost_eur,
+            "coldWeatherMode": state.cold_weather_mode,
+            "coldEnabledHours": state.cold_enabled_hours,
+            "coldBlockDuration": state.cold_block_duration,
+            "coldPreCirculation": state.cold_pre_circulation,
+            "coldPostCirculation": state.cold_post_circulation,
         },
         "fallbacks": validated['fallbacks']
     }
@@ -433,11 +445,11 @@ async def calculate_schedule(request: CalculateRequest = None):
         max_block = state.max_block_duration
         total_hours = state.total_hours
         max_cost_eur = state.max_cost_eur
-        cold_weather_mode = False
-        cold_enabled_hours = "21,22,23,0,1,2,3,4,5,6"
-        cold_block_duration = 5
-        cold_pre_circ = 5
-        cold_post_circ = 5
+        cold_weather_mode = state.cold_weather_mode
+        cold_enabled_hours = state.cold_enabled_hours
+        cold_block_duration = state.cold_block_duration
+        cold_pre_circ = state.cold_pre_circulation
+        cold_post_circ = state.cold_post_circulation
 
     # Get scenario
     if request and request.scenario:
@@ -781,8 +793,57 @@ async def broadcast_ha_state_change(entity_id: str, old_state: dict, new_state: 
             ha_connected_clients.pop(ws, None)
 
 
+# Sync HA entity changes back to MockState
+async def sync_ha_entity_to_mock_state(entity_id: str, old_state: dict, new_state: dict):
+    """Sync relevant HA entity changes back to the internal MockState."""
+    global state
+    new_value = new_state.get("state", "")
+
+    # Schedule parameters
+    if entity_id == "input_number.pool_heating_min_block_duration":
+        state.min_block_duration = int(float(new_value)) if new_value else 30
+    elif entity_id == "input_number.pool_heating_max_block_duration":
+        state.max_block_duration = int(float(new_value)) if new_value else 45
+    elif entity_id == "input_number.pool_heating_total_hours":
+        state.total_hours = float(new_value) if new_value else 2.0
+    elif entity_id == "input_number.pool_heating_max_cost_eur":
+        val = float(new_value) if new_value else 0
+        state.max_cost_eur = val if val > 0 else None
+    elif entity_id == "input_number.pool_heating_min_break_duration":
+        state.min_break_duration = int(float(new_value)) if new_value else 90
+
+    # Cold weather mode
+    elif entity_id == "input_boolean.pool_heating_cold_weather_mode":
+        state.cold_weather_mode = new_value == "on"
+    elif entity_id == "input_text.pool_heating_cold_enabled_hours":
+        state.cold_enabled_hours = new_value if new_value else "21,22,23,0,1,2,3,4,5,6"
+    elif entity_id == "input_number.pool_heating_cold_block_duration":
+        state.cold_block_duration = int(float(new_value)) if new_value else 10
+    elif entity_id == "input_number.pool_heating_cold_pre_circulation":
+        state.cold_pre_circulation = int(float(new_value)) if new_value else 5
+    elif entity_id == "input_number.pool_heating_cold_post_circulation":
+        state.cold_post_circulation = int(float(new_value)) if new_value else 5
+
+    # Block enabled states
+    elif entity_id.startswith("input_boolean.pool_heat_block_") and "_enabled" in entity_id:
+        # Extract block number from entity_id
+        try:
+            block_num = int(entity_id.split("_")[4])
+            state.block_enabled[block_num] = new_value == "on"
+            # Also update schedule_blocks if exists
+            if block_num <= len(state.schedule_blocks):
+                state.schedule_blocks[block_num - 1]['enabled'] = new_value == "on"
+        except (IndexError, ValueError):
+            pass
+
+    # Broadcast state change to /ws clients
+    await broadcast_state()
+
+
 # Register broadcaster with state manager
 ha_state_manager.add_change_listener(broadcast_ha_state_change)
+# Register sync listener to keep MockState in sync with HA entities
+ha_state_manager.add_change_listener(sync_ha_entity_to_mock_state)
 
 
 @app.websocket("/api/websocket")

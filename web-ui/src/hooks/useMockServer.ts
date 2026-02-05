@@ -183,6 +183,12 @@ export function useMockServer(): UseMockServerReturn {
         maxBlockDuration: params.maxBlockDuration,
         totalHours: params.totalHours,
         maxCostEur: params.maxCostEur,
+        // Cold weather parameters
+        coldWeatherMode: params.coldWeatherMode,
+        coldEnabledHours: params.coldEnabledHours,
+        coldBlockDuration: params.coldBlockDuration,
+        coldPreCirculation: params.coldPreCirculation,
+        coldPostCirculation: params.coldPostCirculation,
       }),
     });
 

@@ -75,8 +75,36 @@ export function SchedulePanel({
         </div>
       </div>
 
-      {/* Editor panel (expands below header when open) */}
-      {editor?.EditorPanel}
+      {/* Cold Weather Mode Toggle - Top Level */}
+      {editor && (
+        <div
+          data-testid="cold-weather-toggle-row"
+          className={cn(
+            'flex items-center justify-between mb-4 p-3 rounded-lg border transition-colors',
+            isColdWeather
+              ? 'bg-blue-500/10 border-blue-500/30'
+              : 'bg-muted/30 border-border'
+          )}
+        >
+          <div className="flex items-center gap-2">
+            <Snowflake className={cn('w-4 h-4', isColdWeather ? 'text-blue-400' : 'text-muted-foreground')} />
+            <span className={cn('text-sm font-medium', isColdWeather ? 'text-blue-400' : 'text-foreground')}>
+              {t('schedule.coldWeatherMode')}
+            </span>
+          </div>
+          <Switch
+            data-testid="cold-weather-toggle"
+            checked={isColdWeather}
+            onCheckedChange={(checked) => editor.setColdWeatherMode(checked)}
+          />
+        </div>
+      )}
+
+      {/* Cold Weather Controls - Always visible when mode is active */}
+      {editor && isColdWeather && editor.ColdWeatherControls}
+
+      {/* Editor panel (expands below header when open) - only for normal mode */}
+      {!isColdWeather && editor?.EditorPanel}
 
       {/* Warning dialog */}
       {editor?.WarningDialog}

@@ -636,16 +636,19 @@ def get_schedule_parameters():
 # COLD WEATHER SCHEDULE GENERATION
 # ============================================
 
-def generate_cold_weather_schedule(enabled_hours_str, block_duration_minutes):
+def generate_cold_weather_schedule(enabled_hours_str, block_duration_minutes,
+                                    pre_circulation_minutes=0, post_circulation_minutes=0):
     """
     Generate fixed-time blocks for cold weather mode.
 
     Args:
         enabled_hours_str: Comma-separated hours (0-23), e.g., "21,22,23,0,1,2,3,4,5,6"
         block_duration_minutes: Duration of each block (5, 10, or 15)
+        pre_circulation_minutes: Minutes to start circulation before heating
+        post_circulation_minutes: Minutes to continue circulation after heating
 
     Returns:
-        List of block dicts with start, end, duration_minutes, enabled, price keys.
+        List of block dicts with start, heating_start, end, duration_minutes, enabled, price keys.
         Blocks are sorted chronologically (overnight wrap handled).
     """
     blocks = []
@@ -689,14 +692,19 @@ def generate_cold_weather_schedule(enabled_hours_str, block_duration_minutes):
             # Morning hours: use tomorrow
             block_date = tomorrow
 
-        # Start at :05 past the hour
-        start_time = datetime.combine(block_date, datetime.min.time().replace(
+        # Heating starts at :05 past the hour
+        heating_start = datetime.combine(block_date, datetime.min.time().replace(
             hour=hour, minute=COLD_WEATHER_BLOCK_OFFSET))
-        end_time = start_time + timedelta(minutes=block_duration_minutes)
+
+        # start = heating_start - pre_circulation (for pump warmup)
+        start_time = heating_start - timedelta(minutes=pre_circulation_minutes)
+
+        # end = heating_start + block_duration + post_circulation (for cooldown)
+        end_time = heating_start + timedelta(minutes=block_duration_minutes + post_circulation_minutes)
 
         blocks.append({
             'start': start_time,
-            'heating_start': start_time,  # No preheat for cold weather
+            'heating_start': heating_start,
             'end': end_time,
             'duration_minutes': block_duration_minutes,
             'enabled': True,  # All cold weather blocks enabled (no cost constraint)
@@ -742,9 +750,12 @@ def calculate_pool_heating_schedule():
         # Get cold weather parameters
         enabled_hours_str = state.get(COLD_WEATHER_ENABLED_HOURS) or "21,22,23,0,1,2,3,4,5,6"
         block_duration = int(float(state.get(COLD_WEATHER_BLOCK_DURATION) or 5))
+        pre_circulation = int(float(state.get(COLD_WEATHER_PRE_CIRCULATION) or 0))
+        post_circulation = int(float(state.get(COLD_WEATHER_POST_CIRCULATION) or 0))
 
-        # Generate cold weather schedule
-        schedule = generate_cold_weather_schedule(enabled_hours_str, block_duration)
+        # Generate cold weather schedule with circulation offsets
+        schedule = generate_cold_weather_schedule(
+            enabled_hours_str, block_duration, pre_circulation, post_circulation)
 
         if not schedule:
             log.warning("No hours enabled for cold weather mode")

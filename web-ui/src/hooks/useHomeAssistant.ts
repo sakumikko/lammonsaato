@@ -293,6 +293,14 @@ function parseBoolean(state: HAEntityState | undefined): boolean {
   return state.state === 'on' || state.state === 'true';
 }
 
+// Helper to parse string state
+function parseString(state: HAEntityState | undefined, defaultValue: string = ''): string {
+  if (!state || state.state === 'unknown' || state.state === 'unavailable') {
+    return defaultValue;
+  }
+  return state.state;
+}
+
 // Helper to parse heat pump mode
 function parseHeatPumpMode(state: HAEntityState | undefined): 'Heat' | 'Cool' | 'Off' {
   if (!state) return 'Off';
@@ -496,7 +504,7 @@ export function useHomeAssistant(): UseHomeAssistantReturn {
       minBreakDuration: parseNumber(get(ENTITIES.minBreakDuration)) || 60,
       // Cold weather mode
       coldWeatherMode: parseBoolean(get(ENTITIES.coldWeatherMode)),
-      coldEnabledHours: get(ENTITIES.coldEnabledHours) || '21,22,23,0,1,2,3,4,5,6',
+      coldEnabledHours: parseString(get(ENTITIES.coldEnabledHours), '21,22,23,0,1,2,3,4,5,6'),
       coldBlockDuration: parseNumber(get(ENTITIES.coldBlockDuration)) || 5,
       coldPreCirculation: parseNumber(get(ENTITIES.coldPreCirculation)) || 5,
       coldPostCirculation: parseNumber(get(ENTITIES.coldPostCirculation)) || 5,
