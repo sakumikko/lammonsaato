@@ -699,8 +699,8 @@ def generate_cold_weather_schedule(enabled_hours_str, block_duration_minutes,
         # start = heating_start - pre_circulation (for pump warmup)
         start_time = heating_start - timedelta(minutes=pre_circulation_minutes)
 
-        # end = heating_start + block_duration + post_circulation (for cooldown)
-        end_time = heating_start + timedelta(minutes=block_duration_minutes + post_circulation_minutes)
+        # end = heating_start + block_duration 
+        end_time = heating_start + timedelta(minutes=block_duration_minutes)
 
         blocks.append({
             'start': start_time,
